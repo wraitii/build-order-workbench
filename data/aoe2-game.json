@@ -1,0 +1,244 @@
+{
+  "resources": ["food", "wood", "gold", "stone"],
+  "startingResources": {
+    "food": 200,
+    "wood": 200,
+    "gold": 100,
+    "stone": 200
+  },
+  "startingEntities": [
+    { "entityType": "town_center", "count": 1 },
+    { "entityType": "villager", "count": 3 },
+    { "entityType": "scout_cavalry", "count": 1 },
+    { "entityType": "house", "count": 2 }
+  ],
+  "entities": {
+    "villager": {
+      "id": "villager",
+      "name": "Villager",
+      "kind": "unit",
+      "actions": [
+        "build_house",
+        "build_lumber_camp",
+        "build_mill",
+        "build_barracks",
+        "build_stable",
+        "build_farm"
+      ]
+    },
+    "town_center": {
+      "id": "town_center",
+      "name": "Town Center",
+      "kind": "building",
+      "actions": ["train_villager", "research_loom", "advance_feudal_age"]
+    },
+    "scout_cavalry": {
+      "id": "scout_cavalry",
+      "name": "Scout Cavalry",
+      "kind": "unit"
+    },
+    "house": {
+      "id": "house",
+      "name": "House",
+      "kind": "building"
+    },
+    "lumber_camp": {
+      "id": "lumber_camp",
+      "name": "Lumber Camp",
+      "kind": "building",
+      "actions": ["research_double_bit_axe"]
+    },
+    "mill": {
+      "id": "mill",
+      "name": "Mill",
+      "kind": "building",
+      "actions": ["research_horse_collar"]
+    },
+    "barracks": {
+      "id": "barracks",
+      "name": "Barracks",
+      "kind": "building"
+    },
+    "stable": {
+      "id": "stable",
+      "name": "Stable",
+      "kind": "building",
+      "actions": ["train_scout_cavalry"]
+    },
+    "farm": {
+      "id": "farm",
+      "name": "Farm",
+      "kind": "building"
+    }
+  },
+  "resourceNodePrototypes": {
+    "sheep": {
+      "id": "sheep",
+      "name": "Sheep",
+      "produces": "food",
+      "rateByEntityType": { "villager": 0.33 },
+      "maxWorkers": 1,
+      "stock": 100,
+      "tags": ["food", "huntables", "herdable"]
+    },
+    "boar": {
+      "id": "boar",
+      "name": "Boar",
+      "produces": "food",
+      "rateByEntityType": { "villager": 0.41 },
+      "maxWorkers": 8,
+      "stock": 340,
+      "tags": ["food", "huntables"]
+    },
+    "berries": {
+      "id": "berries",
+      "name": "Berries",
+      "produces": "food",
+      "rateByEntityType": { "villager": 0.31 },
+      "maxWorkers": 6,
+      "stock": 750,
+      "tags": ["food", "forage"]
+    },
+    "forest": {
+      "id": "forest",
+      "name": "Forest",
+      "produces": "wood",
+      "rateByEntityType": { "villager": 0.39 },
+      "tags": ["wood", "woodcutting"]
+    },
+    "gold_mine": {
+      "id": "gold_mine",
+      "name": "Gold Mine",
+      "produces": "gold",
+      "rateByEntityType": { "villager": 0.38 },
+      "tags": ["gold", "mining"]
+    },
+    "stone_mine": {
+      "id": "stone_mine",
+      "name": "Stone Mine",
+      "produces": "stone",
+      "rateByEntityType": { "villager": 0.36 },
+      "tags": ["stone", "mining"]
+    },
+    "farm_patch": {
+      "id": "farm_patch",
+      "name": "Farm",
+      "produces": "food",
+      "rateByEntityType": { "villager": 0.32 },
+      "maxWorkers": 1,
+      "stock": 175,
+      "tags": ["food", "farm"]
+    }
+  },
+  "startingResourceNodes": [
+    { "prototypeId": "sheep", "count": 8 },
+    { "prototypeId": "boar", "count": 2 },
+    { "prototypeId": "berries", "count": 1 },
+    { "prototypeId": "forest", "count": 1 },
+    { "prototypeId": "gold_mine", "count": 1 },
+    { "prototypeId": "stone_mine", "count": 1 }
+  ],
+  "actions": {
+    "train_villager": {
+      "id": "train_villager",
+      "name": "Train Villager",
+      "actorTypes": ["town_center"],
+      "duration": 25,
+      "costs": { "food": 50 },
+      "creates": { "villager": 1 }
+    },
+    "research_loom": {
+      "id": "research_loom",
+      "name": "Research Loom",
+      "actorTypes": ["town_center"],
+      "duration": 25,
+      "costs": { "gold": 50 }
+    },
+    "advance_feudal_age": {
+      "id": "advance_feudal_age",
+      "name": "Advance to Feudal",
+      "actorTypes": ["town_center"],
+      "duration": 130,
+      "costs": { "food": 500 }
+    },
+    "build_house": {
+      "id": "build_house",
+      "name": "Build House",
+      "actorTypes": ["villager"],
+      "duration": 25,
+      "costs": { "wood": 25 },
+      "creates": { "house": 1 }
+    },
+    "build_lumber_camp": {
+      "id": "build_lumber_camp",
+      "name": "Build Lumber Camp",
+      "actorTypes": ["villager"],
+      "duration": 35,
+      "costs": { "wood": 100 },
+      "creates": { "lumber_camp": 1 }
+    },
+    "build_mill": {
+      "id": "build_mill",
+      "name": "Build Mill",
+      "actorTypes": ["villager"],
+      "duration": 35,
+      "costs": { "wood": 100 },
+      "creates": { "mill": 1 }
+    },
+    "build_barracks": {
+      "id": "build_barracks",
+      "name": "Build Barracks",
+      "actorTypes": ["villager"],
+      "duration": 50,
+      "costs": { "wood": 175 },
+      "creates": { "barracks": 1 }
+    },
+    "build_stable": {
+      "id": "build_stable",
+      "name": "Build Stable",
+      "actorTypes": ["villager"],
+      "duration": 50,
+      "costs": { "wood": 175 },
+      "creates": { "stable": 1 }
+    },
+    "build_farm": {
+      "id": "build_farm",
+      "name": "Build Farm",
+      "actorTypes": ["villager"],
+      "duration": 15,
+      "costs": { "wood": 60 },
+      "creates": { "farm": 1 },
+      "createsResourceNodes": [
+        { "prototypeId": "farm_patch", "count": 1 }
+      ]
+    },
+    "research_double_bit_axe": {
+      "id": "research_double_bit_axe",
+      "name": "Research Double-Bit Axe",
+      "actorTypes": ["lumber_camp"],
+      "duration": 25,
+      "costs": { "food": 100, "wood": 50 },
+      "modifiersOnComplete": [
+        { "selector": "gather.rate.tag.woodcutting", "op": "mul", "value": 1.2 }
+      ]
+    },
+    "research_horse_collar": {
+      "id": "research_horse_collar",
+      "name": "Research Horse Collar",
+      "actorTypes": ["mill"],
+      "duration": 20,
+      "costs": { "food": 75, "wood": 75 },
+      "modifiersOnComplete": [
+        { "selector": "gather.stock.tag.farm", "op": "mul", "value": 1.4285714286 }
+      ]
+    },
+    "train_scout_cavalry": {
+      "id": "train_scout_cavalry",
+      "name": "Train Scout Cavalry",
+      "actorTypes": ["stable"],
+      "duration": 30,
+      "costs": { "food": 80 },
+      "creates": { "scout_cavalry": 1 }
+    }
+  }
+}
