@@ -1,6 +1,6 @@
 import { applyNumericModifiers } from "./modifiers";
 import { GameData, ResourceNodeDef, ResourceNodeInstance } from "./types";
-import { EPS, SimState, cloneResources, findNextEventTime, switchEntityActivity } from "./sim_shared";
+import { EPS, SimState, cloneResources, findNextEventTime, switchEntityActivity, toFutureTick, toTick } from "./sim_shared";
 
 export interface TargetEconomy {
   target: ResourceNodeInstance;
@@ -12,6 +12,12 @@ export interface EconomySnapshot {
   resourceRates: Record<string, number>;
   targetEconomy: TargetEconomy[];
   nextDepletionTime?: number;
+}
+
+export interface NodeDepletionEvent {
+  nodeId: string;
+  nodePrototypeId: string;
+  actors: string[];
 }
 
 function resourceNodeStockKeys(node: ResourceNodeInstance): string[] {
@@ -104,15 +110,21 @@ export function computeEconomySnapshot(state: SimState): EconomySnapshot {
     : { resourceRates, targetEconomy, nextDepletionTime };
 }
 
-function handleDepletedNodes(state: SimState): void {
+function handleDepletedNodes(state: SimState): NodeDepletionEvent[] {
+  const events: NodeDepletionEvent[] = [];
   for (const node of state.resourceNodes) {
-    if (node.remainingStock === undefined || node.remainingStock > EPS) continue;
+    if (node.remainingStock === undefined || node.remainingStock > EPS || node.depleted) continue;
+    node.depleted = true;
+    const actors: string[] = [];
     for (const ent of state.entities) {
       if (ent.resourceNodeId !== node.id) continue;
+      actors.push(ent.id);
       delete ent.resourceNodeId;
       if (ent.busyUntil <= state.now + EPS) switchEntityActivity(state, ent.id, "idle", "idle");
     }
+    events.push({ nodeId: node.id, nodePrototypeId: node.prototypeId, actors });
   }
+  return events;
 }
 
 export function advanceTime(
@@ -120,13 +132,21 @@ export function advanceTime(
   targetTime: number,
   onEventComplete: (state: SimState, game: GameData, actionId: string, actors: string[]) => void,
   game: GameData,
+  onNodeDepleted?: (state: SimState, event: NodeDepletionEvent) => void,
 ): void {
+  targetTime = toTick(targetTime);
   if (targetTime <= state.now + EPS) return;
 
+  let guard = 0;
   while (state.now + EPS < targetTime) {
+    guard += 1;
+    if (guard > 1_000_000) {
+      throw new Error(`advanceTime loop guard tripped (now=${state.now}, target=${targetTime}).`);
+    }
     const nextEventTime = findNextEventTime(state.events, state.now) ?? Infinity;
     const econ = computeEconomySnapshot(state);
-    const stepTo = Math.min(targetTime, nextEventTime, econ.nextDepletionTime ?? Infinity);
+    const nextDepletionTick = econ.nextDepletionTime !== undefined ? toFutureTick(econ.nextDepletionTime) : Infinity;
+    const stepTo = Math.min(targetTime, nextEventTime, nextDepletionTick);
     const dt = stepTo - state.now;
 
     if (dt > EPS) {
@@ -146,7 +166,10 @@ export function advanceTime(
       }
 
       state.now = stepTo;
-      handleDepletedNodes(state);
+      const depleted = handleDepletedNodes(state);
+      if (onNodeDepleted) {
+        for (const event of depleted) onNodeDepleted(state, event);
+      }
     } else {
       state.now = stepTo;
     }

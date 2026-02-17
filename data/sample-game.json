@@ -1,5 +1,5 @@
 {
-  "resources": ["food", "wood", "gold", "stone"],
+  "resources": ["food", "wood", "gold", "stone", "pop"],
   "startingResources": {
     "food": 200,
     "wood": 200,
@@ -54,13 +54,24 @@
     { "prototypeId": "berries", "count": 1 },
     { "prototypeId": "forest", "count": 1 }
   ],
+  "population": {
+    "resource": "pop",
+    "providedByEntityType": {
+      "town_center": 5,
+      "house": 5
+    },
+    "consumedByEntityType": {
+      "villager": 1
+    },
+    "floor": 0
+  },
   "actions": {
     "train_villager": {
       "id": "train_villager",
       "name": "Train Villager",
       "actorTypes": ["town_center"],
       "duration": 25,
-      "costs": { "food": 50 },
+      "costs": { "food": 50, "pop": 1 },
       "creates": { "villager": 1 }
     },
     "build_house": {

@@ -2,6 +2,7 @@ import { runSimulation } from "./sim";
 import { toHtmlReport, toTextReport } from "./report";
 import { GameData } from "./types";
 import { parseBuildOrderDsl } from "./dsl";
+import { createDslSelectorAliases } from "./node_selectors";
 
 interface Args {
   game: string;
@@ -55,7 +56,9 @@ async function main(): Promise<void> {
 
   const game = await loadJson<GameData>(args.game);
   const buildDsl = await Bun.file(args.build).text();
-  const build = parseBuildOrderDsl(buildDsl);
+  const build = parseBuildOrderDsl(buildDsl, {
+    selectorAliases: createDslSelectorAliases(game.resources),
+  });
 
   const evaluationTime = args.at ?? build.evaluationTime;
   const debtFloor = args.strict ? 0 : args.debtFloor ?? build.debtFloor ?? -30;
@@ -69,7 +72,7 @@ async function main(): Promise<void> {
   console.log(toTextReport(result));
 
   if (args.report) {
-    await Bun.write(args.report, toHtmlReport(result, game, buildDsl));
+    await Bun.write(args.report, await toHtmlReport(result, game, buildDsl));
     console.log(`wrote html report: ${args.report}`);
   }
 }

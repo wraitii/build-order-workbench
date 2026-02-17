@@ -1,16 +1,50 @@
-import { EntityActivitySegment, EntityInstance, EntityTimeline, ResourceMap, ScheduledEvent, SimulationResult, Violation, CommandResult, ResourceNodeInstance, NumericModifier } from "./types";
+import { EntityActivitySegment, EntityInstance, EntityTimeline, ResourceMap, ScheduledEvent, SimulationResult, Violation, CommandResult, ResourceNodeInstance, NumericModifier, TriggerCondition, TriggerExecutableCommand, HumanDelayBucket } from "./types";
 
 export const EPS = 1e-9;
+export const TIME_STEP_SECONDS = 1;
+
+export function toTick(time: number): number {
+  if (!Number.isFinite(time)) return time;
+  return Math.max(0, Math.round(time / TIME_STEP_SECONDS) * TIME_STEP_SECONDS);
+}
+
+export function toFutureTick(time: number): number {
+  if (!Number.isFinite(time)) return time;
+  return Math.max(0, Math.ceil(time / TIME_STEP_SECONDS) * TIME_STEP_SECONDS);
+}
+
+export function quantizeDuration(seconds: number): number {
+  if (seconds <= 0) return 0;
+  return Math.max(TIME_STEP_SECONDS, Math.round(seconds / TIME_STEP_SECONDS) * TIME_STEP_SECONDS);
+}
 
 export interface AutoQueueRule {
   actionId: string;
-  actorType?: string;
-  actorIds?: string[];
-  retryEvery: number;
-  until?: number;
-  maxRuns?: number;
-  runs: number;
+  actorSelectors?: string[];
+  actorResourceNodeIds?: string[];
+  actorResourceNodeSelectors?: string[];
   nextAttemptAt: number;
+  delayUntil?: number;
+}
+
+export interface QueueRule {
+  commandIndex: number;
+  requestedAt: number;
+  actionId: string;
+  totalIterations: number;
+  completedIterations: number;
+  actorSelectors?: string[];
+  actorResourceNodeIds?: string[];
+  actorResourceNodeSelectors?: string[];
+  nextAttemptAt: number;
+  delayUntil?: number;
+  lastBlockedReason?: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP";
+}
+
+export interface TriggerRule {
+  trigger: TriggerCondition;
+  command: TriggerExecutableCommand;
+  sourceCommandIndex: number;
 }
 
 export interface SimState {
@@ -25,15 +59,18 @@ export interface SimState {
   commandResults: CommandResult[];
   completedActions: number;
   maxDebt: number;
-  idCounter: number;
+  entityTypeCounters: Record<string, number>;
   resourceNodeCounter: number;
   activeModifiers: NumericModifier[];
   resourceTimeline: SimulationResult["resourceTimeline"];
   entityCountTimeline: SimulationResult["entityCountTimeline"];
   entityTimelines: Record<string, EntityTimeline>;
   currentActivities: Record<string, Omit<EntityActivitySegment, "end">>;
+  queueRules: QueueRule[];
   autoQueueRules: AutoQueueRule[];
   spawnGatherRules: Record<string, { resourceNodeIds?: string[]; resourceNodeSelectors?: string[] }>;
+  triggerRules: TriggerRule[];
+  humanDelays: Record<string, HumanDelayBucket[]>;
 }
 
 export function cloneResources(input: ResourceMap): ResourceMap {
@@ -63,7 +100,7 @@ export function compareEntityIdNatural(a: string, b: string): number {
 export function normalizeCommandTimes<T extends { at?: number }>(commands: T[]): T[] {
   let last = 0;
   return commands.map((c) => {
-    const at = c.at ?? last;
+    const at = toTick(c.at ?? last);
     last = at;
     return { ...c, at };
   });
@@ -95,9 +132,18 @@ export function switchEntityActivity(
   entityId: string,
   kind: EntityActivitySegment["kind"],
   detail: string,
+  forceSplit = false,
 ): void {
   const current = state.currentActivities[entityId];
-  if (current && current.kind === kind && current.detail === detail) return;
+  if (current && current.kind === kind && current.detail === detail) {
+    if (!forceSplit) return;
+    const timeline = state.entityTimelines[entityId];
+    if (timeline && current.start <= state.now + EPS) {
+      timeline.segments.push({ ...current, end: state.now });
+    }
+    state.currentActivities[entityId] = { start: state.now, kind, detail };
+    return;
+  }
 
   if (current) {
     const timeline = state.entityTimelines[entityId];

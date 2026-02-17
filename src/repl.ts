@@ -3,6 +3,7 @@ import { runSimulation } from "./sim";
 import { toTextReport } from "./report";
 import { GameData } from "./types";
 import { parseBuildOrderDsl } from "./dsl";
+import { createDslSelectorAliases } from "./node_selectors";
 
 interface Args {
   game: string;
@@ -49,7 +50,9 @@ async function loadGame(path: string): Promise<GameData> {
 
 async function runOnce(args: Args): Promise<void> {
   const game = await loadGame(args.game);
-  const build = parseBuildOrderDsl(await Bun.file(args.build).text());
+  const build = parseBuildOrderDsl(await Bun.file(args.build).text(), {
+    selectorAliases: createDslSelectorAliases(game.resources),
+  });
 
   const evaluationTime = args.at ?? build.evaluationTime;
   const debtFloor = args.strict ? 0 : args.debtFloor ?? build.debtFloor ?? -30;

@@ -35,11 +35,25 @@ export interface ActionDef {
   actorTypes: string[];
   actorCount?: number;
   duration: number;
+  taskType?: string;
+  many_workers?: "aoe2" | { model: "aoe2"; additionalWorkerRate?: number };
   costs?: ResourceMap;
   creates?: Record<string, number>;
   createsResourceNodes?: ResourceNodeCreateSpec[];
   resourceDeltaOnComplete?: ResourceMap;
   modifiersOnComplete?: NumericModifier[];
+}
+
+export interface TaskEfficiencyConfig {
+  default?: number;
+  byTaskType?: Record<string, number>;
+}
+
+export interface PopulationConfig {
+  resource: string;
+  providedByEntityType: Record<string, number>;
+  consumedByEntityType: Record<string, number>;
+  floor?: number;
 }
 
 export interface StartingEntity {
@@ -60,23 +74,43 @@ export interface GameData {
   resourceNodePrototypes: Record<string, ResourceNodeDef>;
   startingResourceNodes: StartingResourceNode[];
   startingModifiers?: NumericModifier[];
+  taskEfficiency?: TaskEfficiencyConfig;
+  population?: PopulationConfig;
   actions: Record<string, ActionDef>;
 }
 
 export interface QueueActionCommand {
   type: "queueAction";
   at?: number;
+  after?: string;
+  afterEntityId?: string;
   actionId: string;
   count?: number;
-  actorType?: string;
-  actorIds?: string[];
+  actorSelectors?: string[];
+  actorResourceNodeIds?: string[];
+  actorResourceNodeSelectors?: string[];
 }
 
 export interface AssignGatherCommand {
   type: "assignGather";
   at?: number;
-  count: number;
+  after?: string;
+  afterEntityId?: string;
   actorType: string;
+  all?: boolean;
+  count?: number;
+  actorSelectors?: string[];
+  actorResourceNodeIds?: string[];
+  actorResourceNodeSelectors?: string[];
+  resourceNodeIds?: string[];
+  resourceNodeSelectors?: string[];
+}
+
+export interface AssignEventGatherCommand {
+  type: "assignEventGather";
+  at?: number;
+  after?: string;
+  afterEntityId?: string;
   resourceNodeIds?: string[];
   resourceNodeSelectors?: string[];
 }
@@ -84,44 +118,75 @@ export interface AssignGatherCommand {
 export interface AutoQueueCommand {
   type: "autoQueue";
   at?: number;
+  after?: string;
+  afterEntityId?: string;
   actionId: string;
   actorType?: string;
   actorIds?: string[];
-  retryEvery?: number;
-  until?: number;
-  maxRuns?: number;
+  actorResourceNodeIds?: string[];
+  actorResourceNodeSelectors?: string[];
+}
+
+export interface StopAutoQueueCommand {
+  type: "stopAutoQueue";
+  at?: number;
+  after?: string;
+  afterEntityId?: string;
+  actionId: string;
+  actorType?: string;
+  actorResourceNodeIds?: string[];
+  actorResourceNodeSelectors?: string[];
 }
 
 export interface SetSpawnGatherCommand {
   type: "setSpawnGather";
   at?: number;
+  after?: string;
+  afterEntityId?: string;
   entityType: string;
   resourceNodeIds?: string[];
   resourceNodeSelectors?: string[];
 }
 
-export interface ShiftGatherCommand {
-  type: "shiftGather";
+export type TriggerCondition =
+  | { kind: "completed"; actionId: string }
+  | { kind: "depleted"; resourceNodeSelector: string }
+  | { kind: "exhausted"; resourceNodeSelector: string };
+
+export type TriggerExecutableCommand =
+  | QueueActionCommand
+  | AssignGatherCommand
+  | AssignEventGatherCommand
+  | AutoQueueCommand
+  | StopAutoQueueCommand
+  | SetSpawnGatherCommand;
+
+export interface OnTriggerCommand {
+  type: "onTrigger";
   at?: number;
-  count: number;
-  actorType: string;
-  fromResourceNodeIds?: string[];
-  fromResourceNodeSelectors?: string[];
-  resourceNodeIds?: string[];
-  resourceNodeSelectors?: string[];
+  after?: string;
+  afterEntityId?: string;
+  trigger: TriggerCondition;
+  command: TriggerExecutableCommand;
 }
 
 export type BuildOrderCommand =
-  | QueueActionCommand
-  | AssignGatherCommand
-  | AutoQueueCommand
-  | SetSpawnGatherCommand
-  | ShiftGatherCommand;
+  | TriggerExecutableCommand
+  | OnTriggerCommand;
 
 export interface BuildOrderInput {
   evaluationTime: number;
   debtFloor?: number;
+  startingResources?: ResourceMap;
+  startingEntities?: Record<string, number>;
+  humanDelays?: Record<string, HumanDelayBucket[]>;
   commands: BuildOrderCommand[];
+}
+
+export interface HumanDelayBucket {
+  chance: number;
+  minSeconds: number;
+  maxSeconds: number;
 }
 
 export interface SimOptions {
@@ -145,6 +210,7 @@ export interface ResourceNodeInstance {
   rateByEntityType: Record<string, number>;
   maxWorkers?: number;
   remainingStock?: number;
+  depleted?: boolean;
   tags: string[];
 }
 
@@ -160,7 +226,9 @@ export interface Violation {
     | "ACTION_NOT_FOUND"
     | "NO_ACTORS"
     | "INVALID_ASSIGNMENT"
+    | "HOUSED"
     | "INSUFFICIENT_RESOURCES"
+    | "NEGATIVE_RESOURCE"
     | "RESOURCE_STALL";
   message: string;
 }
