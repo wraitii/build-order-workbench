@@ -97,6 +97,12 @@ async function getBgDataUri(): Promise<string> {
     return `data:image/png;base64,${b64}`;
 }
 
+async function getFaviconDataUri(): Promise<string> {
+    const imgPath = new URL("../public/favicon.png", import.meta.url).pathname;
+    const bytes = await Bun.file(imgPath).arrayBuffer();
+    return `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
+}
+
 async function getIconDataUris(): Promise<Record<string, string>> {
     const aoe2Dir = new URL("../public/aoe2", import.meta.url).pathname;
     const files = await readdir(aoe2Dir);
@@ -118,10 +124,11 @@ export async function toHtmlReport(
     initialDsl: string,
     buildOrderPresets: BuildOrderPreset[] = [],
 ): Promise<string> {
-    const [workbenchBundle, llmBundle, bgDataUri, iconDataUris, htmlTemplate, css] = await Promise.all([
+    const [workbenchBundle, llmBundle, bgDataUri, faviconDataUri, iconDataUris, htmlTemplate, css] = await Promise.all([
         getWorkbenchBundle(),
         WITH_LLM ? getLLMBundle() : Promise.resolve(null),
         getBgDataUri(),
+        getFaviconDataUri(),
         getIconDataUris(),
         Bun.file(new URL("./workbench.html", import.meta.url).pathname).text(),
         Bun.file(new URL("./workbench.css", import.meta.url).pathname).text(),
@@ -144,6 +151,7 @@ export async function toHtmlReport(
     // Inline CSS + inject background image as CSS variable
     const cssBlock = `<style>${css}</style>\n  <style>:root { --bg-image: url('${bgDataUri}') }</style>`;
     html = html.replace('<link rel="stylesheet" href="./workbench.css" />', () => cssBlock);
+    html = html.replace('href="./favicon.png"', () => `href="${faviconDataUri}"`);
 
     // Inline workbench JS bundle
     html = html.replace('<script src="./workbench.ts"></script>', () => `<script>${workbenchBundle}</script>`);
