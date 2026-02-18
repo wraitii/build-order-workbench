@@ -46,6 +46,29 @@ function resourceNodeRateKeys(node: ResourceNodeInstance, entityType: string): s
     ];
 }
 
+function resourceNodeSecondaryRateKeys(
+    node: ResourceNodeInstance,
+    entityType: string,
+    secondaryResource: string,
+): string[] {
+    return [
+        `gather.secondary.${secondaryResource}.resource.${node.produces}`,
+        `gather.secondary.${secondaryResource}.node.${node.prototypeId}`,
+        `gather.secondary.${secondaryResource}.entity.${entityType}`,
+        ...node.tags.map((t) => `gather.secondary.${secondaryResource}.tag.${t}`),
+    ];
+}
+
+function listSecondaryResources(modifiers: { selector: string }[]): string[] {
+    const out = new Set<string>();
+    for (const mod of modifiers) {
+        const m = mod.selector.match(/^gather\.secondary\.([^.]+)\./);
+        if (!m?.[1]) continue;
+        out.add(m[1]);
+    }
+    return [...out];
+}
+
 export function instantiateResourceNode(state: SimState, prototype: ResourceNodeDef): ResourceNodeInstance {
     state.resourceNodeCounter += 1;
     const id = `${prototype.id}-${state.resourceNodeCounter}`;
@@ -101,6 +124,7 @@ export function computeEconomySnapshot(state: SimState): EconomySnapshot {
     const resourceRates: Record<string, number> = {};
     const grouped: Record<string, TargetEconomy> = {};
     const gatherRateByNodeId: Record<string, number> = {};
+    const secondaryResources = listSecondaryResources(state.activeModifiers);
 
     for (const ent of state.entities) {
         if (ent.busyUntil > state.now + EPS || !ent.resourceNodeId) continue;
@@ -123,6 +147,16 @@ export function computeEconomySnapshot(state: SimState): EconomySnapshot {
         bucket.workers.push(ent.id);
         grouped[node.id] = bucket;
         gatherRateByNodeId[node.id] = (gatherRateByNodeId[node.id] ?? 0) + effectiveRate;
+
+        for (const secondaryResource of secondaryResources) {
+            const factor = applyNumericModifiers(
+                0,
+                resourceNodeSecondaryRateKeys(node, ent.entityType, secondaryResource),
+                state.activeModifiers,
+            );
+            if (factor <= 0) continue;
+            resourceRates[secondaryResource] = (resourceRates[secondaryResource] ?? 0) + effectiveRate * factor;
+        }
     }
 
     let nextDepletionTime: number | undefined;

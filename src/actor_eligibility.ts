@@ -108,6 +108,23 @@ function entityNodePriority(
     return nodeFilter.nodePriorityById?.get(ent.resourceNodeId) ?? Number.POSITIVE_INFINITY;
 }
 
+function compareEligibleEntities(
+    a: EntityInstance,
+    b: EntityInstance,
+    request: ActorEligibilityRequest,
+    nodeFilter: ActorNodeFilter,
+): number {
+    // Respect explicit selector/filter order first for both queue (idleOnly=true)
+    // and assign (idleOnly=false) flows.
+    if (nodeFilter.hasFilter) {
+        const pa = entityNodePriority(a, nodeFilter);
+        const pb = entityNodePriority(b, nodeFilter);
+        if (pa !== pb) return pa - pb;
+    }
+    if (!request.idleOnly && a.busyUntil !== b.busyUntil) return a.busyUntil - b.busyUntil;
+    return compareEntityIdNatural(a.id, b.id);
+}
+
 function selectBySelectors(
     state: SimState,
     request: ActorEligibilityRequest,
@@ -129,15 +146,7 @@ function selectBySelectors(
             .filter(
                 (e) => !used.has(e.id) && e.entityType === selector && isEligibleEntity(state, e, request, nodeFilter),
             )
-            .sort((a, b) => {
-                if (request.idleOnly) {
-                    const pa = entityNodePriority(a, nodeFilter);
-                    const pb = entityNodePriority(b, nodeFilter);
-                    if (pa !== pb) return pa - pb;
-                }
-                if (!request.idleOnly && a.busyUntil !== b.busyUntil) return a.busyUntil - b.busyUntil;
-                return compareEntityIdNatural(a.id, b.id);
-            });
+            .sort((a, b) => compareEligibleEntities(a, b, request, nodeFilter));
         const candidate = candidates[0];
         if (!candidate) break;
         used.add(candidate.id);
@@ -160,15 +169,7 @@ export function pickEligibleActorIds(state: SimState, request: ActorEligibilityR
 
     return state.entities
         .filter((e) => isEligibleEntity(state, e, request, nodeFilter))
-        .sort((a, b) => {
-            if (request.idleOnly) {
-                const pa = entityNodePriority(a, nodeFilter);
-                const pb = entityNodePriority(b, nodeFilter);
-                if (pa !== pb) return pa - pb;
-            }
-            if (!request.idleOnly && a.busyUntil !== b.busyUntil) return a.busyUntil - b.busyUntil;
-            return compareEntityIdNatural(a.id, b.id);
-        })
+        .sort((a, b) => compareEligibleEntities(a, b, request, nodeFilter))
         .slice(0, request.actorCount)
         .map((ent) => ent.id);
 }

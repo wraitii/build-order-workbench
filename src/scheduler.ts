@@ -1,5 +1,5 @@
 import { applyNumericModifiers } from "./modifiers";
-import { BuildOrderCommand, CommandResult, GameData, ResourceNodeInstance, SimOptions } from "./types";
+import { BuildOrderCommand, CommandResult, GameData, NumericModifier, ResourceMap, ResourceNodeInstance, SimOptions } from "./types";
 import {
     AutoQueueRule,
     EPS,
@@ -14,6 +14,16 @@ import { activateNodeDecay, computeEconomySnapshot } from "./economy";
 import { shouldDebugAction, simDebug } from "./debug";
 import { matchesNodeSelector } from "./node_selectors";
 import { nextEligibleActorAvailabilityTime, pickEligibleActorIds } from "./actor_eligibility";
+
+function effectiveCosts(action: GameData["actions"][string], modifiers: NumericModifier[]): ResourceMap {
+    const raw = action.costs ?? {};
+    if (modifiers.length === 0) return raw;
+    const result: ResourceMap = {};
+    for (const [resource, cost] of Object.entries(raw)) {
+        result[resource] = Math.max(0, applyNumericModifiers(cost, [`action.cost.${action.id}.${resource}`], modifiers));
+    }
+    return result;
+}
 
 function canAfford(
     resources: Record<string, number>,
@@ -88,6 +98,38 @@ function resolveTaskEfficiencyMultiplier(game: GameData, action: GameData["actio
     const configured = game.taskEfficiency?.byTaskType?.[taskType] ?? game.taskEfficiency?.default ?? 1.4;
     if (!Number.isFinite(configured) || configured <= 0) return 1.4;
     return configured;
+}
+
+function mergeFloorOverrides(
+    base?: Record<string, number>,
+    extra?: Record<string, number>,
+): Record<string, number> | undefined {
+    if (!base && !extra) return undefined;
+    const merged: Record<string, number> = { ...(base ?? {}) };
+    for (const [resource, floor] of Object.entries(extra ?? {})) {
+        merged[resource] = Math.max(merged[resource] ?? Number.NEGATIVE_INFINITY, floor);
+    }
+    return merged;
+}
+
+function queueResourceReservations(state: SimState, game: GameData, options: SimOptions): Record<string, number> {
+    const reservedCosts: Record<string, number> = {};
+    for (const rule of state.queueRules) {
+        if (!rule.lastBlockedReason) continue;
+        const action = game.actions[rule.actionId];
+        if (!action) continue;
+        const costs = effectiveCosts(action, state.activeModifiers);
+        for (const [resource, cost] of Object.entries(costs)) {
+            if (cost <= 0) continue;
+            reservedCosts[resource] = (reservedCosts[resource] ?? 0) + cost;
+        }
+    }
+    if (Object.keys(reservedCosts).length === 0) return {};
+    const floors: Record<string, number> = {};
+    for (const [resource, totalCost] of Object.entries(reservedCosts)) {
+        floors[resource] = options.debtFloor + totalCost;
+    }
+    return floors;
 }
 
 export function resolveNodeTargets(
@@ -172,6 +214,7 @@ export function tryScheduleActionNow(
         Extract<BuildOrderCommand, { type: "queueAction" }>,
         "actionId" | "actorSelectors" | "actorResourceNodeIds" | "actorResourceNodeSelectors"
     >,
+    extraResourceFloorOverrides?: Record<string, number>,
 ):
     | { status: "scheduled"; completionTime: number; actionId: string; actors: string[]; startedAt: number }
     | { status: "blocked"; reason: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP" }
@@ -205,11 +248,12 @@ export function tryScheduleActionNow(
         return { status: "blocked", reason: "NO_ACTORS" };
     }
 
-    const costs = action.costs ?? {};
+    const costs = effectiveCosts(action, state.activeModifiers);
     const populationResource = game.population?.resource;
-    const resourceFloorOverrides = populationResource
+    const baseResourceFloorOverrides = populationResource
         ? { [populationResource]: game.population?.floor ?? 0 }
         : undefined;
+    const resourceFloorOverrides = mergeFloorOverrides(baseResourceFloorOverrides, extraResourceFloorOverrides);
     const blockedResource = canAfford(state.resources, costs, options.debtFloor, resourceFloorOverrides);
     if (blockedResource !== undefined) {
         return {
@@ -339,6 +383,7 @@ function computeBlockedNextAttempt(
         "actionId" | "actorSelectors" | "actorResourceNodeIds" | "actorResourceNodeSelectors"
     >,
     reason: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP",
+    extraResourceFloorOverrides?: Record<string, number>,
 ): number {
     const action = game.actions[rule.actionId];
     if (!action) return Number.POSITIVE_INFINITY;
@@ -368,12 +413,13 @@ function computeBlockedNextAttempt(
 
     const econ = computeEconomySnapshot(state);
     const populationResource = game.population?.resource;
-    const resourceFloorOverrides = populationResource
+    const baseResourceFloorOverrides = populationResource
         ? { [populationResource]: game.population?.floor ?? 0 }
         : undefined;
+    const resourceFloorOverrides = mergeFloorOverrides(baseResourceFloorOverrides, extraResourceFloorOverrides);
     const dtToAfford = timeToAffordWithCurrentRates(
         state.resources,
-        action.costs ?? {},
+        effectiveCosts(action, state.activeModifiers),
         econ.resourceRates,
         options.debtFloor,
         resourceFloorOverrides,
@@ -523,7 +569,7 @@ function describeResourceShortfallAtEvaluation(
     options: SimOptions,
     action: GameData["actions"][string],
 ): string | undefined {
-    const costs = action.costs ?? {};
+    const costs = effectiveCosts(action, state.activeModifiers);
     const entries = Object.entries(costs);
     if (entries.length === 0) return undefined;
 
@@ -680,6 +726,7 @@ export function processAutoQueue(
             throw new Error(`processAutoQueue loop guard tripped (now=${state.now}).`);
         }
         changed = false;
+        const reservedFloors = queueResourceReservations(state, game, options);
         for (const rule of [...state.autoQueueRules]) {
             if (state.now + EPS < rule.nextAttemptAt) continue;
             const ruleAction = game.actions[rule.actionId];
@@ -713,7 +760,7 @@ export function processAutoQueue(
             if (rule.actorResourceNodeIds !== undefined) queueCmd.actorResourceNodeIds = rule.actorResourceNodeIds;
             if (rule.actorResourceNodeSelectors !== undefined)
                 queueCmd.actorResourceNodeSelectors = rule.actorResourceNodeSelectors;
-            const result = tryScheduleActionNow(state, game, options, queueCmd);
+            const result = tryScheduleActionNow(state, game, options, queueCmd, reservedFloors);
             if (shouldDebugAction(rule.actionId)) {
                 simDebug(
                     "processAutoQueue.attempt",
@@ -783,7 +830,7 @@ export function processAutoQueue(
             }
             rule.nextAttemptAt = applyDelayFloor(
                 rule,
-                computeBlockedNextAttempt(state, game, options, rule, result.reason),
+                computeBlockedNextAttempt(state, game, options, rule, result.reason, reservedFloors),
             );
             if (shouldDebugAction(rule.actionId)) {
                 simDebug(

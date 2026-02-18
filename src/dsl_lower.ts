@@ -1,6 +1,6 @@
 import { parseDslSelectors } from "./node_selectors";
 import { AstCommandCondition, AstCommandLine, AstDslLine, AstPreambleLine } from "./dsl_ast";
-import { BuildOrderCommand, HumanDelayBucket, ScoreCriterion, TriggerCondition, TriggerMode } from "./types";
+import { BuildOrderCommand, HumanDelayBucket, ResourceMap, ScoreCriterion, TriggerCondition, TriggerMode } from "./types";
 
 export interface DslLoweringState {
     commands: BuildOrderCommand[];
@@ -464,6 +464,47 @@ function buildCommandFromDirectiveTokens(
         });
     }
 
+    if (op === "grant") {
+        const resources: ResourceMap = {};
+        for (let i = 1; i + 1 < rest.length; i += 2) {
+            const resource = rest[i]!;
+            const amount = rest[i + 1]!;
+            if (symbols?.resources && !symbols.resources.has(resource)) {
+                throw new Error(`Line ${lineNo}: unknown resource '${resource}'.${suggestionSuffix(resource, symbols.resources)}`);
+            }
+            resources[resource] = parseNumber(amount, lineNo);
+        }
+        if (Object.keys(resources).length === 0) {
+            throw new Error(`Line ${lineNo}: 'grant' requires at least one <resource> <amount> pair.`);
+        }
+        return wrap({ type: "grantResources", at, resources });
+    }
+
+    if (op === "spawn") {
+        const entityType = rest[1];
+        if (!entityType) throw new Error(`Line ${lineNo}: 'spawn' requires an entity type.`);
+        if (symbols?.entityTypes && !symbols.entityTypes.has(entityType)) {
+            throw new Error(`Line ${lineNo}: unknown entity type '${entityType}'.${suggestionSuffix(entityType, symbols.entityTypes)}`);
+        }
+        const countToken = rest[2];
+        const count = countToken !== undefined ? parseNumber(countToken, lineNo) : 1;
+        if (!Number.isInteger(count) || count < 1) throw new Error(`Line ${lineNo}: spawn count must be a positive integer.`);
+        return wrap({ type: "spawnEntities", at, entityType, count });
+    }
+
+    if (op === "modifier") {
+        const selector = rest[1];
+        const opToken = rest[2];
+        const valueToken = rest[3];
+        if (!selector || !opToken || !valueToken) {
+            throw new Error(`Line ${lineNo}: 'modifier' requires '<selector> <op> <value>'.`);
+        }
+        if (opToken !== "mul" && opToken !== "add" && opToken !== "set") {
+            throw new Error(`Line ${lineNo}: modifier op must be 'mul', 'add', or 'set'.`);
+        }
+        return wrap({ type: "addModifier", at, modifier: { selector, op: opToken, value: parseNumber(valueToken, lineNo) } });
+    }
+
     throw new Error(`Line ${lineNo}: unknown directive '${op}'.`);
 }
 
@@ -482,17 +523,64 @@ function lowerAstCommandLine(
     }
     const queuedActionId = ast.directiveTokens[1];
     if (!queuedActionId) throw new Error(`Line ${lineNo}: missing action id before 'then'.`);
+    let normalizedThenDirectiveTokens = [...ast.thenDirectiveTokens];
+    const inheritedQueueUsingSelectors = inferInheritedQueueUsingSelectors(ast.directiveTokens, lineNo);
+    const inheritedSpecificActorId =
+        inheritedQueueUsingSelectors.length === 1 && inheritedQueueUsingSelectors[0]?.match(/^(.*)-(\d+)$/)
+            ? inheritedQueueUsingSelectors[0]
+            : undefined;
+    if (
+        normalizedThenDirectiveTokens[0] === "queue" &&
+        !normalizedThenDirectiveTokens.includes("using") &&
+        inheritedQueueUsingSelectors.length > 0 &&
+        inheritedQueueUsingSelectors.every((selector) => selector.match(/^(.*)-(\d+)$/))
+    ) {
+        normalizedThenDirectiveTokens = [
+            ...normalizedThenDirectiveTokens,
+            "using",
+            ...inheritedQueueUsingSelectors,
+        ];
+    }
+    if (
+        normalizedThenDirectiveTokens[0] === "assign" &&
+        normalizedThenDirectiveTokens[1] === "to" &&
+        inheritedSpecificActorId !== undefined
+    ) {
+        const match = inheritedSpecificActorId.match(/^(.*)-(\d+)$/);
+        normalizedThenDirectiveTokens = [
+            "assign",
+            match?.[1] ?? "",
+            match?.[2] ?? "",
+            ...normalizedThenDirectiveTokens.slice(1),
+        ];
+    }
     const thenConditions: CommandCondition[] = [
         ...conditions,
+        ...(inheritedSpecificActorId !== undefined ? [{ afterEntityId: inheritedSpecificActorId }] : []),
         {
             trigger: parseTriggerCondition("completed", queuedActionId, lineNo, selectorAliases, symbols),
             triggerMode: "once",
         },
     ];
     out.push(
-        buildCommandFromDirectiveTokens(at, ast.thenDirectiveTokens, lineNo, selectorAliases, thenConditions, symbols),
+        buildCommandFromDirectiveTokens(at, normalizedThenDirectiveTokens, lineNo, selectorAliases, thenConditions, symbols),
     );
     return out;
+}
+
+function inferInheritedQueueUsingSelectors(directiveTokens: string[], lineNo: number): string[] {
+    if (directiveTokens[0] !== "queue") return [];
+    const selectors: string[] = [];
+    for (let i = 2; i < directiveTokens.length; i += 1) {
+        const token = directiveTokens[i];
+        if (!token) continue;
+        if (token === "using") {
+            const parsed = parseQueueUsingSelectors(directiveTokens.slice(i + 1), lineNo);
+            selectors.push(...parsed.selectors);
+            break;
+        }
+    }
+    return selectors;
 }
 
 function applyPreambleLine(
@@ -509,6 +597,9 @@ function applyPreambleLine(
     if (preamble.type === "debtFloor") {
         state.debtFloor = parseNumber(preamble.valueToken, lineNo);
         return;
+    }
+    if (preamble.type === "civ") {
+        throw new Error(`Line ${lineNo}: internal error: unresolved civ directive '${preamble.civName}'.`);
     }
     if (preamble.type === "startingResource") {
         if (symbols?.resources && !symbols.resources.has(preamble.resource)) {

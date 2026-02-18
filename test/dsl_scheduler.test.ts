@@ -315,6 +315,37 @@ after completed train_villager queue build_farm using villager 1 then assign to 
     expect(second.command.trigger.actionId).toBe("build_farm");
   });
 
+  test("then queue inherits explicit actor selector from first queue", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 120
+queue build_house_plain using villager 2 then queue lure_boar
+`);
+
+    expect(build.commands).toHaveLength(2);
+    const thenCmd = build.commands[1];
+    expect(thenCmd?.type).toBe("onTrigger");
+    if (!thenCmd || thenCmd.type !== "onTrigger") return;
+    expect(thenCmd.command.type).toBe("queueAction");
+    if (thenCmd.command.type !== "queueAction") return;
+    expect(thenCmd.command.actorSelectors).toEqual(["villager-2"]);
+  });
+
+  test("then assign-to inherits explicit actor selector from first queue", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 120
+queue build_house_plain using villager 2 then assign to forest
+`);
+
+    expect(build.commands).toHaveLength(2);
+    const thenCmd = build.commands[1];
+    expect(thenCmd?.type).toBe("onTrigger");
+    if (!thenCmd || thenCmd.type !== "onTrigger") return;
+    expect(thenCmd.command.type).toBe("assignGather");
+    if (thenCmd.command.type !== "assignGather") return;
+    expect(thenCmd.command.actorSelectors).toEqual(["villager-2"]);
+    expect(thenCmd.command.resourceNodeSelectors).toEqual(["proto:forest"]);
+  });
+
   test("parses after clicked trigger", () => {
     const build = parseBuildOrderDsl(`
 evaluation 120
@@ -355,6 +386,47 @@ human-delay train_villager 0.1 2 5
         { chance: 0.1, minSeconds: 2, maxSeconds: 5 },
       ],
     });
+  });
+
+  test("parses decimal modifier values", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 30
+modifier gather.secondary.food.resource.wood add 0.5
+`);
+    const cmd = build.commands[0];
+    expect(cmd?.type).toBe("addModifier");
+    if (!cmd || cmd.type !== "addModifier") return;
+    expect(cmd.modifier.value).toBe(0.5);
+  });
+
+  test("expands civ directive using provided civ DSL lines", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 30
+civ DemoCiv
+`, {
+      civDslByName: {
+        DemoCiv: [
+          "grant food 25",
+          "modifier action.cost.build_house_plain.wood mul 0.5",
+        ],
+      },
+    });
+    expect(build.commands).toHaveLength(2);
+    expect(build.commands[0]?.type).toBe("grantResources");
+    expect(build.commands[1]?.type).toBe("addModifier");
+  });
+
+  test("errors on unknown civ directive with suggestion", () => {
+    expect(() =>
+      parseBuildOrderDsl(`
+evaluation 30
+civ DemoCiiv
+`, {
+        civDslByName: {
+          DemoCiv: ["grant food 25"],
+        },
+      }),
+    ).toThrow("Did you mean 'DemoCiv'?");
   });
 
   test("rejects human-delay chance totals above one per action", () => {
@@ -427,6 +499,25 @@ start with town_center,villager
       town_center: 1,
       villager: 1,
     });
+  });
+});
+
+describe("secondary gather modifiers", () => {
+  test("can generate a secondary resource while gathering", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 10
+start with villager
+modifier gather.secondary.food.resource.wood add 0.5
+assign villager 1 to forest
+`);
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    expect(result.resourcesAtEvaluation.wood).toBeCloseTo(210, 6);
+    expect(result.resourcesAtEvaluation.food).toBeCloseTo(205, 6);
   });
 });
 
@@ -758,6 +849,73 @@ after completed lure_boar queue lure_boar
     expect(v2LureActions).toBe(2);
   });
 
+  test("then queue with explicit actor keeps chained action on that actor", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 40
+start with villager,villager
+starting-resource wood 200
+at 0 queue build_house_plain using villager 1
+at 0 queue build_house_plain using villager 2 then queue lure_boar
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const villager1 = result.entityTimelines["villager-1"];
+    const villager2 = result.entityTimelines["villager-2"];
+    const v1LureActions = villager1?.segments.filter((s) => s.kind === "action" && s.detail === "lure_boar").length ?? 0;
+    const v2LureActions = villager2?.segments.filter((s) => s.kind === "action" && s.detail === "lure_boar").length ?? 0;
+    expect(v1LureActions).toBe(0);
+    expect(v2LureActions).toBe(1);
+  });
+
+  test("then assign-to with explicit actor keeps chained assign on that actor", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 40
+start with villager,villager
+starting-resource wood 200
+at 0 queue build_house_plain using villager 1
+at 0 queue build_house_plain using villager 2 then assign to forest
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const villager1 = result.entityTimelines["villager-1"];
+    const villager2 = result.entityTimelines["villager-2"];
+    const v1Forest = villager1?.segments.some((s) => s.kind === "gather" && s.detail === "wood:forest" && s.start >= 34);
+    const v2Forest = villager2?.segments.some((s) => s.kind === "gather" && s.detail === "wood:forest" && s.start >= 34);
+    expect(v1Forest).toBe(false);
+    expect(v2Forest).toBe(true);
+  });
+
+  test("then assign-to for future actor waits for actor spawn before trigger registration", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 220
+start with town_center,villager,villager,villager
+starting-resource food 1000
+starting-resource wood 1000
+auto-queue train_villager using town_center
+at 0 queue build_house_plain using villager 1
+at 0 queue build_house_plain using villager 5 then assign to forest
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const invalidAssignments = result.violations.filter((v) => v.code === "INVALID_ASSIGNMENT");
+    expect(invalidAssignments.length).toBe(0);
+  });
+
   test("after villager N queue reuses that villager when compatible", () => {
     const build = parseBuildOrderDsl(`
 evaluation 5
@@ -967,6 +1125,59 @@ at 1 queue expensive_build using villager 1
     expect(trainStarts).toContain(105);
   });
 
+  test("blocked queue implicitly reserves resources against auto-queue spending", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager,villager
+starting-resource wood 79
+assign villager 1 to forest
+assign villager 2 to forest
+at 0 queue expensive_build using villager 1
+at 0 auto-queue build_house_plain using villager from forest
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: 0,
+    });
+
+    const expensive = result.commandResults.find((c) => c.type === "queueAction");
+    expect(expensive?.status).toBe("scheduled");
+    expect(expensive?.startedAt).toBe(1);
+
+    const villager2 = result.entityTimelines["villager-2"];
+    const autoHouseActions = villager2?.segments.filter((s) => s.kind === "action" && s.detail === "build_house_plain") ?? [];
+    expect(autoHouseActions.length).toBe(0);
+  });
+
+  test("blocked queue on no-actor also reserves resources against auto-queue", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 40
+start with villager,villager
+starting-resource wood 79
+assign villager 1 to forest
+assign villager 2 to forest
+at 0 queue build_house_plain using villager 1
+at 0 queue expensive_build using villager 1
+at 0 auto-queue build_house_plain using villager from forest
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: 0,
+    });
+
+    const expensiveCmd = result.commandResults.find((c) => c.type === "queueAction" && c.index === 3);
+    expect(expensiveCmd?.status).toBe("scheduled");
+    expect(expensiveCmd?.startedAt).toBe(34);
+
+    const villager2 = result.entityTimelines["villager-2"];
+    const autoHouseActions = villager2?.segments.filter((s) => s.kind === "action" && s.detail === "build_house_plain") ?? [];
+    expect(autoHouseActions.length).toBe(0);
+  });
+
   test("queue from selectors prefer earlier selector order when multiple actors are eligible", () => {
     const build = parseBuildOrderDsl(`
 evaluation 10
@@ -989,6 +1200,29 @@ at 0 queue build_house_plain using villager from food forest
     const v2HouseActions = villager2?.segments.filter((s) => s.kind === "action" && s.detail === "build_house_plain").length ?? 0;
     expect(v1HouseActions).toBe(0);
     expect(v2HouseActions).toBe(1);
+  });
+
+  test("assign from selectors prefer earlier selector order when multiple actors are eligible", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 3
+start with villager,villager
+assign villager 1 to forest
+assign villager 2 to sheep
+assign villager x1 from sheep forest to straggler_trees
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const villager1 = result.entityTimelines["villager-1"];
+    const villager2 = result.entityTimelines["villager-2"];
+    const v1Straggler = villager1?.segments.some((s) => s.kind === "gather" && s.detail === "wood:straggler_trees");
+    const v2Straggler = villager2?.segments.some((s) => s.kind === "gather" && s.detail === "wood:straggler_trees");
+    expect(v1Straggler).toBe(false);
+    expect(v2Straggler).toBe(true);
   });
 
   test("actor-waiting queue command does not pause unrelated auto-queue at same tick", () => {

@@ -68,6 +68,11 @@ export interface StartingResourceNode {
     count?: number;
 }
 
+export interface CivilizationDef {
+    name: string;
+    dslLines: string[];
+}
+
 export interface GameData {
     resources: string[];
     startingResources: ResourceMap;
@@ -79,6 +84,7 @@ export interface GameData {
     taskEfficiency?: TaskEfficiencyConfig;
     population?: PopulationConfig;
     actions: Record<string, ActionDef>;
+    civilizations?: CivilizationDef[];
 }
 
 export interface QueueActionCommand {
@@ -151,13 +157,38 @@ export type TriggerCondition =
     | { kind: "exhausted"; resourceNodeSelector: string };
 export type TriggerMode = "once" | "every";
 
+export interface GrantResourcesCommand {
+    type: "grantResources";
+    at?: number;
+    afterEntityId?: string;
+    resources: ResourceMap;
+}
+
+export interface SpawnEntitiesCommand {
+    type: "spawnEntities";
+    at?: number;
+    afterEntityId?: string;
+    entityType: string;
+    count: number;
+}
+
+export interface AddModifierCommand {
+    type: "addModifier";
+    at?: number;
+    afterEntityId?: string;
+    modifier: NumericModifier;
+}
+
 export type TriggerExecutableCommand =
     | QueueActionCommand
     | AssignGatherCommand
     | AssignEventGatherCommand
     | AutoQueueCommand
     | StopAutoQueueCommand
-    | SetSpawnGatherCommand;
+    | SetSpawnGatherCommand
+    | GrantResourcesCommand
+    | SpawnEntitiesCommand
+    | AddModifierCommand;
 
 export interface OnTriggerCommand {
     type: "onTrigger";

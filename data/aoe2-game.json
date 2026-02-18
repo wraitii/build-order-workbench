@@ -181,11 +181,11 @@
       "rateByEntityType": {
         "villager": 0.33
       },
-      "maxWorkers": 6,
+      "maxWorkers": 7,
       "stock": 100,
       "decayRatePerSecond": 0.25,
       "decayStart": "on_first_gather",
-      "tags": ["food", "huntables", "herdable"]
+      "tags": ["food", "herdable"]
     },
     "boar": {
       "name": "Boar",
@@ -337,12 +337,12 @@
     {
       "selector": "gather.rate.node.forest",
       "op": "mul",
-      "value": 0.8
+      "value": 0.85
     },
     {
       "selector": "gather.rate.node.straggler_trees",
       "op": "mul",
-      "value": 0.5
+      "value": 0.7
     }
   ],
   "taskEfficiency": {
@@ -918,5 +918,424 @@
         "mining_camp": 1
       }
     }
-  }
+  },
+  "civilizations": [
+    {
+      "name": "Britons",
+      "dslLines": ["modifier gather.rate.tag.herdable mul 1.25"]
+    },
+    {
+      "name": "Franks",
+      "dslLines": [
+        "modifier gather.rate.tag.forage mul 1.15",
+        "modifier action.cost.research_horse_collar.food mul 0",
+        "modifier action.cost.research_horse_collar.wood mul 0"
+      ]
+    },
+    {
+      "name": "Goths",
+      "dslLines": [
+        "modifier action.cost.research_loom.gold mul 0",
+        "modifier action.cost.train_militia.food mul 0.85",
+        "modifier action.cost.train_militia.gold mul 0.85",
+        "on completed advance_feudal_age modifier action.cost.train_militia.food mul 0.941176",
+        "on completed advance_feudal_age modifier action.cost.train_militia.gold mul 0.941176",
+        "on completed advance_castle_age modifier action.cost.train_militia.food mul 0.9375",
+        "on completed advance_castle_age modifier action.cost.train_militia.gold mul 0.9375",
+        "modifier action.cost.train_spearman.food mul 0.85",
+        "modifier action.cost.train_spearman.wood mul 0.85",
+        "on completed advance_feudal_age modifier action.cost.train_spearman.food mul 0.941176",
+        "on completed advance_feudal_age modifier action.cost.train_spearman.wood mul 0.941176",
+        "on completed advance_castle_age modifier action.cost.train_spearman.food mul 0.9375",
+        "on completed advance_castle_age modifier action.cost.train_spearman.wood mul 0.9375"
+      ]
+    },
+    {
+      "name": "Teutons",
+      "dslLines": ["modifier action.cost.build_farm.wood mul 0.6"]
+    },
+    {
+      "name": "Japanese",
+      "dslLines": [
+        "modifier action.cost.build_mill.wood mul 0.5",
+        "modifier action.cost.build_lumber_camp.wood mul 0.5",
+        "modifier action.cost.build_mining_camp.wood mul 0.5"
+      ]
+    },
+    {
+      "name": "Chinese",
+      "dslLines": ["spawn villager 3", "grant food -200 wood -50"]
+    },
+    {
+      "name": "Byzantines",
+      "dslLines": [
+        "modifier action.cost.train_skirmisher.food mul 0.75",
+        "modifier action.cost.train_skirmisher.wood mul 0.75",
+        "modifier action.cost.train_spearman.food mul 0.75",
+        "modifier action.cost.train_spearman.wood mul 0.75"
+      ]
+    },
+    {
+      "name": "Persians",
+      "dslLines": [
+        "grant food 50 wood 50",
+        "modifier action.duration.train_villager mul 0.9524",
+        "on completed advance_feudal_age modifier action.duration.train_villager mul 0.9545",
+        "on completed advance_castle_age modifier action.duration.train_villager mul 0.9565"
+      ]
+    },
+    {
+      "name": "Saracens",
+      "dslLines": ["modifier action.cost.build_market.wood add -100"]
+    },
+    {
+      "name": "Turks",
+      "dslLines": ["modifier gather.rate.tag.gold mul 1.25"]
+    },
+    {
+      "name": "Vikings",
+      "dslLines": [
+        "modifier action.cost.research_wheelbarrow.food mul 0",
+        "modifier action.cost.research_wheelbarrow.wood mul 0"
+      ]
+    },
+    {
+      "name": "Mongols",
+      "dslLines": ["modifier gather.rate.tag.huntables mul 1.4"]
+    },
+    {
+      "name": "Celts",
+      "dslLines": ["modifier gather.rate.tag.woodcutting mul 1.15"]
+    },
+    {
+      "name": "Spanish",
+      "dslLines": [
+        "modifier action.duration.build_archery_range mul 0.7692",
+        "modifier action.duration.build_barracks mul 0.7692",
+        "modifier action.duration.build_blacksmith mul 0.7692",
+        "modifier action.duration.build_dock mul 0.7692",
+        "modifier action.duration.build_farm mul 0.7692",
+        "modifier action.duration.build_house mul 0.7692",
+        "modifier action.duration.build_lumber_camp mul 0.7692",
+        "modifier action.duration.build_market mul 0.7692",
+        "modifier action.duration.build_mill mul 0.7692",
+        "modifier action.duration.build_mining_camp mul 0.7692",
+        "modifier action.duration.build_palisade_wall mul 0.7692",
+        "modifier action.duration.build_stable mul 0.7692",
+        "modifier action.duration.build_watch_tower mul 0.7692",
+        "modifier action.cost.research_fletching.gold mul 0",
+        "on completed research_loom grant gold 20",
+        "on completed research_wheelbarrow grant gold 20",
+        "on completed research_horse_collar grant gold 20",
+        "on completed research_double_bit_axe grant gold 20",
+        "on completed research_man_at_arms grant gold 20",
+        "on completed research_fletching grant gold 20",
+        "on completed research_forging grant gold 20",
+        "on completed research_scale_mail_armor grant gold 20",
+        "on completed research_scale_barding_armor grant gold 20",
+        "on completed research_padded_archer_armor grant gold 20",
+        "on completed advance_feudal_age grant gold 20",
+        "on completed advance_castle_age grant gold 20"
+      ]
+    },
+    {
+      "name": "Aztecs",
+      "dslLines": ["grant gold 50"]
+    },
+    {
+      "name": "Mayans",
+      "dslLines": [
+        "spawn villager 1",
+        "grant food -50",
+        "modifier gather.stock.tag.gold mul 1.15",
+        "modifier gather.stock.tag.stone mul 1.15",
+        "modifier gather.stock.tag.woodcutting mul 1.15",
+        "modifier gather.stock.tag.huntables mul 1.15",
+        "modifier gather.stock.tag.herdable mul 1.15"
+      ]
+    },
+    {
+      "name": "Huns",
+      "dslLines": ["grant wood -100", "grant pop 1000"]
+    },
+    {
+      "name": "Koreans",
+      "dslLines": [
+        "modifier gather.rate.tag.stone mul 1.2",
+        "modifier action.cost.train_archer.wood mul 0.5",
+        "modifier action.cost.train_skirmisher.wood mul 0.5",
+        "modifier action.cost.train_spearman.wood mul 0.5"
+      ]
+    },
+    {
+      "name": "Italians",
+      "dslLines": [
+        "modifier action.cost.advance_feudal_age.food mul 0.85",
+        "modifier action.cost.advance_castle_age.food mul 0.85",
+        "modifier action.cost.advance_castle_age.gold mul 0.85"
+      ]
+    },
+    {
+      "name": "Indians",
+      "dslLines": [
+        "modifier action.cost.train_villager.food mul 0.92",
+        "on completed advance_feudal_age modifier action.cost.train_villager.food mul 0.9457",
+        "on completed advance_castle_age modifier action.cost.train_villager.food mul 0.9425"
+      ]
+    },
+    {
+      "name": "Incas",
+      "dslLines": ["grant pop 10", "on every completed build_house grant pop 5"]
+    },
+    {
+      "name": "Magyars",
+      "dslLines": ["modifier action.cost.train_scout_cavalry.food mul 0.85"]
+    },
+    {
+      "name": "Slavs",
+      "dslLines": ["modifier gather.rate.tag.farm mul 1.15"]
+    },
+    {
+      "name": "Portuguese",
+      "dslLines": [
+        "modifier gather.secondary.wood.tag.forage add 0.33",
+        "modifier action.cost.train_archer.gold mul 0.8",
+        "modifier action.cost.train_militia.gold mul 0.8",
+        "modifier action.cost.train_galley.gold mul 0.8",
+        "modifier action.cost.train_fire_galley.gold mul 0.8",
+        "modifier action.cost.train_demolition_raft.gold mul 0.8",
+        "modifier action.cost.train_trade_cog.gold mul 0.8",
+        "modifier action.cost.train_spearman.gold mul 0.8",
+        "modifier action.cost.research_loom.gold mul 0.8",
+        "modifier action.cost.research_man_at_arms.gold mul 0.8",
+        "modifier action.cost.research_fletching.gold mul 0.8",
+        "modifier action.cost.advance_castle_age.gold mul 0.8"
+      ]
+    },
+    {
+      "name": "Ethiopians",
+      "dslLines": [
+        "on completed advance_feudal_age grant food 100 gold 100",
+        "on completed advance_castle_age grant food 100 gold 100"
+      ]
+    },
+    {
+      "name": "Malians",
+      "dslLines": [
+        "modifier gather.rate.tag.gold mul 1.1",
+        "modifier action.cost.build_house.wood mul 0.85",
+        "modifier action.cost.build_lumber_camp.wood mul 0.85",
+        "modifier action.cost.build_mill.wood mul 0.85",
+        "modifier action.cost.build_mining_camp.wood mul 0.85",
+        "modifier action.cost.build_barracks.wood mul 0.85",
+        "modifier action.cost.build_stable.wood mul 0.85",
+        "modifier action.cost.build_archery_range.wood mul 0.85",
+        "modifier action.cost.build_dock.wood mul 0.85",
+        "modifier action.cost.build_market.wood mul 0.85",
+        "modifier action.cost.build_blacksmith.wood mul 0.85",
+        "modifier action.cost.build_watch_tower.wood mul 0.85",
+        "modifier action.cost.build_palisade_wall.wood mul 0.85"
+      ]
+    },
+    {
+      "name": "Berbers",
+      "dslLines": [
+        "on completed advance_castle_age modifier action.cost.train_scout_cavalry.food mul 0.85"
+      ]
+    },
+    {
+      "name": "Khmer",
+      "dslLines": []
+    },
+    {
+      "name": "Malay",
+      "dslLines": [
+        "modifier action.duration.advance_feudal_age mul 0.6024",
+        "modifier action.duration.advance_castle_age mul 0.6024"
+      ]
+    },
+    {
+      "name": "Burmese",
+      "dslLines": [
+        "modifier action.cost.research_double_bit_axe.food mul 0",
+        "modifier action.cost.research_double_bit_axe.wood mul 0"
+      ]
+    },
+    {
+      "name": "Vietnamese",
+      "dslLines": [
+        "modifier action.cost.research_wheelbarrow.wood mul 0",
+        "modifier action.cost.research_horse_collar.wood mul 0",
+        "modifier action.cost.research_double_bit_axe.wood mul 0",
+        "modifier action.duration.research_wheelbarrow mul 0.5",
+        "modifier action.duration.research_horse_collar mul 0.5",
+        "modifier action.duration.research_double_bit_axe mul 0.5"
+      ]
+    },
+    {
+      "name": "Bulgarians",
+      "dslLines": [
+        "modifier action.cost.research_man_at_arms.food mul 0",
+        "modifier action.cost.research_man_at_arms.gold mul 0",
+        "modifier action.cost.research_forging.food mul 0.5",
+        "modifier action.cost.research_fletching.food mul 0.5",
+        "modifier action.cost.research_scale_mail_armor.food mul 0.5",
+        "modifier action.cost.research_scale_barding_armor.food mul 0.5",
+        "modifier action.cost.research_padded_archer_armor.food mul 0.5"
+      ]
+    },
+    {
+      "name": "Tatars",
+      "dslLines": ["modifier gather.stock.tag.herdable mul 1.5"]
+    },
+    {
+      "name": "Cumans",
+      "dslLines": [
+        "modifier action.cost.build_archery_range.wood add -75",
+        "modifier action.cost.build_stable.wood add -75"
+      ]
+    },
+    {
+      "name": "Lithuanians",
+      "dslLines": ["grant food 100"]
+    },
+    {
+      "name": "Burgundians",
+      "dslLines": [
+        "modifier action.cost.research_wheelbarrow.food mul 0.67",
+        "modifier action.cost.research_horse_collar.food mul 0.67",
+        "modifier action.cost.research_double_bit_axe.food mul 0.67"
+      ]
+    },
+    {
+      "name": "Sicilians",
+      "dslLines": ["grant stone 100"]
+    },
+    {
+      "name": "Poles",
+      "dslLines": [
+        "modifier gather.secondary.gold.resource.stone add 0.5",
+        "modifier action.cost.train_scout_cavalry.food mul 0.5"
+      ]
+    },
+    {
+      "name": "Bohemians",
+      "dslLines": ["modifier action.cost.build_blacksmith.wood add -100"]
+    },
+    {
+      "name": "Dravidians",
+      "dslLines": [
+        "on completed advance_feudal_age grant wood 200",
+        "on completed advance_castle_age grant wood 200",
+        "modifier action.cost.research_man_at_arms.food mul 0.5",
+        "modifier action.cost.research_man_at_arms.gold mul 0.5"
+      ]
+    },
+    {
+      "name": "Bengalis",
+      "dslLines": [
+        "on completed advance_feudal_age spawn villager 2",
+        "on completed advance_castle_age spawn villager 2"
+      ]
+    },
+    {
+      "name": "Gurjaras",
+      "dslLines": []
+    },
+    {
+      "name": "Romans",
+      "dslLines": ["modifier gather.rate.entity.villager mul 1.05"]
+    },
+    {
+      "name": "Armenians",
+      "dslLines": []
+    },
+    {
+      "name": "Georgians",
+      "dslLines": []
+    },
+    {
+      "name": "Achaemenids",
+      "dslLines": []
+    },
+    {
+      "name": "Athenians",
+      "dslLines": [
+        "modifier gather.secondary.food.tag.woodcutting add 0.068027"
+      ]
+    },
+    {
+      "name": "Spartans",
+      "dslLines": [
+        "modifier gather.rate.tag.farm mul 1.1",
+        "modifier gather.rate.tag.forage mul 1.1",
+        "modifier gather.rate.tag.huntables mul 1.1",
+        "modifier gather.rate.tag.herdable mul 1.1"
+      ]
+    },
+    {
+      "name": "Shu",
+      "dslLines": [
+        "modifier gather.secondary.food.tag.woodcutting add 0.07",
+        "modifier action.cost.research_fletching.food mul 0.75",
+        "modifier action.cost.research_fletching.gold mul 0.75",
+        "modifier action.cost.research_padded_archer_armor.food mul 0.75"
+      ]
+    },
+    {
+      "name": "Wu",
+      "dslLines": [
+        "on completed build_barracks grant food 55",
+        "on completed build_stable grant food 55",
+        "on completed build_archery_range grant food 55"
+      ]
+    },
+    {
+      "name": "Wei",
+      "dslLines": [
+        "on completed research_wheelbarrow spawn villager 1",
+        "on completed research_horse_collar spawn villager 1",
+        "on completed research_double_bit_axe spawn villager 1"
+      ]
+    },
+    {
+      "name": "Jurchens",
+      "dslLines": []
+    },
+    {
+      "name": "Khitans",
+      "dslLines": []
+    },
+    {
+      "name": "Macedonians",
+      "dslLines": []
+    },
+    {
+      "name": "Thracians",
+      "dslLines": [
+        "modifier gather.secondary.gold.node.sheep add 0.1515",
+        "modifier gather.secondary.gold.node.deer add 0.122",
+        "modifier gather.secondary.gold.node.boar_lured add 0.122"
+      ]
+    },
+    {
+      "name": "Puru",
+      "dslLines": ["modifier gather.stock.tag.stone mul 1.3"]
+    },
+    {
+      "name": "Tupi",
+      "dslLines": [
+        "modifier action.cost.research_man_at_arms.food mul 0.5",
+        "modifier action.cost.research_fletching.food mul 0.5"
+      ]
+    },
+    {
+      "name": "Muisca",
+      "dslLines": ["modifier action.cost.advance_castle_age.gold mul 0.5"]
+    },
+    {
+      "name": "Mapuche",
+      "dslLines": ["modifier gather.rate.tag.forage mul 1.2"]
+    }
+  ]
 }

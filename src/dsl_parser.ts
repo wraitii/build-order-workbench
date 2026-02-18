@@ -5,7 +5,7 @@ import { tokenizeDslLine } from "./dsl_tokenizer";
 const WhiteSpace = createToken({ name: "WhiteSpace", pattern: /[ \t\r\n]+/, group: Lexer.SKIPPED });
 const Comma = createToken({ name: "Comma", pattern: /,/ });
 const Time = createToken({ name: "Time", pattern: /\d+:\d{1,2}/ });
-const NumberTok = createToken({ name: "NumberTok", pattern: /\d+/ });
+const NumberTok = createToken({ name: "NumberTok", pattern: /-?\d+(?:\.\d+)?/ });
 const At = createToken({ name: "At", pattern: /at(?![^,\s])/ });
 const After = createToken({ name: "After", pattern: /after(?![^,\s])/ });
 const Every = createToken({ name: "Every", pattern: /every(?![^,\s])/ });
@@ -305,6 +305,12 @@ export function parseDslAstLine(line: string, lineNo: number): AstDslLine {
         const valueToken = tokens[1];
         if (!valueToken) throw new Error(`Line ${lineNo}: missing debt floor value.`);
         return { type: "preamble", preamble: { type: "debtFloor", valueToken } };
+    }
+
+    if (op === "civ") {
+        const civName = tokens.slice(1).join(" ").trim();
+        if (!civName) throw new Error(`Line ${lineNo}: expected 'civ <name>'.`);
+        return { type: "preamble", preamble: { type: "civ", civName } };
     }
 
     if (op === "starting-resource") {

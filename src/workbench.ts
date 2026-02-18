@@ -1,4 +1,4 @@
-import { createDslValidationSymbols, parseBuildOrderDsl } from "./dsl";
+import { createCivDslByName, createDslValidationSymbols, parseBuildOrderDsl } from "./dsl";
 import { runSimulation } from "./sim";
 import { EntityTimeline, GameData, ScoreCriterion, ScoreResult, SimulationResult } from "./types";
 import { createDslSelectorAliases } from "./node_selectors";
@@ -48,6 +48,71 @@ function mapToString(obj: Record<string, number>): string {
         .map(([k, v]) => `${k}: ${round2(Number(v))}`)
         .join(", ");
 }
+
+// ── URL sharing ───────────────────────────────────────────────────────────────
+
+function uint8ToBase64url(bytes: Uint8Array): string {
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function base64urlToUint8(str: string): Uint8Array {
+    const b64 = str.replaceAll("-", "+").replaceAll("_", "/");
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+}
+
+async function compressDsl(dsl: string): Promise<string> {
+    const input = new TextEncoder().encode(dsl);
+    const cs = new CompressionStream("deflate-raw");
+    const writer = cs.writable.getWriter();
+    writer.write(input);
+    writer.close();
+    const buf = await new Response(cs.readable).arrayBuffer();
+    return uint8ToBase64url(new Uint8Array(buf));
+}
+
+async function decompressDsl(encoded: string): Promise<string> {
+    const input = base64urlToUint8(encoded);
+    const ds = new DecompressionStream("deflate-raw");
+    const writer = ds.writable.getWriter();
+    writer.write(input);
+    writer.close();
+    const buf = await new Response(ds.readable).arrayBuffer();
+    return new TextDecoder().decode(buf);
+}
+
+// ── Local storage ─────────────────────────────────────────────────────────────
+
+const STORAGE_CUSTOM_DSL = "workbench:custom_dsl";
+const STORAGE_SAVED_BUILDS = "workbench:saved_builds";
+
+interface SavedBuild {
+    id: string;
+    label: string;
+    dsl: string;
+}
+
+function loadSavedBuilds(): SavedBuild[] {
+    try { return JSON.parse(localStorage.getItem(STORAGE_SAVED_BUILDS) ?? "[]"); } catch { return []; }
+}
+
+function persistSavedBuilds(builds: SavedBuild[]): void {
+    localStorage.setItem(STORAGE_SAVED_BUILDS, JSON.stringify(builds));
+}
+
+function loadCustomDsl(): string | null {
+    return localStorage.getItem(STORAGE_CUSTOM_DSL);
+}
+
+function persistCustomDsl(dsl: string): void {
+    localStorage.setItem(STORAGE_CUSTOM_DSL, dsl);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function colorForSegment(kind: string, detail: string): string {
     if (kind === "idle") return "#d9d9d9";
@@ -156,6 +221,7 @@ function mustElement<T extends Element>(id: string): T {
 }
 
 const runBtn = mustElement<HTMLButtonElement>("runBtn");
+const shareBtn = mustElement<HTMLButtonElement>("shareBtn");
 const runStatus = mustElement<HTMLElement>("runStatus");
 const dslInput = mustElement<HTMLTextAreaElement>("dslInput");
 const buildPresetSelect = mustElement<HTMLSelectElement>("buildPresetSelect");
@@ -175,6 +241,10 @@ const violationsBody = mustElement<HTMLElement>("violationsBody");
 const scoresCard = mustElement<HTMLElement>("scoresCard");
 const scoresBody = mustElement<HTMLElement>("scoresBody");
 const healthContent = mustElement<HTMLElement>("healthContent");
+const manageBtn = mustElement<HTMLButtonElement>("manageBtn");
+const saveBuildName = mustElement<HTMLInputElement>("saveBuildName");
+const saveBuildBtn = mustElement<HTMLButtonElement>("saveBuildBtn");
+const savedBuildsList = mustElement<HTMLElement>("savedBuildsList");
 
 function maxTime(): number {
     const entityMax = sim.entityCountTimeline?.[sim.entityCountTimeline.length - 1]?.time ?? 0;
@@ -225,7 +295,10 @@ function scoreCriterionLabel(c: ScoreCriterion): string {
 
 function renderScores(): void {
     const scores: ScoreResult[] = sim.scores ?? [];
-    scoresCard.style.display = scores.length === 0 ? "none" : "";
+    if (scores.length === 0) {
+        scoresBody.innerHTML = "<tr><td colspan=2 class='muted'>No score criteria configured</td></tr>";
+        return;
+    }
     scoresBody.innerHTML = scores
         .map((s: ScoreResult) => {
             const label = escapeHtml(scoreCriterionLabel(s.criterion));
@@ -555,6 +628,7 @@ function runFromDsl(): void {
         const build = parseBuildOrderDsl(dslInput.value, {
             selectorAliases: createDslSelectorAliases(GAME.resources),
             symbols: createDslValidationSymbols(GAME),
+            civDslByName: createCivDslByName(GAME),
         });
         sim = runSimulation(GAME, build, {
             strict: false,
@@ -571,23 +645,86 @@ function runFromDsl(): void {
     }
 }
 
+function syncPresetSelector(): void {
+    const presets = BOOTSTRAP.buildOrderPresets ?? [];
+    const current = dslInput.value.trim();
+    const matched = presets.find((p) => p.dsl.trim() === current);
+    buildPresetSelect.value = matched?.id ?? "";
+}
+
+function renderSavedBuilds(): void {
+    const builds = loadSavedBuilds();
+    if (builds.length === 0) {
+        savedBuildsList.innerHTML = `<p class="muted" style="margin:0;font-size:13px">No saved builds yet.</p>`;
+        return;
+    }
+    savedBuildsList.innerHTML = builds
+        .map(
+            (b) =>
+                `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:6px" data-id="${escapeHtml(b.id)}">` +
+                `<span style="flex:1;font-size:13px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(b.label)}</span>` +
+                `<button class="btn" data-action="load">Load</button>` +
+                `<button class="btn" style="color:var(--error)" data-action="delete">Delete</button>` +
+                `</div>`,
+        )
+        .join("");
+
+    savedBuildsList.onclick = (ev) => {
+        const btn = (ev.target as Element).closest<HTMLButtonElement>("[data-action]");
+        if (!btn) return;
+        const row = btn.closest<HTMLElement>("[data-id]");
+        if (!row) return;
+        const id = row.dataset.id!;
+        if (btn.dataset.action === "load") {
+            const build = loadSavedBuilds().find((b) => b.id === id);
+            if (!build) return;
+            dslInput.value = build.dsl;
+            persistCustomDsl(build.dsl);
+            syncPresetSelector();
+            runFromDsl();
+            document.getElementById("manageModal")!.classList.add("ai-hidden");
+        } else if (btn.dataset.action === "delete") {
+            persistSavedBuilds(loadSavedBuilds().filter((b) => b.id !== id));
+            renderSavedBuilds();
+        }
+    };
+}
+
 function setupPresetSelector(): void {
     const presets: BuildOrderPreset[] = BOOTSTRAP.buildOrderPresets ?? [];
-    const options = [];
-    for (const preset of presets) {
-        options.push(`<option value="${escapeHtml(preset.id)}">${escapeHtml(preset.label)}</option>`);
+
+    const options = [`<option value="">Custom</option>`];
+    if (presets.length > 0) {
+        options.push(`<optgroup label="Presets">`);
+        for (const preset of presets) {
+            options.push(`<option value="${escapeHtml(preset.id)}">${escapeHtml(preset.label)}</option>`);
+        }
+        options.push(`</optgroup>`);
     }
     buildPresetSelect.innerHTML = options.join("");
-
-    const initial = dslInput.value.trim();
-    const matched = presets.find((p: BuildOrderPreset) => p.dsl.trim() === initial);
-    buildPresetSelect.value = matched?.id ?? "";
+    syncPresetSelector();
 
     buildPresetSelect.addEventListener("change", () => {
-        const picked = presets.find((p: BuildOrderPreset) => p.id === buildPresetSelect.value);
+        const val = buildPresetSelect.value;
+        if (val === "") {
+            const saved = loadCustomDsl();
+            if (saved !== null) {
+                dslInput.value = saved;
+                runFromDsl();
+            }
+            return;
+        }
+        const picked = presets.find((p: BuildOrderPreset) => p.id === val);
         if (!picked) return;
         dslInput.value = picked.dsl;
         runFromDsl();
+    });
+
+    dslInput.addEventListener("input", () => {
+        syncPresetSelector();
+        if (buildPresetSelect.value === "") {
+            persistCustomDsl(dslInput.value);
+        }
     });
 }
 
@@ -602,7 +739,6 @@ if (BOOTSTRAP.withLlm) {
     if (aiTrigger) aiTrigger.classList.add("visible");
 }
 
-setupPresetSelector();
 runBtn.addEventListener("click", runFromDsl);
 dslInput.addEventListener("keydown", (ev) => {
     if ((ev.metaKey || ev.ctrlKey) && ev.key === "Enter") {
@@ -626,4 +762,56 @@ entityTimeline.addEventListener("click", (ev) => {
     syncTime(xInEl / scale);
 });
 
-refreshAll();
+shareBtn.addEventListener("click", async () => {
+    const encoded = await compressDsl(dslInput.value);
+    history.replaceState(null, "", `#z=${encoded}`);
+    await navigator.clipboard.writeText(location.href);
+    const prev = shareBtn.textContent;
+    shareBtn.textContent = "Copied!";
+    setTimeout(() => { shareBtn.textContent = prev; }, 2000);
+});
+
+manageBtn.addEventListener("click", () => {
+    renderSavedBuilds();
+    document.getElementById("manageModal")!.classList.remove("ai-hidden");
+});
+
+saveBuildName.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") saveBuildBtn.click();
+});
+
+saveBuildBtn.addEventListener("click", () => {
+    const label = saveBuildName.value.trim();
+    if (!label) { saveBuildName.focus(); return; }
+    const builds = loadSavedBuilds();
+    builds.push({ id: `custom_${Date.now()}`, label, dsl: dslInput.value });
+    persistSavedBuilds(builds);
+    saveBuildName.value = "";
+    renderSavedBuilds();
+});
+
+(async () => {
+    const match = /^#z=(.+)$/.exec(location.hash);
+    let fromExternal = false;
+    if (match) {
+        try {
+            dslInput.value = await decompressDsl(match[1]);
+            fromExternal = true;
+        } catch {
+            // ignore malformed hash
+        }
+    }
+    if (!fromExternal) {
+        const customDsl = loadCustomDsl();
+        if (customDsl !== null) {
+            dslInput.value = customDsl;
+            fromExternal = true;
+        }
+    }
+    setupPresetSelector();
+    if (fromExternal) {
+        runFromDsl();
+    } else {
+        refreshAll();
+    }
+})();

@@ -25,6 +25,7 @@
         </div>
         <div class="editor-header-end" style="display:flex;align-items:center;gap:8px">
           <select id="buildPresetSelect" class="dsl-select"></select>
+          <button id="manageBtn" class="btn" style="font-size:12px">Saves</button>
           <button id="aiOpenBtn" class="ai-trigger">
             <span style="font-size:14px">&#x2728;</span>
             Local LLM
@@ -36,17 +37,21 @@
       <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
         <button id="runBtn" class="btn btn-primary">Run</button>
         <span id="runStatus" class="muted">ready</span>
+        <button id="shareBtn" class="btn">Share</button>
         <span style="margin-left:auto;font-size:11px;color:var(--muted)">cmd/ctrl+enter to run</span>
       </div>
       <div id="errorBox"></div>
     </section>
 
     <section class="card" id="scoresCard">
-      <h2>Scores</h2>
+      <h2>Scores & Health</h2>
+      <h3 style="margin:0 0 8px;font-size:14px;color:var(--muted)">Scores</h3>
       <table>
         <thead><tr><th>Criterion</th><th>Value</th></tr></thead>
         <tbody id="scoresBody"></tbody>
       </table>
+      <h3 style="margin:14px 0 8px;font-size:14px;color:var(--muted)">Health Metrics</h3>
+      <div id="healthContent"></div>
     </section>
 
     <section class="card">
@@ -75,10 +80,6 @@
       </table>
     </section>
 
-    <section class="card">
-      <h2>Health Metrics</h2>
-      <div id="healthContent"></div>
-    </section>
   </main>
 
   <div id="helpModal" class="ai-modal-backdrop ai-hidden" onclick="if(event.target===this)this.classList.add('ai-hidden')">
@@ -175,6 +176,22 @@ human-delay &lt;action&gt; &lt;chance&gt; &lt;minSec&gt; &lt;maxSec&gt; # simula
     </div>
   </div>
 
+  <div id="manageModal" class="ai-modal-backdrop ai-hidden" onclick="if(event.target===this)this.classList.add('ai-hidden')">
+    <div class="ai-modal" style="max-width:480px">
+      <div class="ai-modal-header">
+        <span style="font-weight:600;font-size:15px">Saved Builds</span>
+        <button onclick="document.getElementById('manageModal').classList.add('ai-hidden')" class="btn" style="padding:4px 10px;line-height:1;font-size:16px">&#x2715;</button>
+      </div>
+      <div class="ai-modal-body" style="gap:10px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="saveBuildName" type="text" placeholder="Name this build…" style="flex:1;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:13px;outline:none" />
+          <button id="saveBuildBtn" class="btn btn-primary">Save current</button>
+        </div>
+        <div id="savedBuildsList"></div>
+      </div>
+    </div>
+  </div>
+
   <footer style="position:relative;z-index:1;text-align:center;padding:12px 0 24px 0;font-size:13px;color:var(--ink)">
     <a href="https://github.com/wraitii/build-order-workbench" target="_blank" rel="noopener" style="color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:7px">
       <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -182,7 +199,7 @@ human-delay &lt;action&gt; &lt;chance&gt; &lt;minSec&gt; &lt;maxSec&gt; # simula
     </a>
   </footer>
 
-  <script>document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('helpModal').classList.add('ai-hidden');});</script>
+  <script>document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.getElementById('helpModal').classList.add('ai-hidden');document.getElementById('manageModal').classList.add('ai-hidden');}});</script>
   <script id="__bootstrap__" type="application/json">null</script>
   <script src="./workbench.ts"></script>
 </body>

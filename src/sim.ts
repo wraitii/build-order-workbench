@@ -497,6 +497,42 @@ function executeCommand(
         setSpawnGather: () => {
             setSpawnGatherRule(state, cmd as Extract<BuildOrderCommand, { type: "setSpawnGather" }>, commandIndex);
         },
+        grantResources: () => {
+            const grantCmd = cmd as Extract<BuildOrderCommand, { type: "grantResources" }>;
+            addResources(state.resources, grantCmd.resources);
+            pushScheduled(grantCmd.type, state.now);
+        },
+        spawnEntities: () => {
+            const spawnCmd = cmd as Extract<BuildOrderCommand, { type: "spawnEntities" }>;
+            const entityDef = game.entities[spawnCmd.entityType];
+            if (!entityDef) {
+                pushInvalidAssignment(spawnCmd.type, state.now, `Unknown entity type '${spawnCmd.entityType}'.`);
+                return;
+            }
+            const popResource = game.population?.resource;
+            const popDelta = populationCapacityProvidedForEntityType(game, spawnCmd.entityType, spawnCmd.count);
+            if (popResource && popDelta !== 0) {
+                state.resources[popResource] = (state.resources[popResource] ?? 0) + popDelta;
+            }
+            for (let i = 0; i < spawnCmd.count; i += 1) {
+                const id = nextEntityId(state, spawnCmd.entityType);
+                state.entities.push({ id, entityType: spawnCmd.entityType, busyUntil: state.now });
+                state.entityTimelines[id] = { entityType: spawnCmd.entityType, segments: [] };
+                state.currentActivities[id] = { start: state.now, kind: "idle", detail: "idle" };
+                const spawnRule = state.spawnGatherRules[spawnCmd.entityType];
+                if (spawnRule) {
+                    assignEntityToGatherTargets(state, id, spawnRule.resourceNodeIds, spawnRule.resourceNodeSelectors);
+                }
+            }
+            recordEntityCountPoint(state);
+            pushScheduled(spawnCmd.type, state.now);
+        },
+        addModifier: () => {
+            const modCmd = cmd as Extract<BuildOrderCommand, { type: "addModifier" }>;
+            state.activeModifiers.push(modCmd.modifier);
+            applyStockModifierToExistingNodes(state, modCmd.modifier);
+            pushScheduled(modCmd.type, state.now);
+        },
         onTrigger: () => {
             const onTriggerCmd = cmd as Extract<BuildOrderCommand, { type: "onTrigger" }>;
             const triggerMode = onTriggerCmd.triggerMode ?? "once";
