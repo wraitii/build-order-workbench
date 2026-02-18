@@ -1,4 +1,4 @@
-import { parseBuildOrderDsl } from "./dsl";
+import { createDslValidationSymbols, parseBuildOrderDsl } from "./dsl";
 import { runSimulation } from "./sim";
 import { EntityTimeline, GameData, ScoreCriterion, ScoreResult, SimulationResult } from "./types";
 import { createDslSelectorAliases } from "./node_selectors";
@@ -546,6 +546,7 @@ function runFromDsl(): void {
     try {
         const build = parseBuildOrderDsl(dslInput.value, {
             selectorAliases: createDslSelectorAliases(GAME.resources),
+            symbols: createDslValidationSymbols(GAME),
         });
         sim = runSimulation(GAME, build, {
             strict: false,

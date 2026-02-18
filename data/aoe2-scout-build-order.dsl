@@ -1,6 +1,6 @@
 # AoE2 19 pop generic scout-rush build order
-evaluation 15:00 # run for 15 minutes
-debt-floor -120 # disallow going below -120 res
+evaluation 16:00 # run for 15 minutes
+debt-floor -20 # disallow going below -120 res
 start with town_center,villager,villager,villager,scout_cavalry
 
 # Scoring goals
@@ -11,6 +11,7 @@ score time completed train_scout_cavalry x3
 # (you probably want to keep these just to make writing the build order easier)
 after every completed lure_boar assign to boar_lured
 after every completed lure_boar assign villager all from sheep to boar_lured
+after every completed lure_deer assign villager x3 from sheep boar_lured to deer
 after every depleted boar_lured assign to boar_lured deer sheep
 after every depleted deer assign to boar_lured deer sheep
 after every depleted sheep assign to boar_lured deer sheep straggler_trees
@@ -38,7 +39,7 @@ assign villager 7 to forest
 assign villager 8 to forest
 assign villager 9 to forest
 
-at 4:45 queue lure_deer
+at 4:40 queue lure_deer
 
 # 10 lure boar, then sheep villagers rotate to boar.
 queue lure_boar using villager 10
@@ -74,10 +75,10 @@ after completed research_loom queue build_barracks using villager 17
 after completed advance_feudal_age queue build_stable using villager x2 from forest
 after completed build_stable queue train_scout_cavalry x3
 
-after completed advance_feudal_age queue build_house using villager
-after completed advance_feudal_age after completed build_house assign to forest
+after completed advance_feudal_age queue build_house using villager then assign to forest
 at 10:50 queue build_house using villager from berries
 at 12:10 queue build_house using villager from berries
+at 14:00 queue build_house using villager from berries forest
 
 after completed advance_feudal_age queue research_double_bit_axe
 at 11:00 queue research_horse_collar
@@ -86,4 +87,8 @@ at 11:00 queue research_horse_collar
 after completed build_stable auto-queue build_farm using villager from straggler_trees idle
 after villager 19 spawn-assign villager to straggler_trees
 
-after villager 28 queue advance_castle_age
+after villager 27 queue build_mining_camp then assign to gold
+assign villager 28 to gold
+assign villager 29 to gold
+after villager 29 assign villager x1 from forest to gold
+after villager 30 queue research_wheelbarrow then queue advance_castle_age

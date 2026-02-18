@@ -13,11 +13,19 @@ export interface ActorEligibilityRequest {
     idleOnly: boolean;
 }
 
+interface ActorNodeFilter {
+    hasFilter: boolean;
+    allowedNodeIds: Set<string> | undefined;
+    allowIdle: boolean;
+    nodePriorityById: Map<string, number> | undefined;
+    idlePriority: number | undefined;
+}
+
 function resolveAllowedActorNodeIds(
     state: SimState,
     actorResourceNodeIds?: string[],
     actorResourceNodeSelectors?: string[],
-): { hasFilter: boolean; allowedNodeIds: Set<string> | undefined; allowIdle: boolean } {
+): ActorNodeFilter {
     let allowIdle = false;
     const hasFilter =
         (actorResourceNodeIds && actorResourceNodeIds.length > 0) ||
@@ -26,26 +34,44 @@ function resolveAllowedActorNodeIds(
         !(actorResourceNodeIds && actorResourceNodeIds.length > 0) &&
         !(actorResourceNodeSelectors && actorResourceNodeSelectors.length > 0)
     ) {
-        return { hasFilter: false, allowedNodeIds: undefined, allowIdle };
+        return {
+            hasFilter: false,
+            allowedNodeIds: undefined,
+            allowIdle,
+            nodePriorityById: undefined,
+            idlePriority: undefined,
+        };
     }
 
     const allowedNodeIds = new Set<string>();
+    const nodePriorityById = new Map<string, number>();
+    let idlePriority: number | undefined;
+    let nextPriority = 0;
     for (const id of actorResourceNodeIds ?? []) {
-        if (state.resourceNodeById[id]) allowedNodeIds.add(id);
+        if (state.resourceNodeById[id]) {
+            allowedNodeIds.add(id);
+            if (!nodePriorityById.has(id)) nodePriorityById.set(id, nextPriority);
+            nextPriority += 1;
+        }
     }
 
     if (actorResourceNodeSelectors && actorResourceNodeSelectors.length > 0) {
-        const nodeSelectors = actorResourceNodeSelectors.filter((selector) => {
+        for (const selector of actorResourceNodeSelectors) {
             if (selector === "actor:idle") {
                 allowIdle = true;
-                return false;
+                if (idlePriority === undefined) idlePriority = nextPriority;
+                nextPriority += 1;
+                continue;
             }
-            return true;
-        });
-        for (const node of state.resourceNodes) {
-            if (nodeSelectors.some((selector) => matchesNodeSelector(node, selector))) {
-                allowedNodeIds.add(node.id);
+            const matchedNodeIds: string[] = [];
+            for (const node of state.resourceNodes) {
+                if (matchesNodeSelector(node, selector)) matchedNodeIds.push(node.id);
             }
+            for (const id of matchedNodeIds) {
+                allowedNodeIds.add(id);
+                if (!nodePriorityById.has(id)) nodePriorityById.set(id, nextPriority);
+            }
+            nextPriority += 1;
         }
     }
 
@@ -53,6 +79,8 @@ function resolveAllowedActorNodeIds(
         hasFilter: Boolean(hasFilter),
         allowedNodeIds: allowedNodeIds.size > 0 ? allowedNodeIds : undefined,
         allowIdle,
+        nodePriorityById,
+        idlePriority,
     };
 }
 
@@ -60,7 +88,7 @@ function isEligibleEntity(
     state: SimState,
     ent: EntityInstance,
     request: ActorEligibilityRequest,
-    nodeFilter: { hasFilter: boolean; allowedNodeIds: Set<string> | undefined; allowIdle: boolean },
+    nodeFilter: ActorNodeFilter,
 ): boolean {
     if (!request.actorTypes.includes(ent.entityType)) return false;
     if (request.idleOnly && ent.busyUntil > state.now + EPS) return false;
@@ -71,10 +99,19 @@ function isEligibleEntity(
     return allowedNodeIds.has(ent.resourceNodeId);
 }
 
+function entityNodePriority(
+    ent: EntityInstance,
+    nodeFilter: ActorNodeFilter,
+): number {
+    if (!nodeFilter.hasFilter) return Number.POSITIVE_INFINITY;
+    if (!ent.resourceNodeId) return nodeFilter.idlePriority ?? Number.POSITIVE_INFINITY;
+    return nodeFilter.nodePriorityById?.get(ent.resourceNodeId) ?? Number.POSITIVE_INFINITY;
+}
+
 function selectBySelectors(
     state: SimState,
     request: ActorEligibilityRequest,
-    nodeFilter: { hasFilter: boolean; allowedNodeIds: Set<string> | undefined; allowIdle: boolean },
+    nodeFilter: ActorNodeFilter,
 ): EntityInstance[] {
     const picked: EntityInstance[] = [];
     const used = new Set<string>();
@@ -93,6 +130,11 @@ function selectBySelectors(
                 (e) => !used.has(e.id) && e.entityType === selector && isEligibleEntity(state, e, request, nodeFilter),
             )
             .sort((a, b) => {
+                if (request.idleOnly) {
+                    const pa = entityNodePriority(a, nodeFilter);
+                    const pb = entityNodePriority(b, nodeFilter);
+                    if (pa !== pb) return pa - pb;
+                }
                 if (!request.idleOnly && a.busyUntil !== b.busyUntil) return a.busyUntil - b.busyUntil;
                 return compareEntityIdNatural(a.id, b.id);
             });
@@ -119,6 +161,11 @@ export function pickEligibleActorIds(state: SimState, request: ActorEligibilityR
     return state.entities
         .filter((e) => isEligibleEntity(state, e, request, nodeFilter))
         .sort((a, b) => {
+            if (request.idleOnly) {
+                const pa = entityNodePriority(a, nodeFilter);
+                const pb = entityNodePriority(b, nodeFilter);
+                if (pa !== pb) return pa - pb;
+            }
             if (!request.idleOnly && a.busyUntil !== b.busyUntil) return a.busyUntil - b.busyUntil;
             return compareEntityIdNatural(a.id, b.id);
         })

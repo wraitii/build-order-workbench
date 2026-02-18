@@ -664,6 +664,10 @@ export function processAutoQueue(
 ): void {
     let changed = false;
     let guard = 0;
+    const applyDelayFloor = (rule: AutoQueueRule, nextAttemptAt: number): number => {
+        if (rule.delayUntil === undefined) return nextAttemptAt;
+        return Math.max(nextAttemptAt, rule.delayUntil);
+    };
 
     do {
         guard += 1;
@@ -717,8 +721,10 @@ export function processAutoQueue(
 
             if (result.status === "scheduled") {
                 onActionClicked?.(result.actionId, result.actors, result.startedAt);
+                // Auto-queue may fire multiple times in the same tick as long as
+                // there are still eligible actors/resources after each click.
                 rule.delayUntil = toFutureTick(result.completionTime + sampleHumanDelaySeconds(state, rule.actionId));
-                rule.nextAttemptAt = rule.delayUntil;
+                rule.nextAttemptAt = state.now;
                 changed = true;
                 if (shouldDebugAction(rule.actionId)) {
                     simDebug(
@@ -738,7 +744,10 @@ export function processAutoQueue(
             }
 
             if (result.reason === "NO_ACTORS") {
-                rule.nextAttemptAt = computeBlockedNextAttempt(state, game, options, rule, result.reason);
+                rule.nextAttemptAt = applyDelayFloor(
+                    rule,
+                    computeBlockedNextAttempt(state, game, options, rule, result.reason),
+                );
                 if (shouldDebugAction(rule.actionId)) {
                     simDebug(
                         "processAutoQueue.blocked",
@@ -752,7 +761,10 @@ export function processAutoQueue(
             }
 
             if (result.reason === "POP_CAP") {
-                rule.nextAttemptAt = computeBlockedNextAttempt(state, game, options, rule, result.reason);
+                rule.nextAttemptAt = applyDelayFloor(
+                    rule,
+                    computeBlockedNextAttempt(state, game, options, rule, result.reason),
+                );
                 if (shouldDebugAction(rule.actionId)) {
                     simDebug(
                         "processAutoQueue.blocked",
@@ -764,7 +776,10 @@ export function processAutoQueue(
                 }
                 continue;
             }
-            rule.nextAttemptAt = computeBlockedNextAttempt(state, game, options, rule, result.reason);
+            rule.nextAttemptAt = applyDelayFloor(
+                rule,
+                computeBlockedNextAttempt(state, game, options, rule, result.reason),
+            );
             if (shouldDebugAction(rule.actionId)) {
                 simDebug(
                     "processAutoQueue.blocked",

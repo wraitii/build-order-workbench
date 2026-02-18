@@ -407,6 +407,19 @@ function executeCommand(
                 BuildOrderCommand,
                 { type: "queueAction" }
             >;
+            if (!queueCmd.actorSelectors && queueCmd.afterEntityId) {
+                const action = game.actions[queueCmd.actionId];
+                const afterEntity = state.entities.find((e) => e.id === queueCmd.afterEntityId);
+                const requiredActors = action?.actorCount ?? 1;
+                if (
+                    action &&
+                    afterEntity &&
+                    requiredActors === 1 &&
+                    action.actorTypes.includes(afterEntity.entityType)
+                ) {
+                    queueCmd = { ...queueCmd, actorSelectors: [afterEntity.id] };
+                }
+            }
             if (!queueCmd.actorSelectors && triggerContext?.actors && triggerContext.actors.length > 0) {
                 const action = game.actions[queueCmd.actionId];
                 if (action) {

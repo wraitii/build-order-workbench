@@ -1,7 +1,7 @@
 import { runSimulation } from "./sim";
 import { BuildOrderPreset, toHtmlReport, toTextReport } from "./report";
 import { GameData } from "./types";
-import { parseBuildOrderDsl } from "./dsl";
+import { createDslValidationSymbols, parseBuildOrderDsl } from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
 import { normalizeGame } from "./sim_shared";
 
@@ -60,6 +60,7 @@ async function main(): Promise<void> {
     const buildDsl = await Bun.file(args.build).text();
     const build = parseBuildOrderDsl(buildDsl, {
         selectorAliases: createDslSelectorAliases(game.resources),
+        symbols: createDslValidationSymbols(game),
     });
 
     const evaluationTime = args.at ?? build.evaluationTime;

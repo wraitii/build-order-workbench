@@ -99,6 +99,7 @@ starting-resource &lt;resource&gt; &lt;amount&gt;  # override a starting resourc
         <div>
           <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Commands</div>
           <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">queue &lt;action&gt; [xN] [using &lt;actor&gt;[, ...]] [from &lt;node&gt;...]
+queue &lt;action&gt; ... then &lt;command&gt;                # lower to chained completed-trigger command
 auto-queue &lt;action&gt; [using &lt;actorType&gt;] [from &lt;node&gt;...]
 stop-auto-queue &lt;action&gt; [using &lt;actorType&gt;]
 assign &lt;actorType&gt; &lt;N | xN | all&gt; [from &lt;node&gt;...] to &lt;node&gt;...

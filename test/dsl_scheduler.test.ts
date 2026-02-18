@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { parseBuildOrderDsl } from "../src/dsl";
+import { createDslValidationSymbols, parseBuildOrderDsl } from "../src/dsl";
 import { runSimulation } from "../src/sim";
 import { GameData } from "../src/types";
+import { createDslSelectorAliases } from "../src/node_selectors";
 
 const TEST_GAME: GameData = {
   resources: ["food", "wood", "gold", "stone", "pop"],
@@ -287,6 +288,33 @@ after completed train_villager after completed build_farm assign to created
     expect(outer.command.command.type).toBe("assignEventGather");
   });
 
+  test("lowers then syntax after queue into chained completed trigger", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 120
+after completed train_villager queue build_farm using villager 1 then assign to created
+`);
+
+    expect(build.commands).toHaveLength(2);
+    const first = build.commands[0];
+    const second = build.commands[1];
+    expect(first?.type).toBe("onTrigger");
+    if (!first || first.type !== "onTrigger") return;
+    expect(first.command.type).toBe("queueAction");
+    if (first.command.type !== "queueAction") return;
+    expect(first.command.actionId).toBe("build_farm");
+
+    expect(second?.type).toBe("onTrigger");
+    if (!second || second.type !== "onTrigger") return;
+    expect(second.trigger.kind).toBe("completed");
+    if (second.trigger.kind !== "completed") return;
+    expect(second.trigger.actionId).toBe("train_villager");
+    expect(second.command.type).toBe("onTrigger");
+    if (second.command.type !== "onTrigger") return;
+    expect(second.command.trigger.kind).toBe("completed");
+    if (second.command.trigger.kind !== "completed") return;
+    expect(second.command.trigger.actionId).toBe("build_farm");
+  });
+
   test("parses after clicked trigger", () => {
     const build = parseBuildOrderDsl(`
 evaluation 120
@@ -335,6 +363,51 @@ evaluation 60
 human-delay train_villager 0.8 0 1
 human-delay train_villager 0.3 2 3
 `)).toThrow("cannot exceed 1");
+  });
+
+  test("reports unknown action identifiers with line context when symbols are provided", () => {
+    expect(() =>
+      parseBuildOrderDsl(
+        `
+evaluation 60
+queue totally_fake_action using villager 1
+`,
+        {
+          selectorAliases: createDslSelectorAliases(TEST_GAME.resources),
+          symbols: createDslValidationSymbols(TEST_GAME),
+        },
+      ),
+    ).toThrow("Line 3: unknown action 'totally_fake_action'");
+  });
+
+  test("suggests close action names", () => {
+    expect(() =>
+      parseBuildOrderDsl(
+        `
+evaluation 60
+queue train_vilage using town_center
+`,
+        {
+          selectorAliases: createDslSelectorAliases(TEST_GAME.resources),
+          symbols: createDslValidationSymbols(TEST_GAME),
+        },
+      ),
+    ).toThrow("Did you mean 'train_villager'?");
+  });
+
+  test("reports unknown node selectors with line context when symbols are provided", () => {
+    expect(() =>
+      parseBuildOrderDsl(
+        `
+evaluation 60
+assign villager 1 to mystery_woods
+`,
+        {
+          selectorAliases: createDslSelectorAliases(TEST_GAME.resources),
+          symbols: createDslValidationSymbols(TEST_GAME),
+        },
+      ),
+    ).toThrow("Line 3: unknown resource 'mystery_woods'");
   });
 });
 
@@ -612,12 +685,55 @@ at 0 auto-queue build_farm using villager from straggler_trees idle
     expect(v2Farm).toBe(true);
   });
 
+  test("auto-queue can trigger multiple times in the same tick when actors remain", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 2
+start with villager,villager
+at 0 auto-queue lure_boar using villager from idle
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const villager1 = result.entityTimelines["villager-1"];
+    const villager2 = result.entityTimelines["villager-2"];
+    const v1LureAt0 = villager1?.segments.some((s) => s.kind === "action" && s.detail === "lure_boar" && s.start === 0);
+    const v2LureAt0 = villager2?.segments.some((s) => s.kind === "action" && s.detail === "lure_boar" && s.start === 0);
+    expect(v1LureAt0).toBe(true);
+    expect(v2LureAt0).toBe(true);
+  });
+
   test("after completed queue reuses completion actor when compatible", () => {
     const build = parseBuildOrderDsl(`
 evaluation 5
 start with villager,villager
 at 0 queue lure_boar using villager 2
 after completed lure_boar queue lure_boar
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const villager1 = result.entityTimelines["villager-1"];
+    const villager2 = result.entityTimelines["villager-2"];
+    const v1LureActions = villager1?.segments.filter((s) => s.kind === "action" && s.detail === "lure_boar").length ?? 0;
+    const v2LureActions = villager2?.segments.filter((s) => s.kind === "action" && s.detail === "lure_boar").length ?? 0;
+    expect(v1LureActions).toBe(0);
+    expect(v2LureActions).toBe(2);
+  });
+
+  test("after villager N queue reuses that villager when compatible", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager,villager
+at 0 queue lure_boar using villager 2
+at 0 after villager 2 queue lure_boar
 `);
 
     const result = runSimulation(TEST_GAME, build, {
@@ -756,6 +872,30 @@ at 1 queue expensive_build using villager 1
     expect(trainStarts).toContain(35);
     expect(trainStarts).toContain(70);
     expect(trainStarts).toContain(105);
+  });
+
+  test("queue from selectors prefer earlier selector order when multiple actors are eligible", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 10
+start with villager,villager
+starting-resource wood 100
+assign villager 1 to forest
+assign villager 2 to food
+at 0 queue build_house_plain using villager from food forest
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const villager1 = result.entityTimelines["villager-1"];
+    const villager2 = result.entityTimelines["villager-2"];
+    const v1HouseActions = villager1?.segments.filter((s) => s.kind === "action" && s.detail === "build_house_plain").length ?? 0;
+    const v2HouseActions = villager2?.segments.filter((s) => s.kind === "action" && s.detail === "build_house_plain").length ?? 0;
+    expect(v1HouseActions).toBe(0);
+    expect(v2HouseActions).toBe(1);
   });
 
   test("actor-waiting queue command does not pause unrelated auto-queue at same tick", () => {

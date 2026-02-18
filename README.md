@@ -37,6 +37,7 @@ score time <clicked|completed|depleted|exhausted> <target> [x<N>]  # scoring goa
 
 # Commands — bare (time 0), timed, or deferred
 [at <time>] [after [every] <condition>] <directive>
+[at <time>] [after [every] <condition>] queue <actionId> ... then <directive>
 
 # Directives
 queue <actionId> [x<N>] [using <selector>[, ...]] [from <selectors...>]
