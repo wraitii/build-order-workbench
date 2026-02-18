@@ -72,8 +72,8 @@ after completed research_loom assign villager 16 to gold_mine
 after completed research_loom assign villager 15 to gold_mine
 after completed research_loom assign villager 14 to gold_mine
 
-# We need more on wood after feudal
-after completed advance_feudal_age assign villager x4 from sheep boar_lured idle to forest
+# We need more on wood after feudal (empirically 5 seems best with the current setup)
+after completed advance_feudal_age assign villager x5 from sheep boar_lured idle to forest
 
 # Feudal power spike
 after completed advance_feudal_age queue build_archery_range using villager, villager
