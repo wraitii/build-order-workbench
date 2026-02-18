@@ -21,6 +21,8 @@ export interface ResourceNodeDef {
     rateByEntityType: Record<string, number>;
     maxWorkers?: number;
     stock?: number;
+    decayRatePerSecond?: number;
+    decayStart?: "on_spawn" | "on_first_gather";
     tags?: string[];
 }
 
@@ -216,6 +218,9 @@ export interface ResourceNodeInstance {
     rateByEntityType: Record<string, number>;
     maxWorkers?: number;
     remainingStock?: number;
+    decayRatePerSecond?: number;
+    decayStart?: "on_spawn" | "on_first_gather";
+    decayActive?: boolean;
     depleted?: boolean;
     tags: string[];
 }

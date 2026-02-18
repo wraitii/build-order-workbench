@@ -282,7 +282,7 @@ function renderHealth(): void {
   <div class="health-chip-label">${icon}${escapeHtml(res)}</div>
   <div class="health-chip-val">${round2(gathered)}</div>
   <div class="health-chip-sub">gathered total</div>
-  <div class="health-chip-avg">avg balance ${round2(avg)}</div>${debtHtml}
+  <div class="health-chip-avg">avg float ${round2(avg)}</div>${debtHtml}
 </div>`;
         })
         .join("");
@@ -356,8 +356,12 @@ function resourceGraph(resource: string, mTime: number, step: number): string {
     }
     if (samples.length < 2) return "";
 
-    const vw = 200, vh = 72;
-    const padL = 30, padR = 4, padT = 4, padB = 16;
+    const vw = 200,
+        vh = 72;
+    const padL = 30,
+        padR = 4,
+        padT = 4,
+        padB = 16;
     const innerW = vw - padL - padR;
     const innerH = vh - padT - padB;
 
@@ -372,7 +376,10 @@ function resourceGraph(resource: string, mTime: number, step: number): string {
     const pts = samples.map(([t, v]) => `${round2(toX(t))},${round2(toY(v))}`).join(" ");
 
     const yTicks = [vMax, vMin]
-        .map((v) => `<text x="${padL - 3}" y="${round2(toY(v) + 3)}" font-size="8" text-anchor="end" fill="currentColor" opacity="0.5">${Math.round(v)}</text>`)
+        .map(
+            (v) =>
+                `<text x="${padL - 3}" y="${round2(toY(v) + 3)}" font-size="8" text-anchor="end" fill="currentColor" opacity="0.5">${Math.round(v)}</text>`,
+        )
         .join("");
 
     const xStepCount = mTime > 600 ? 4 : 3;
@@ -412,13 +419,15 @@ function renderScrub(t: number): void {
 
     const gatherers = gatherersAt(t);
     const villagerIcon = iconImg(entityIconUrl("villager"), "villager");
-    gatherStats.innerHTML = villagerIcon + gathered
-        .filter((k: string) => k in gatherers)
-        .map(
-            (k: string) =>
-                `<span class='res-stat'>${iconImg(resourceIconUrl(k), k)}<span>${gatherers[k]}</span></span>`,
-        )
-        .join("");
+    gatherStats.innerHTML =
+        villagerIcon +
+        gathered
+            .filter((k: string) => k in gatherers)
+            .map(
+                (k: string) =>
+                    `<span class='res-stat'>${iconImg(resourceIconUrl(k), k)}<span>${gatherers[k]}</span></span>`,
+            )
+            .join("");
 }
 
 function buildTimeline(t: number, center = false): void {
@@ -469,7 +478,6 @@ function buildTimeline(t: number, center = false): void {
     const activeEntries = entries.filter((e) => !isIdleOnly(e)).sort(sortFn);
     const idleEntries = entries.filter((e) => isIdleOnly(e)).sort(sortFn);
     const sortedEntries = [...activeEntries, ...idleEntries];
-
 
     const axisTicks: string[] = [];
     for (let x = 0; x <= mTime + 0.0001; x += tickEvery) {

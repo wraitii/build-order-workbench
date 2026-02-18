@@ -1,8 +1,7 @@
 # AoE2 feudal archer rush (goal: 5 archers)
-# This particular build is a bit too tight for current params,
-# but that's fine.
+# This build floats a bit of food/gold, arguably.
 evaluation 18:00
-debt-floor -120
+debt-floor 0
 start with town_center,villager,villager,villager,scout_cavalry
 
 # Scoring goals
@@ -41,21 +40,19 @@ queue build_lumber_camp using villager 7
 assign villager 7 to forest
 assign villager 8 to forest
 assign villager 9 to forest
-assign villager 10 to forest
-
 # Boar timing
-queue lure_boar using villager 11
+queue lure_boar using villager 10
+assign villager 11 to forest
 
 # Mill + berries
 queue build_house using villager 12
 assign villager 12 to berries
 queue build_mill using villager 13
 assign villager 13 to berries
-assign villager 14 to berries
-
 # Second boar and food stabilization
-queue lure_boar using villager 15
-assign villager 16 to sheep
+queue lure_boar using villager 14
+assign villager 15 to sheep
+assign villager 16 to berries
 assign villager 17 to berries
 
 # Extra wood to support range + houses
@@ -67,12 +64,12 @@ assign villager 19 to forest
 after villager 19 queue research_loom
 after villager 19 queue advance_feudal_age
 
-# On loom: prep military path + gold
-after completed research_loom queue build_barracks using villager 17
-after completed research_loom queue build_mining_camp using villager 16
-after completed research_loom assign villager 16 to gold_mine
+# On loom: gold
+after completed research_loom queue build_mining_camp using villager from sheep boar_lured then assign to gold
 after completed research_loom assign villager 15 to gold_mine
 after completed research_loom assign villager 14 to gold_mine
+
+after completed build_mining_camp queue build_barracks using villager from sheep boar_lured
 
 # We need more on wood after feudal (empirically 5 seems best with the current setup)
 after completed advance_feudal_age assign villager x5 from sheep boar_lured idle to forest
@@ -89,4 +86,4 @@ at 12:00 queue build_house x2 using villager from straggler_trees idle
 after completed build_archery_range auto-queue build_farm using villager from straggler_trees idle
 after villager 21 spawn-assign villager to straggler_trees
 
-at 15:00 queue advance_castle_age
+at 14:00 queue research_wheelbarrow then queue advance_castle_age

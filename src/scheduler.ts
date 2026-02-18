@@ -10,7 +10,7 @@ import {
     switchEntityActivity,
     toFutureTick,
 } from "./sim_shared";
-import { computeEconomySnapshot } from "./economy";
+import { activateNodeDecay, computeEconomySnapshot } from "./economy";
 import { shouldDebugAction, simDebug } from "./debug";
 import { matchesNodeSelector } from "./node_selectors";
 import { nextEligibleActorAvailabilityTime, pickEligibleActorIds } from "./actor_eligibility";
@@ -132,6 +132,10 @@ function pickGatherNode(
     });
 }
 
+function activateDecayOnFirstGather(node: ResourceNodeInstance): void {
+    activateNodeDecay(node);
+}
+
 export function assignEntityToGatherTargets(
     state: SimState,
     entityId: string,
@@ -153,6 +157,7 @@ export function assignEntityToGatherTargets(
     if (!node) return false;
 
     ent.resourceNodeId = node.id;
+    activateDecayOnFirstGather(node);
     if (ent.busyUntil <= state.now + EPS) {
         switchEntityActivity(state, ent.id, "gather", `${node.produces}:${node.prototypeId}`);
     }
@@ -883,6 +888,7 @@ export function assignGatherByEntityIds(
         }
 
         ent.resourceNodeId = node.id;
+        activateDecayOnFirstGather(node);
         assignedCount[node.id] = (assignedCount[node.id] ?? 0) + 1;
         if (ent.busyUntil <= state.now + EPS) {
             switchEntityActivity(state, ent.id, "gather", `${node.produces}:${node.prototypeId}`);

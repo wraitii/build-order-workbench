@@ -445,10 +445,18 @@ function executeCommand(
             const requestedAt = state.now;
             const actorIds = triggerContext?.actors ?? [];
             if (actorIds.length === 0) {
+                if (triggerContext?.triggerMode === "every") {
+                    // Repeating trigger with no actor context is a valid no-op.
+                    pushScheduled(assignEventCmd.type, requestedAt);
+                    return;
+                }
                 pushInvalidAssignment(
                     assignEventCmd.type,
                     requestedAt,
-                    "assign event requires an active trigger event with actors.",
+                    "Event-based assign had no actors in trigger context. " +
+                        "This can happen when the trigger fires from passive depletion (for example decay). " +
+                        "Use 'after every ...' for no-op-safe behavior or use explicit actor selection " +
+                        "(for example 'assign villager all from <node> to ...').",
                 );
                 return;
             }

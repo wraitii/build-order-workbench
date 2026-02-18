@@ -7,6 +7,7 @@ import { matchesNodeSelector } from "./node_selectors";
 export interface TriggerEventContext {
     actors: string[];
     createdNodeIds?: string[];
+    triggerMode?: "once" | "every";
 }
 
 export interface TriggerEvent {
@@ -70,7 +71,10 @@ export function processTriggers(
             matched = true;
         }
         if (!matched) continue;
-        executeCommand(state, game, options, rule.command, rule.sourceCommandIndex, event.context);
+        executeCommand(state, game, options, rule.command, rule.sourceCommandIndex, {
+            ...event.context,
+            triggerMode: rule.mode,
+        });
         if (rule.mode === "once") {
             state.triggerRules.splice(i, 1);
             i -= 1;

@@ -3,7 +3,7 @@
 # This particular build is a bit too tight for current params,
 # but that's fine.
 evaluation 18:00
-debt-floor -120
+debt-floor 0
 start with town_center,villager,villager,villager,scout_cavalry
 
 # Scoring goals
@@ -42,10 +42,9 @@ queue build_lumber_camp using villager 7
 assign villager 7 to forest
 assign villager 8 to forest
 assign villager 9 to forest
-assign villager 10 to forest
-
 # Boar timing
-queue lure_boar using villager 11
+queue lure_boar using villager 10
+assign villager 11 to forest
 
 # Mill + berries
 queue build_house using villager 12
@@ -55,18 +54,18 @@ queue build_mill using villager 13
 assign villager 13 to berries
 assign villager 14 to berries
 assign villager 15 to berries
+assign villager 16 to berries
 
 # Second boar and food stabilization
-queue lure_boar using villager 3
-assign villager 16 to berries
+after villager 14 queue lure_boar using villager 3
+after villager 17 queue lure_deer
 assign villager 17 to boar_lured sheep
 assign villager 18 to boar_lured sheep
 
-# Barracks
-queue build_barracks using villager 19
-assign villager 19 to forest
-after completed build_barracks queue train_militia x3
+# vill temporarily on stragglers
+assign villager 19 to straggler_trees
 
+# mining camp
 queue build_mining_camp using villager 20
 assign villager 20 to gold
 assign villager 21 to gold
@@ -74,9 +73,10 @@ assign villager 21 to gold
 # Click up at 22 pop
 after villager 21 queue research_loom
 after villager 21 queue advance_feudal_age
+# Barracks
+after completed research_loom queue build_barracks using villager from straggler_trees then assign to forest
 
 after clicked advance_feudal_age assign villager x4 from sheep boar_lured idle to forest
-after clicked advance_feudal_age queue build_farm using villager from sheep boar_lured idle
 
 # Feudal start
 after completed advance_feudal_age queue build_house using villager from wood
@@ -93,21 +93,22 @@ after villager 24 queue build_house using villager from wood
 after villager 24 queue build_archery_range using villager, villager
 after villager 24 queue build_blacksmith
 after villager 25 queue build_archery_range using villager, villager
-after completed build_archery_range queue train_archer x8
+after completed build_archery_range queue train_archer x6
+after completed build_archery_range queue train_archer x6
+after completed build_archery_range queue build_farm
 
 assign villager 25 to gold
 assign villager 26 to gold
 after villager 26 queue build_house using villager from idle straggler_trees wood
 assign villager 27 to gold
 after villager 28 queue research_fletching
-assign villager 28 to gold
 
+after villager 27 auto-queue build_farm using villager from straggler_trees idle
+after villager 27 spawn-assign villager to straggler_trees
+
+# houses
 after villager 28 queue build_house using villager from idle straggler_trees wood
 after villager 29 queue build_house
-
-after villager 28 auto-queue build_farm using villager from straggler_trees idle
-after villager 28 spawn-assign villager to straggler_trees
-
 after villager 32 queue build_house
 after villager 35 queue build_house
 

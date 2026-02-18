@@ -16,9 +16,15 @@ export interface TargetEconomy {
     workers: string[];
 }
 
+interface NodeDrain {
+    target: ResourceNodeInstance;
+    rate: number;
+}
+
 export interface EconomySnapshot {
     resourceRates: Record<string, number>;
     targetEconomy: TargetEconomy[];
+    nodeDrains: NodeDrain[];
     nextDepletionTime?: number;
 }
 
@@ -60,10 +66,21 @@ export function instantiateResourceNode(state: SimState, prototype: ResourceNode
             applyNumericModifiers(prototype.stock, resourceNodeStockKeys(node), state.activeModifiers),
         );
     }
+    if (prototype.decayRatePerSecond !== undefined) node.decayRatePerSecond = prototype.decayRatePerSecond;
+    if (prototype.decayStart !== undefined) node.decayStart = prototype.decayStart;
+    if ((node.decayRatePerSecond ?? 0) > 0) {
+        node.decayActive = node.decayStart !== "on_first_gather";
+    }
 
     state.resourceNodes.push(node);
     state.resourceNodeById[node.id] = node;
     return node;
+}
+
+export function activateNodeDecay(node: ResourceNodeInstance): void {
+    if ((node.decayRatePerSecond ?? 0) <= 0) return;
+    if (node.decayStart !== "on_first_gather") return;
+    node.decayActive = true;
 }
 
 export function applyStockModifierToExistingNodes(
@@ -83,6 +100,7 @@ export function applyStockModifierToExistingNodes(
 export function computeEconomySnapshot(state: SimState): EconomySnapshot {
     const resourceRates: Record<string, number> = {};
     const grouped: Record<string, TargetEconomy> = {};
+    const gatherRateByNodeId: Record<string, number> = {};
 
     for (const ent of state.entities) {
         if (ent.busyUntil > state.now + EPS || !ent.resourceNodeId) continue;
@@ -104,21 +122,30 @@ export function computeEconomySnapshot(state: SimState): EconomySnapshot {
         bucket.rate += effectiveRate;
         bucket.workers.push(ent.id);
         grouped[node.id] = bucket;
+        gatherRateByNodeId[node.id] = (gatherRateByNodeId[node.id] ?? 0) + effectiveRate;
     }
 
     let nextDepletionTime: number | undefined;
     const targetEconomy = Object.values(grouped);
+    const nodeDrains: NodeDrain[] = [];
     for (const item of targetEconomy) {
         resourceRates[item.target.produces] = (resourceRates[item.target.produces] ?? 0) + item.rate;
-        if (item.target.remainingStock !== undefined && item.rate > 0) {
-            const t = state.now + item.target.remainingStock / item.rate;
-            if (nextDepletionTime === undefined || t < nextDepletionTime) nextDepletionTime = t;
-        }
+    }
+
+    for (const node of state.resourceNodes) {
+        if (node.remainingStock === undefined || node.remainingStock <= EPS) continue;
+        const gatherRate = gatherRateByNodeId[node.id] ?? 0;
+        const decayRate = node.decayActive ? Math.max(0, node.decayRatePerSecond ?? 0) : 0;
+        const totalDrainRate = gatherRate + decayRate;
+        if (totalDrainRate <= 0) continue;
+        nodeDrains.push({ target: node, rate: totalDrainRate });
+        const t = state.now + node.remainingStock / totalDrainRate;
+        if (nextDepletionTime === undefined || t < nextDepletionTime) nextDepletionTime = t;
     }
 
     return nextDepletionTime === undefined
-        ? { resourceRates, targetEconomy }
-        : { resourceRates, targetEconomy, nextDepletionTime };
+        ? { resourceRates, targetEconomy, nodeDrains }
+        : { resourceRates, targetEconomy, nodeDrains, nextDepletionTime };
 }
 
 function handleDepletedNodes(state: SimState): NodeDepletionEvent[] {
@@ -172,7 +199,7 @@ export function advanceTime(
             for (const [resource, rate] of Object.entries(econ.resourceRates)) {
                 state.resources[resource] = (state.resources[resource] ?? 0) + rate * dt;
             }
-            for (const item of econ.targetEconomy) {
+            for (const item of econ.nodeDrains) {
                 if (item.target.remainingStock === undefined) continue;
                 item.target.remainingStock = Math.max(0, item.target.remainingStock - item.rate * dt);
             }

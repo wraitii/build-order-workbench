@@ -543,6 +543,36 @@ at 0 queue lure_boar x2 using villager 1
     expect(result.scores[1]?.value).toBe(1);
   });
 
+  test("sheep decay starts on first gather assignment", () => {
+    const decayGame: GameData = {
+      ...TEST_GAME,
+      resourceNodePrototypes: {
+        ...TEST_GAME.resourceNodePrototypes,
+        sheep: {
+          ...TEST_GAME.resourceNodePrototypes.sheep,
+          stock: 6,
+          decayRatePerSecond: 2,
+          decayStart: "on_first_gather",
+        },
+      },
+    };
+
+    const build = parseBuildOrderDsl(`
+evaluation 6
+start with villager
+score time depleted sheep
+at 2 assign villager 1 to sheep
+`);
+
+    const result = runSimulation(decayGame, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    expect(result.scores[0]?.value).toBe(4);
+  });
+
   test("deferred commands do not shift same-timestamp command registration", () => {
     const build = parseBuildOrderDsl(`
 evaluation 50
@@ -844,6 +874,69 @@ after exhausted sheep assign to forest
     const villager1 = result.entityTimelines["villager-1"];
     const endsOnForest = villager1?.segments.some((s) => s.kind === "gather" && s.detail === "wood:forest");
     expect(endsOnForest).toBe(true);
+  });
+
+  test("after every depleted assign-to is a no-op when trigger has no actors", () => {
+    const decaySheepGame: GameData = {
+      ...TEST_GAME,
+      resourceNodePrototypes: {
+        ...TEST_GAME.resourceNodePrototypes,
+        sheep: {
+          ...TEST_GAME.resourceNodePrototypes.sheep,
+          stock: 2,
+          decayRatePerSecond: 2,
+          decayStart: "on_spawn",
+        },
+      },
+      startingResourceNodes: [{ prototypeId: "sheep", count: 1 }],
+    };
+
+    const build = parseBuildOrderDsl(`
+evaluation 3
+start with villager
+after every depleted sheep assign to forest
+`);
+
+    const result = runSimulation(decaySheepGame, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const invalidAssignments = result.violations.filter((v) => v.code === "INVALID_ASSIGNMENT");
+    expect(invalidAssignments.length).toBe(0);
+  });
+
+  test("after depleted assign-to still warns when trigger has no actors", () => {
+    const decaySheepGame: GameData = {
+      ...TEST_GAME,
+      resourceNodePrototypes: {
+        ...TEST_GAME.resourceNodePrototypes,
+        sheep: {
+          ...TEST_GAME.resourceNodePrototypes.sheep,
+          stock: 2,
+          decayRatePerSecond: 2,
+          decayStart: "on_spawn",
+        },
+      },
+      startingResourceNodes: [{ prototypeId: "sheep", count: 1 }],
+    };
+
+    const build = parseBuildOrderDsl(`
+evaluation 3
+start with villager
+after depleted sheep assign to forest
+`);
+
+    const result = runSimulation(decaySheepGame, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const invalidAssignments = result.violations.filter((v) => v.code === "INVALID_ASSIGNMENT");
+    expect(invalidAssignments.length).toBe(1);
+    expect(invalidAssignments[0]?.message).toContain("no actors in trigger context");
   });
 
   test("resource-waiting queue command does not pause unrelated auto-queue", () => {

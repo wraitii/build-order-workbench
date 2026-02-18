@@ -183,6 +183,8 @@
       },
       "maxWorkers": 6,
       "stock": 100,
+      "decayRatePerSecond": 0.25,
+      "decayStart": "on_first_gather",
       "tags": ["food", "huntables", "herdable"]
     },
     "boar": {
@@ -207,6 +209,8 @@
       },
       "maxWorkers": 3,
       "stock": 140,
+      "decayRatePerSecond": 0.25,
+      "decayStart": "on_spawn",
       "tags": ["food", "huntables", "deer"]
     },
     "boar_lured": {
@@ -217,6 +221,8 @@
       },
       "maxWorkers": 10,
       "stock": 340,
+      "decayRatePerSecond": 0.4,
+      "decayStart": "on_spawn",
       "tags": ["food", "huntables", "boar_lured"]
     },
     "berries": {
@@ -447,7 +453,7 @@
     },
     "lure_boar": {
       "name": "Lure Boar",
-      "duration": 45,
+      "duration": 30,
       "createsResourceNodes": [
         {
           "prototypeId": "boar_lured",
