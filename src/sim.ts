@@ -18,7 +18,6 @@ import {
     GameData,
     SimOptions,
     SimulationResult,
-    TriggerExecutableCommand,
     ScoreCriterion,
     ScoreResult,
 } from "./types";
@@ -166,7 +165,7 @@ function computeScenarioScore(result: Omit<SimulationResult, "scenarioScore" | "
     const scheduled = result.commandResults.filter((c) => c.status === "scheduled");
     const avgDelay = scheduled.reduce((sum, c) => sum + (c.delayedBy ?? 0), 0) / Math.max(1, scheduled.length);
 
-    const warningCodes = new Set(["NEGATIVE_RESOURCE"]);
+    const warningCodes = new Set(["NEGATIVE_RESOURCE", "AMBIGUOUS_TRIGGER"]);
     const penalizedViolations = result.violations.filter((v) => !warningCodes.has(v.code));
     const violationPenalty = penalizedViolations.length * 10;
     const debtPenalty = Math.max(0, -result.maxDebt) * 0.4;
@@ -307,13 +306,13 @@ function advanceWithAutomation(
 }
 
 function resolveDeferredCommandTime(state: SimState, cmd: BuildOrderCommand): number | undefined {
-    if (!cmd.after && !cmd.afterEntityId) return undefined;
+    if (!cmd.afterEntityId) return undefined;
 
     const afterEntityIdTime = resolveAfterEntityIdDeferredTime(state, cmd);
-    if (afterEntityIdTime !== undefined) return afterEntityIdTime;
+    if (afterEntityIdTime === undefined) return undefined;
 
     if (cmd.type === "assignGather") return resolveAssignGatherDeferredTime(state, cmd);
-    return resolveDefaultDeferredTime(state);
+    return state.now;
 }
 
 function resolveAfterEntityIdDeferredTime(state: SimState, cmd: BuildOrderCommand): number | undefined {
@@ -360,11 +359,6 @@ function resolveAssignGatherDeferredTime(
     return toTick(availableAt);
 }
 
-function resolveDefaultDeferredTime(state: SimState): number | undefined {
-    const nextEvent = findNextEventTime(state.events, state.now);
-    return nextEvent === undefined ? undefined : toFutureTick(nextEvent);
-}
-
 interface PendingDeferredCommand {
     cmd: BuildOrderCommand;
     commandIndex: number;
@@ -373,7 +367,7 @@ interface PendingDeferredCommand {
 
 function withImplicitAssignSpawnDefer(state: SimState, cmd: BuildOrderCommand): BuildOrderCommand {
     if (cmd.type !== "assignGather") return cmd;
-    if (cmd.after || cmd.afterEntityId) return cmd;
+    if (cmd.afterEntityId) return cmd;
     if (!cmd.actorSelectors || cmd.actorSelectors.length !== 1) return cmd;
 
     const actorId = cmd.actorSelectors[0];
@@ -484,9 +478,33 @@ function executeCommand(
         },
         onTrigger: () => {
             const onTriggerCmd = cmd as Extract<BuildOrderCommand, { type: "onTrigger" }>;
+            const triggerMode = onTriggerCmd.triggerMode ?? "once";
+            if (
+                !triggerContext &&
+                triggerMode === "once" &&
+                (onTriggerCmd.trigger.kind === "clicked" || onTriggerCmd.trigger.kind === "completed")
+            ) {
+                const times =
+                    onTriggerCmd.trigger.kind === "clicked"
+                        ? (state.actionClickTimes[onTriggerCmd.trigger.actionId] ?? [])
+                        : (state.actionCompletionTimes[onTriggerCmd.trigger.actionId] ?? []);
+                const priorMatches = times.filter((time) => time < state.now - EPS).length;
+                if (priorMatches > 0) {
+                    state.violations.push({
+                        time: state.now,
+                        code: "AMBIGUOUS_TRIGGER",
+                        message:
+                            `One-shot trigger '${onTriggerCmd.trigger.kind} ${onTriggerCmd.trigger.actionId}' was registered ` +
+                            `after ${priorMatches} prior match(es). It will fire on the next match only. ` +
+                            `Use 'at <time>' or chain conditions like ` +
+                            `'after completed advance_feudal_age after completed ${onTriggerCmd.trigger.actionId} ...'.`,
+                    });
+                }
+            }
             state.triggerRules.push({
                 trigger: onTriggerCmd.trigger,
-                command: onTriggerCmd.command as TriggerExecutableCommand,
+                mode: triggerMode,
+                command: onTriggerCmd.command,
                 sourceCommandIndex: commandIndex,
             });
             const requestedAt = onTriggerCmd.at ?? state.now;
@@ -684,7 +702,7 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
 
         const payload = event.payload as { index: number; cmd: BuildOrderCommand };
         const cmd = withImplicitAssignSpawnDefer(state, payload.cmd);
-        if (cmd.after || cmd.afterEntityId) {
+        if (cmd.afterEntityId) {
             pendingDeferred.push({ cmd, commandIndex: payload.index, queuedAt: targetTime });
         } else {
             executeCommand(state, game, options, cmd, payload.index);
@@ -699,7 +717,7 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         advanceWithAutomation(state, evaluationTime, game, options, pendingDeferred);
     }
     processReadyDeferredCommands(state, game, options, pendingDeferred);
-    finalizeQueueRulesAtEvaluation(state, evaluationTime);
+    finalizeQueueRulesAtEvaluation(state, game, options, evaluationTime);
 
     for (const [entityId, current] of Object.entries(state.currentActivities)) {
         if (current.start < evaluationTime) {

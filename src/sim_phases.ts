@@ -39,16 +39,21 @@ export function processTriggers(
         triggerContext?: TriggerEventContext,
     ) => void,
 ): void {
-    for (const rule of state.triggerRules) {
+    for (let i = 0; i < state.triggerRules.length; i += 1) {
+        const rule = state.triggerRules[i];
+        if (!rule) continue;
+        let matched = false;
         if (rule.trigger.kind === "clicked" || rule.trigger.kind === "completed") {
             if (event.kind !== rule.trigger.kind) continue;
             if (event.actionId !== rule.trigger.actionId) continue;
+            matched = true;
         } else if (rule.trigger.kind === "depleted") {
             if (event.kind !== "depleted") continue;
             if (!event.nodeId) continue;
             const node = state.resourceNodeById[event.nodeId];
             if (!node) continue;
             if (!matchesNodeSelector(node, rule.trigger.resourceNodeSelector)) continue;
+            matched = true;
         } else if (rule.trigger.kind === "exhausted") {
             const selector = rule.trigger.resourceNodeSelector;
             if (event.kind !== "depleted") continue;
@@ -62,8 +67,14 @@ export function processTriggers(
                 (node) => node.depleted || (node.remainingStock ?? Infinity) <= EPS,
             );
             if (!allDepleted) continue;
+            matched = true;
         }
+        if (!matched) continue;
         executeCommand(state, game, options, rule.command, rule.sourceCommandIndex, event.context);
+        if (rule.mode === "once") {
+            state.triggerRules.splice(i, 1);
+            i -= 1;
+        }
     }
 }
 

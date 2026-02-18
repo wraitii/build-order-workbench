@@ -11,7 +11,8 @@ import {
     ResourceNodeInstance,
     NumericModifier,
     TriggerCondition,
-    TriggerExecutableCommand,
+    TriggerMode,
+    BuildOrderCommand,
     HumanDelayBucket,
 } from "./types";
 
@@ -77,7 +78,8 @@ export interface QueueRule {
 
 export interface TriggerRule {
     trigger: TriggerCondition;
-    command: TriggerExecutableCommand;
+    mode: TriggerMode;
+    command: BuildOrderCommand;
     sourceCommandIndex: number;
 }
 

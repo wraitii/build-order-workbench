@@ -4,7 +4,7 @@ import {
     HumanDelayBucket,
     ScoreCriterion,
     TriggerCondition,
-    TriggerExecutableCommand,
+    TriggerMode,
 } from "./types";
 import { DEFAULT_DSL_SELECTOR_ALIASES, parseDslSelectors } from "./node_selectors";
 
@@ -53,8 +53,6 @@ function parseCommaEntriesFromTokens(
     for (let i = 0; i < tokens.length; i += 1) {
         const token = tokens[i];
         if (!token) continue;
-        if (token === "x" || token.startsWith("x")) break;
-
         consumed += 1;
         const chunks = token.split(",");
         for (let j = 0; j < chunks.length; j += 1) {
@@ -101,7 +99,20 @@ function parseQueueUsingSelectors(tokens: string[], lineNo: number): { selectors
     const scope = fromIdx >= 0 ? tokens.slice(0, fromIdx) : tokens;
     const parsed = parseCommaEntriesFromTokens(scope, lineNo, "invalid empty selector in 'using' list.");
     if (parsed.entries.length === 0) throw new Error(`Line ${lineNo}: missing actor selector after 'using'.`);
-    const selectors = parsed.entries.map((entry) => normalizeActorSelector(entry, lineNo));
+    const selectors: string[] = [];
+    for (const rawEntry of parsed.entries) {
+        const multiplierMatch = rawEntry.match(/^(.*?)\s+x\s*(\d+)$/);
+        const selectorEntry = multiplierMatch ? multiplierMatch[1]?.trim() ?? "" : rawEntry.trim();
+        const count = multiplierMatch ? parseNumber(multiplierMatch[2] ?? "", lineNo) : 1;
+        if (!selectorEntry) {
+            throw new Error(`Line ${lineNo}: missing actor selector before multiplier in 'using' list.`);
+        }
+        if (count < 1) {
+            throw new Error(`Line ${lineNo}: selector multiplier must be >= 1.`);
+        }
+        const normalized = normalizeActorSelector(selectorEntry, lineNo);
+        for (let i = 0; i < count; i += 1) selectors.push(normalized);
+    }
 
     return { selectors, consumed: parsed.consumed };
 }
@@ -129,24 +140,40 @@ function parseAfterCondition(
     rest: string[],
     lineNo: number,
     selectorAliases: Record<string, string>,
-): { rest: string[]; afterLabel?: string; afterEntityId?: string; trigger?: TriggerCondition } {
+): {
+    rest: string[];
+    afterEntityId?: string;
+    trigger?: TriggerCondition;
+    triggerMode?: TriggerMode;
+} {
     if (rest[0] !== "after") return { rest };
     if (!rest[1] || rest.length < 3) {
         throw new Error(`Line ${lineNo}: expected 'after <condition> <directive...>'.`);
     }
 
-    if (TRIGGER_KEYWORDS.has(rest[1] ?? "")) {
-        const triggerKind = rest[1] ?? "";
-        const triggerTarget = rest[2] ?? "";
-        if (!triggerTarget || rest.length < 4) {
+    const hasMode = rest[1] === "every";
+    const conditionIdx = hasMode ? 2 : 1;
+    if (hasMode && !rest[2]) {
+        throw new Error(`Line ${lineNo}: expected 'after every <condition> <directive...>'.`);
+    }
+
+    if (TRIGGER_KEYWORDS.has(rest[conditionIdx] ?? "")) {
+        const triggerKind = rest[conditionIdx] ?? "";
+        const triggerTarget = rest[conditionIdx + 1] ?? "";
+        if (!triggerTarget || rest.length < conditionIdx + 3) {
             throw new Error(
-                `Line ${lineNo}: expected 'after <clicked|completed|depleted|exhausted> <target> <directive...>'.`,
+                `Line ${lineNo}: expected 'after [every] <clicked|completed|depleted|exhausted> <target> <directive...>'.`,
             );
         }
         return {
             trigger: parseTriggerCondition(triggerKind, triggerTarget, lineNo, selectorAliases),
-            rest: rest.slice(3),
+            triggerMode: hasMode ? "every" : "once",
+            rest: rest.slice(conditionIdx + 2),
         };
+    }
+
+    if (hasMode) {
+        throw new Error(`Line ${lineNo}: 'after every' can only be used with clicked/completed/depleted/exhausted.`);
     }
 
     const dashedEntity = rest[1].match(/^([^\s,]+)-(\d+)$/);
@@ -156,11 +183,19 @@ function parseAfterCondition(
     if (rest[2] && /^\d+$/.test(rest[2])) {
         return { afterEntityId: `${rest[1]}-${rest[2]}`, rest: rest.slice(3) };
     }
-    return { afterLabel: rest[1], rest: rest.slice(2) };
+    throw new Error(
+        `Line ${lineNo}: unknown 'after' condition '${rest[1]}'. Use '<entityType> <N>' or [every] clicked/completed/depleted/exhausted.`,
+    );
 }
 
 export interface ParseBuildOrderDslOptions {
     selectorAliases?: Record<string, string>;
+}
+
+interface CommandCondition {
+    afterEntityId?: string;
+    trigger?: TriggerCondition;
+    triggerMode?: TriggerMode;
 }
 
 export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOptions): BuildOrderInput {
@@ -280,11 +315,17 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
         }
 
         const { at, rest: rawRest } = parseCommandPrefix(tokens, lineNo);
-        const parsedAfter = parseAfterCondition(rawRest, lineNo, selectorAliases);
-        let rest = parsedAfter.rest;
-        const afterLabel = parsedAfter.afterLabel;
-        const afterEntityId = parsedAfter.afterEntityId;
-        let trigger: TriggerCondition | undefined = parsedAfter.trigger;
+        let rest = rawRest;
+        const conditions: CommandCondition[] = [];
+        while (rest[0] === "after") {
+            const parsedAfter = parseAfterCondition(rest, lineNo, selectorAliases);
+            conditions.push({
+                ...(parsedAfter.afterEntityId !== undefined ? { afterEntityId: parsedAfter.afterEntityId } : {}),
+                ...(parsedAfter.trigger !== undefined ? { trigger: parsedAfter.trigger } : {}),
+                ...(parsedAfter.triggerMode !== undefined ? { triggerMode: parsedAfter.triggerMode } : {}),
+            });
+            rest = parsedAfter.rest;
+        }
         if (rest.length === 0) {
             throw new Error(`Line ${lineNo}: expected directive after condition prefix.`);
         }
@@ -296,24 +337,41 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
                     `Line ${lineNo}: expected 'on <clicked|completed|depleted|exhausted> <target> <directive...>'.`,
                 );
             }
-            trigger = parseTriggerCondition(triggerKind, triggerTarget, lineNo, selectorAliases);
+            conditions.push({
+                trigger: parseTriggerCondition(triggerKind, triggerTarget, lineNo, selectorAliases),
+                triggerMode: "every",
+            });
             rest = rest.slice(3);
         }
 
-        const wrapCommand = (cmd: TriggerExecutableCommand): BuildOrderCommand => {
-            if (!trigger) return cmd;
-            const triggerCommand = { ...cmd };
-            delete triggerCommand.at;
-            delete triggerCommand.after;
-            delete triggerCommand.afterEntityId;
-            return {
-                type: "onTrigger",
-                at,
-                ...(afterLabel !== undefined ? { after: afterLabel } : {}),
-                ...(afterEntityId !== undefined ? { afterEntityId } : {}),
-                trigger,
-                command: triggerCommand,
-            };
+        const hasTriggerCondition = conditions.some((condition) => condition.trigger !== undefined);
+
+        const wrapCommand = (cmd: BuildOrderCommand): BuildOrderCommand => {
+            let wrapped: BuildOrderCommand = cmd;
+            for (let i = conditions.length - 1; i >= 0; i -= 1) {
+                const condition = conditions[i];
+                if (!condition) continue;
+
+                if (condition.trigger) {
+                    const nested = { ...wrapped };
+                    delete nested.at;
+                    delete nested.afterEntityId;
+                    wrapped = {
+                        type: "onTrigger",
+                        ...(i === 0 ? { at } : {}),
+                        ...(condition.afterEntityId !== undefined ? { afterEntityId: condition.afterEntityId } : {}),
+                        trigger: condition.trigger,
+                        ...(condition.triggerMode !== undefined ? { triggerMode: condition.triggerMode } : {}),
+                        command: nested,
+                    };
+                    continue;
+                }
+
+                if (condition.afterEntityId !== undefined) {
+                    wrapped = { ...wrapped, ...(i === 0 ? { at } : {}), afterEntityId: condition.afterEntityId };
+                }
+            }
+            return wrapped;
         };
 
         const op = rest[0];
@@ -358,8 +416,6 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
             }
 
             const cmd: Extract<BuildOrderCommand, { type: "queueAction" }> = { type: "queueAction", at, actionId };
-            if (afterLabel !== undefined) cmd.after = afterLabel;
-            if (afterEntityId !== undefined) cmd.afterEntityId = afterEntityId;
             if (count !== undefined) cmd.count = count;
             if (actorSelectors !== undefined) cmd.actorSelectors = actorSelectors;
             if (actorResourceNodeSelectors !== undefined) cmd.actorResourceNodeSelectors = actorResourceNodeSelectors;
@@ -371,7 +427,7 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
             const toIdx = rest.indexOf("to");
             if (toIdx < 0 || toIdx + 1 >= rest.length)
                 throw new Error(`Line ${lineNo}: assign requires 'to <selectors...>'.`);
-            if (rest[1] === "event" || (trigger && rest[1] === "to")) {
+            if (rest[1] === "event" || (hasTriggerCondition && rest[1] === "to")) {
                 const selectors = rest
                     .slice(toIdx + 1)
                     .map((raw) =>
@@ -382,8 +438,6 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
                 const cmd: Extract<BuildOrderCommand, { type: "assignEventGather" }> = {
                     type: "assignEventGather",
                     at,
-                    ...(afterLabel !== undefined ? { after: afterLabel } : {}),
-                    ...(afterEntityId !== undefined ? { afterEntityId } : {}),
                     resourceNodeSelectors: selectors,
                 };
                 commands.push(wrapCommand(cmd));
@@ -407,8 +461,6 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
             const cmd: Extract<BuildOrderCommand, { type: "assignGather" }> = {
                 type: "assignGather",
                 at,
-                ...(afterLabel !== undefined ? { after: afterLabel } : {}),
-                ...(afterEntityId !== undefined ? { afterEntityId } : {}),
                 actorType,
                 ...(fromSelectors !== undefined ? { actorResourceNodeSelectors: fromSelectors } : {}),
                 resourceNodeSelectors: selectors,
@@ -464,8 +516,6 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
             }
 
             const cmd: Extract<BuildOrderCommand, { type: "autoQueue" }> = { type: "autoQueue", at, actionId };
-            if (afterLabel !== undefined) cmd.after = afterLabel;
-            if (afterEntityId !== undefined) cmd.afterEntityId = afterEntityId;
             if (actorType !== undefined) cmd.actorType = actorType;
             if (actorResourceNodeSelectors !== undefined) cmd.actorResourceNodeSelectors = actorResourceNodeSelectors;
             commands.push(wrapCommand(cmd));
@@ -509,8 +559,6 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
             }
 
             const cmd: Extract<BuildOrderCommand, { type: "stopAutoQueue" }> = { type: "stopAutoQueue", at, actionId };
-            if (afterLabel !== undefined) cmd.after = afterLabel;
-            if (afterEntityId !== undefined) cmd.afterEntityId = afterEntityId;
             if (actorType !== undefined) cmd.actorType = actorType;
             if (actorResourceNodeSelectors !== undefined) cmd.actorResourceNodeSelectors = actorResourceNodeSelectors;
             commands.push(wrapCommand(cmd));
@@ -528,8 +576,6 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
                 wrapCommand({
                     type: "setSpawnGather",
                     at,
-                    ...(afterLabel !== undefined ? { after: afterLabel } : {}),
-                    ...(afterEntityId !== undefined ? { afterEntityId } : {}),
                     entityType,
                     resourceNodeSelectors: parseDslSelectors([selector], selectorAliases),
                 }),

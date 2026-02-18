@@ -58,7 +58,8 @@
     },
     "scout_cavalry": {
       "name": "Scout Cavalry",
-      "kind": "unit"
+      "kind": "unit",
+      "actions": ["lure_deer"]
     },
     "house": {
       "name": "House",
@@ -191,6 +192,23 @@
       "stock": 1,
       "tags": ["huntables", "boar_animal"]
     },
+    "wild_deer": {
+      "name": "Wild Deer",
+      "produces": "food",
+      "rateByEntityType": {},
+      "stock": 1,
+      "tags": ["huntables", "deer_animal"]
+    },
+    "deer": {
+      "name": "Deer",
+      "produces": "food",
+      "rateByEntityType": {
+        "villager": 0.41
+      },
+      "maxWorkers": 3,
+      "stock": 140,
+      "tags": ["food", "huntables", "deer"]
+    },
     "boar_lured": {
       "name": "Lured Boar",
       "produces": "food",
@@ -265,6 +283,10 @@
       "count": 2
     },
     {
+      "prototypeId": "wild_deer",
+      "count": 3
+    },
+    {
       "prototypeId": "berries",
       "count": 1
     },
@@ -297,6 +319,11 @@
       "value": 0.95
     },
     {
+      "selector": "gather.rate.node.deer",
+      "op": "mul",
+      "value": 0.95
+    },
+    {
       "selector": "gather.rate.node.berries",
       "op": "mul",
       "value": 0.9
@@ -318,6 +345,7 @@
       "build": 1.1,
       "train": 1,
       "research": 1,
+      "lure": 1.1111111111,
       "build_palisade_walk": 2.4
     }
   },
@@ -372,6 +400,15 @@
         "food": 500
       }
     },
+    "advance_castle_age": {
+      "name": "Advance to Castle Age",
+      "taskType": "research",
+      "duration": 160,
+      "costs": {
+        "food": 800,
+        "gold": 200
+      }
+    },
     "build_house": {
       "name": "Build House",
       "taskType": "build",
@@ -414,6 +451,17 @@
       "createsResourceNodes": [
         {
           "prototypeId": "boar_lured",
+          "count": 1
+        }
+      ]
+    },
+    "lure_deer": {
+      "name": "Lure Deer",
+      "taskType": "lure",
+      "duration": 54,
+      "createsResourceNodes": [
+        {
+          "prototypeId": "deer",
           "count": 1
         }
       ]
@@ -721,15 +769,6 @@
           "value": 1.1
         }
       ]
-    },
-    "advance_castle_age": {
-      "name": "Advance to Castle Age",
-      "taskType": "research",
-      "duration": 160,
-      "costs": {
-        "food": 800,
-        "gold": 200
-      }
     },
     "research_fletching": {
       "name": "Research Fletching",

@@ -512,16 +512,80 @@ export function processQueueRules(
     } while (changed);
 }
 
-export function finalizeQueueRulesAtEvaluation(state: SimState, evaluationTime: number): void {
+function describeResourceShortfallAtEvaluation(
+    state: SimState,
+    game: GameData,
+    options: SimOptions,
+    action: GameData["actions"][string],
+): string | undefined {
+    const costs = action.costs ?? {};
+    const entries = Object.entries(costs);
+    if (entries.length === 0) return undefined;
+
+    const populationResource = game.population?.resource;
+    const resourceFloorOverrides = populationResource
+        ? { [populationResource]: game.population?.floor ?? 0 }
+        : undefined;
+    const shortfalls = entries
+        .map(([resource, cost]) => {
+            const floor = resourceFloorOverrides?.[resource] ?? options.debtFloor;
+            const availableAboveFloor = (state.resources[resource] ?? 0) - floor;
+            const missing = cost - availableAboveFloor;
+            return missing > EPS ? `${resource} short ${missing.toFixed(2)}` : undefined;
+        })
+        .filter((x): x is string => Boolean(x));
+    if (shortfalls.length === 0) return undefined;
+    return `Resource gap at evaluation: ${shortfalls.join(", ")}.`;
+}
+
+function describeActorAvailabilityAtEvaluation(
+    state: SimState,
+    action: GameData["actions"][string],
+    rule: Pick<QueueRule, "actorSelectors" | "actorResourceNodeIds" | "actorResourceNodeSelectors">,
+    evaluationTime: number,
+): string | undefined {
+    const availabilityRequest: Parameters<typeof nextEligibleActorAvailabilityTime>[1] = {
+        actorTypes: action.actorTypes,
+        actorCount: action.actorCount ?? 1,
+    };
+    if (rule.actorSelectors !== undefined) availabilityRequest.actorSelectors = rule.actorSelectors;
+    if (rule.actorResourceNodeIds !== undefined) availabilityRequest.actorResourceNodeIds = rule.actorResourceNodeIds;
+    if (rule.actorResourceNodeSelectors !== undefined) {
+        availabilityRequest.actorResourceNodeSelectors = rule.actorResourceNodeSelectors;
+    }
+    const nextActorAt = nextEligibleActorAvailabilityTime(state, availabilityRequest);
+    if (!Number.isFinite(nextActorAt)) return undefined;
+    const actorTypes = action.actorTypes.length > 0 ? action.actorTypes.join(", ") : "none";
+    if (nextActorAt > evaluationTime + EPS) {
+        return `Required actors (${actorTypes}) next available at ${nextActorAt.toFixed(2)}s.`;
+    }
+    return `Requires actors of type: ${actorTypes}.`;
+}
+
+export function finalizeQueueRulesAtEvaluation(
+    state: SimState,
+    game: GameData,
+    options: SimOptions,
+    evaluationTime: number,
+): void {
     for (const rule of state.queueRules) {
+        const action = game.actions[rule.actionId];
         const reason = rule.lastBlockedReason ?? "INSUFFICIENT_RESOURCES";
         const code = reason === "NO_ACTORS" ? "NO_ACTORS" : reason === "POP_CAP" ? "HOUSED" : "RESOURCE_STALL";
+        const contextParts: string[] = [];
+        if (action) {
+            const actorHint = describeActorAvailabilityAtEvaluation(state, action, rule, evaluationTime);
+            if (actorHint) contextParts.push(actorHint);
+            const resourceHint = describeResourceShortfallAtEvaluation(state, game, options, action);
+            if (resourceHint) contextParts.push(resourceHint);
+        }
+        const context = contextParts.length > 0 ? ` ${contextParts.join(" ")}` : "";
         const message =
             reason === "NO_ACTORS"
-                ? `No available actors to perform '${rule.actionId}'.`
+                ? `No available actors to perform '${rule.actionId}' before evaluation time (${evaluationTime.toFixed(2)}s).${context}`
                 : reason === "POP_CAP"
-                  ? `Could not schedule '${rule.actionId}' before evaluation time (${evaluationTime.toFixed(2)}s): population capacity.`
-                  : `Could not schedule '${rule.actionId}' before evaluation time (${evaluationTime.toFixed(2)}s).`;
+                  ? `Could not schedule '${rule.actionId}' before evaluation time (${evaluationTime.toFixed(2)}s): population capacity.${context}`
+                  : `Could not schedule '${rule.actionId}' before evaluation time (${evaluationTime.toFixed(2)}s).${context}`;
         state.violations.push({ time: state.now, code, message });
 
         const iter = rule.completedIterations + 1;

@@ -108,10 +108,12 @@ spawn-assign &lt;entityType&gt; to &lt;node&gt;   # auto-assign new entities on 
         <div>
           <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Timing &amp; conditions &mdash; prefix any command</div>
           <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">at &lt;MM:SS&gt; &lt;command&gt;
-after &lt;label&gt; &lt;command&gt;                         # after a named event
 after &lt;entityType&gt; &lt;N&gt; &lt;command&gt;               # after Nth entity is ready
 after completed|clicked &lt;action&gt; &lt;command&gt;      # fires once
 after depleted|exhausted &lt;node&gt; &lt;command&gt;       # fires once when node empties
+after every completed|clicked &lt;action&gt; &lt;command&gt;# fires every matching event
+after every depleted|exhausted &lt;node&gt; &lt;command&gt; # fires every matching event
+after completed &lt;a&gt; after completed &lt;b&gt; &lt;command&gt; # chain conditions; no fixed time needed
 on completed|clicked &lt;action&gt; &lt;command&gt;         # fires every time
 on depleted|exhausted &lt;node&gt; &lt;command&gt;          # fires every time</pre>
         </div>
@@ -129,7 +131,6 @@ human-delay &lt;action&gt; &lt;chance&gt; &lt;minSec&gt; &lt;maxSec&gt; # simula
             <li><strong>Actor selectors</strong> &mdash; <code>villager</code> (any idle one), <code>villager 3</code> / <code>villager-3</code> (the 3rd villager specifically), <code>villager x2</code> (two of them), <code>villager all</code> (everyone of that type)</li>
             <li><strong>Filtering actors by where they are</strong> &mdash; append <code>from &lt;node&gt;...</code> to restrict to actors currently on those nodes. E.g. <code>assign villager x3 from sheep boar_lured to forest</code> pulls 3 villagers who are on sheep <em>or</em> boar_lured and sends them to wood. <code>idle</code> matches anyone not currently gathering.</li>
             <li><strong>Node selectors</strong> &mdash; resource names (<code>food</code>, <code>wood</code>, <code>gold</code>&hellip;) match any node of that type; node ids (<code>sheep</code>, <code>forest</code>, <code>boar_lured</code>&hellip;) match a specific node prototype</li>
-            <li><strong><code>after &lt;label&gt;</code></strong> &mdash; fires once after a command with that label completes. The label defaults to the action or node id, so <code>after build_stable</code> waits for the stable to finish building.</li>
             <li>Cmd/Ctrl+Enter runs the simulation from the editor</li>
           </ul>
         </div>

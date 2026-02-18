@@ -14,22 +14,23 @@ score time completed train_archer x8
 
 # General AoE2 Rules (keep these high-level reactions together)
 # (you probably want to keep these just to make writing the build order easier)
-after completed lure_boar assign to boar_lured
-after completed lure_boar assign villager all from sheep to boar_lured
-after depleted boar_lured assign to boar_lured sheep
-after depleted sheep assign to sheep straggler_trees
-after exhausted sheep assign to straggler_trees
-after exhausted berries assign to straggler_trees
-after depleted straggler_trees assign to straggler_trees
-after completed build_farm assign to created
+after every completed lure_boar assign to boar_lured
+after every completed lure_boar assign villager all from sheep to boar_lured
+after every depleted boar_lured assign to boar_lured deer sheep
+after every depleted deer assign to boar_lured deer sheep
+after every depleted sheep assign to boar_lured deer sheep straggler_trees
+after every exhausted sheep assign to boar_lured deer straggler_trees
+after every exhausted berries assign to straggler_trees
+after every depleted straggler_trees assign to straggler_trees
+after every completed build_farm assign to created
 
 # Open: two houses + constant villager production
 auto-queue train_villager using town_center
 queue build_house using villager 1, villager 2
 queue build_house using villager 3
-after houses assign villager 1 to sheep
-after houses assign villager 2 to sheep
-after houses assign villager 3 to sheep
+after completed build_house assign villager 1 to sheep
+after completed build_house assign villager 2 to sheep
+after completed build_house assign villager 3 to sheep
 
 # Early food economy
 assign villager 4 to sheep
@@ -64,7 +65,7 @@ assign villager 18 to boar_lured sheep
 # Barracks
 queue build_barracks using villager 19
 assign villager 19 to forest
-after build_barracks queue train_militia x3
+after completed build_barracks queue train_militia x3
 
 queue build_mining_camp using villager 20
 assign villager 20 to gold

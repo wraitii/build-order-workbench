@@ -138,6 +138,19 @@ at 0 queue build_house_aoe2 using villager 1, villager
     expect(queue.actorSelectors).toEqual(["villager-1", "villager"]);
   });
 
+  test("parses queue using selector multiplier without turning it into queue count", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 30
+at 0 queue build_house_aoe2 using villager x2 from forest
+`);
+    const queue = build.commands.find((c) => c.type === "queueAction");
+    expect(queue?.type).toBe("queueAction");
+    if (!queue || queue.type !== "queueAction") return;
+    expect(queue.count).toBeUndefined();
+    expect(queue.actorSelectors).toEqual(["villager", "villager"]);
+    expect(queue.actorResourceNodeSelectors).toEqual(["proto:forest"]);
+  });
+
   test("parses assign x-count and numeric-id modes", () => {
     const countMode = parseBuildOrderDsl(`
 evaluation 30
@@ -182,6 +195,13 @@ after villager 7 assign villager 7 to food
     expect(cmd.at).toBe(0);
     expect(cmd.afterEntityId).toBe("villager-7");
     expect(cmd.actorSelectors).toEqual(["villager-7"]);
+  });
+
+  test("rejects plain label-style after conditions", () => {
+    expect(() => parseBuildOrderDsl(`
+evaluation 120
+after houses assign villager 1 to sheep
+`)).toThrow("unknown 'after' condition");
   });
 
   test("parses bare directive shorthand", () => {
@@ -234,6 +254,37 @@ after completed build_farm assign to created
     expect(cmd.command.type).toBe("assignEventGather");
     if (cmd.command.type !== "assignEventGather") return;
     expect(cmd.command.resourceNodeSelectors).toEqual(["id:created"]);
+  });
+
+  test("parses after every completed trigger", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 120
+after every completed build_farm assign to created
+`);
+    const cmd = build.commands[0];
+    expect(cmd?.type).toBe("onTrigger");
+    if (!cmd || cmd.type !== "onTrigger") return;
+    expect(cmd.trigger.kind).toBe("completed");
+    expect(cmd.triggerMode).toBe("every");
+  });
+
+  test("parses chained after conditions", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 120
+after completed train_villager after completed build_farm assign to created
+`);
+    const outer = build.commands[0];
+    expect(outer?.type).toBe("onTrigger");
+    if (!outer || outer.type !== "onTrigger") return;
+    expect(outer.trigger.kind).toBe("completed");
+    if (outer.trigger.kind !== "completed") return;
+    expect(outer.trigger.actionId).toBe("train_villager");
+    expect(outer.command.type).toBe("onTrigger");
+    if (outer.command.type !== "onTrigger") return;
+    expect(outer.command.trigger.kind).toBe("completed");
+    if (outer.command.trigger.kind !== "completed") return;
+    expect(outer.command.trigger.actionId).toBe("build_farm");
+    expect(outer.command.command.type).toBe("assignEventGather");
   });
 
   test("parses after clicked trigger", () => {
@@ -359,6 +410,25 @@ at 0 queue build_house_plain
 
     expect(result.completedActions).toBe(1);
   });
+
+  test("using villager x2 from forest builds once with two workers", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 30
+start with villager,villager
+assign villager 1 to forest
+assign villager 2 to forest
+at 0 queue build_house_aoe2 using villager x2 from forest
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    expect(result.completedActions).toBe(1);
+    expect(result.entitiesByType.house).toBe(1);
+  });
 });
 
 describe("after directives", () => {
@@ -405,7 +475,7 @@ at 0 queue lure_boar x2 using villager 1
 evaluation 50
 start with town_center,villager,villager,villager
 at 0 queue build_house_plain using villager,villager
-at 0 after houses assign villager 1 to food
+at 0 after completed build_house_plain assign villager 1 to food
 at 0 auto-queue train_villager using town_center
 `);
 
@@ -500,7 +570,7 @@ at 0 queue lure_boar using villager 1
     const build = parseBuildOrderDsl(`
 evaluation 6
 start with villager,villager
-after completed build_farm assign to created
+after every completed build_farm assign to created
 assign villager 1 to straggler_trees
 assign villager 2 to forest
 at 0 auto-queue build_farm using villager from straggler_trees
@@ -524,7 +594,7 @@ at 0 auto-queue build_farm using villager from straggler_trees
     const build = parseBuildOrderDsl(`
 evaluation 4
 start with villager,villager
-after completed build_farm assign to created
+after every completed build_farm assign to created
 at 0 auto-queue build_farm using villager from straggler_trees idle
 `);
 
@@ -561,7 +631,26 @@ after completed lure_boar queue lure_boar
     const v1LureActions = villager1?.segments.filter((s) => s.kind === "action" && s.detail === "lure_boar").length ?? 0;
     const v2LureActions = villager2?.segments.filter((s) => s.kind === "action" && s.detail === "lure_boar").length ?? 0;
     expect(v1LureActions).toBe(0);
-    expect(v2LureActions).toBeGreaterThanOrEqual(2);
+    expect(v2LureActions).toBe(2);
+  });
+
+  test("after every completed queue repeats", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager,villager
+at 0 queue lure_boar using villager 2
+after every completed lure_boar queue lure_boar
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const villager2 = result.entityTimelines["villager-2"];
+    const v2LureActions = villager2?.segments.filter((s) => s.kind === "action" && s.detail === "lure_boar").length ?? 0;
+    expect(v2LureActions).toBeGreaterThan(2);
   });
 
   test("deferred setup runs before same-timestamp automation", () => {
@@ -589,7 +678,7 @@ at 0 after villager 5 auto-queue build_farm using villager from straggler_trees
     const build = parseBuildOrderDsl(`
 evaluation 4
 start with villager,villager
-after completed build_farm assign to created
+after every completed build_farm assign to created
 assign villager 1 to straggler_trees
 assign villager 2 to straggler_trees
 at 0 auto-queue build_farm using villager from straggler_trees
@@ -715,6 +804,26 @@ at 0 queue build_house_plain using villager 1
     expect(debtWarning).toBeDefined();
     expect(debtWarning?.message.includes("build_house_plain")).toBe(true);
     expect(debtWarning?.message.includes("wood")).toBe(true);
+  });
+
+  test("warns when one-shot trigger registration happens after prior matches", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 20
+start with villager
+at 0 queue build_farm using villager 1
+at 10 after completed build_farm assign to created
+at 12 queue build_farm using villager 1
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const warning = result.violations.find((v) => v.code === "AMBIGUOUS_TRIGGER");
+    expect(warning).toBeDefined();
+    expect(warning?.message.includes("build_farm")).toBe(true);
   });
 
   test("population cap blocks extra training without allowing debt", () => {

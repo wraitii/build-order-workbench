@@ -82,7 +82,6 @@ export interface GameData {
 export interface QueueActionCommand {
     type: "queueAction";
     at?: number;
-    after?: string;
     afterEntityId?: string;
     actionId: string;
     count?: number;
@@ -94,7 +93,6 @@ export interface QueueActionCommand {
 export interface AssignGatherCommand {
     type: "assignGather";
     at?: number;
-    after?: string;
     afterEntityId?: string;
     actorType: string;
     all?: boolean;
@@ -109,7 +107,6 @@ export interface AssignGatherCommand {
 export interface AssignEventGatherCommand {
     type: "assignEventGather";
     at?: number;
-    after?: string;
     afterEntityId?: string;
     resourceNodeIds?: string[];
     resourceNodeSelectors?: string[];
@@ -118,7 +115,6 @@ export interface AssignEventGatherCommand {
 export interface AutoQueueCommand {
     type: "autoQueue";
     at?: number;
-    after?: string;
     afterEntityId?: string;
     actionId: string;
     actorType?: string;
@@ -130,7 +126,6 @@ export interface AutoQueueCommand {
 export interface StopAutoQueueCommand {
     type: "stopAutoQueue";
     at?: number;
-    after?: string;
     afterEntityId?: string;
     actionId: string;
     actorType?: string;
@@ -141,7 +136,6 @@ export interface StopAutoQueueCommand {
 export interface SetSpawnGatherCommand {
     type: "setSpawnGather";
     at?: number;
-    after?: string;
     afterEntityId?: string;
     entityType: string;
     resourceNodeIds?: string[];
@@ -153,6 +147,7 @@ export type TriggerCondition =
     | { kind: "completed"; actionId: string }
     | { kind: "depleted"; resourceNodeSelector: string }
     | { kind: "exhausted"; resourceNodeSelector: string };
+export type TriggerMode = "once" | "every";
 
 export type TriggerExecutableCommand =
     | QueueActionCommand
@@ -165,10 +160,10 @@ export type TriggerExecutableCommand =
 export interface OnTriggerCommand {
     type: "onTrigger";
     at?: number;
-    after?: string;
     afterEntityId?: string;
     trigger: TriggerCondition;
-    command: TriggerExecutableCommand;
+    triggerMode?: TriggerMode;
+    command: BuildOrderCommand;
 }
 
 export type BuildOrderCommand = TriggerExecutableCommand | OnTriggerCommand;
@@ -237,6 +232,7 @@ export interface Violation {
         | "ACTION_NOT_FOUND"
         | "NO_ACTORS"
         | "INVALID_ASSIGNMENT"
+        | "AMBIGUOUS_TRIGGER"
         | "HOUSED"
         | "INSUFFICIENT_RESOURCES"
         | "NEGATIVE_RESOURCE"

@@ -36,7 +36,7 @@ human-delay <actionId> <chance> <minSec> <maxSec>   # reaction-time variance buc
 score time <clicked|completed|depleted|exhausted> <target> [x<N>]  # scoring goal
 
 # Commands — bare (time 0), timed, or deferred
-[at <time>] [after <condition>] <directive>
+[at <time>] [after [every] <condition>] <directive>
 
 # Directives
 queue <actionId> [x<N>] [using <selector>[, ...]] [from <selectors...>]
@@ -51,18 +51,20 @@ spawn-assign <entityType> to <selector>
 
 ### `after` conditions
 
-`after` defers a command or registers a reactive rule (reactive triggers fire every time):
+`after` defers a command or registers a trigger rule:
 
 | Condition                    | Behaviour                                                                                        |
 | ---------------------------- | ------------------------------------------------------------------------------------------------ |
-| `after <label>`              | One-shot: `assign` waits for selected actors to finish; `queue` waits for that task to complete. |
 | `after <entityType> <N>`     | One-shot: fires when entity N exists.                                                            |
-| `after clicked <actionId>`   | Reactive: fires each time the action is queued.                                                  |
-| `after completed <actionId>` | Reactive: fires each time the action finishes.                                                   |
-| `after depleted <selector>`  | Reactive: fires when a node of that type starts running low.                                     |
-| `after exhausted <selector>` | Reactive: fires when all nodes of that type are gone.                                            |
+| `after clicked <actionId>`   | One-shot: fires on the next matching action click.                                               |
+| `after completed <actionId>` | One-shot: fires on the next matching action completion.                                          |
+| `after depleted <selector>`  | One-shot: fires on the next matching depletion event.                                            |
+| `after exhausted <selector>` | One-shot: fires on the next matching exhaustion event.                                           |
+| `after every <trigger...>`   | Repeating: same trigger forms as above, but fires on every matching event.                       |
 
 Examples: [`data/aoe2-scout-build-order.dsl`](data/aoe2-scout-build-order.dsl) · [`data/aoe2-archer-rush-build-order.dsl`](data/aoe2-archer-rush-build-order.dsl)
+
+You can also chain conditions to avoid hard-coded timing, e.g. `after completed advance_feudal_age after completed build_house assign to forest`.
 
 ---
 

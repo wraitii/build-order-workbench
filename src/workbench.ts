@@ -86,12 +86,15 @@ const NODE_ICON_SLUGS: Record<string, string> = {
     sheep: "u_sheep",
     boar: "u_boar",
     boar_lured: "u_boar",
+    wild_deer: "u_deer",
+    deer: "u_deer",
     berries: "u_bush",
 };
 
 // Action overrides: key = action id, value = icon slug
 const ACTION_ICON_SLUGS: Record<string, string> = {
     lure_boar: "u_boar",
+    lure_deer: "u_deer",
 };
 
 // Resource overrides: key = resource id, value = icon slug
