@@ -74,7 +74,11 @@ async function main(): Promise<void> {
     console.log(toTextReport(result));
 
     if (args.report) {
-        const presetPaths = ["data/aoe2-scout-build-order.dsl", "data/aoe2-archer-rush-build-order.dsl"];
+        const presetPaths = [
+            "data/aoe2-scout-build-order.dsl",
+            "data/aoe2-archer-rush-build-order.dsl",
+            "data/aoe2-maa-into-archer-old.dsl",
+        ];
         const presets: BuildOrderPreset[] = [];
         for (const path of presetPaths) {
             const file = Bun.file(path);
