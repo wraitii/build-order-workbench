@@ -15,6 +15,7 @@ declare global {
             game: GameData;
             initialResult: SimulationResult;
             buildOrderPresets?: BuildOrderPreset[];
+            iconDataUris?: Record<string, string>;
         };
     }
 }
@@ -68,8 +69,6 @@ const BOOTSTRAP = bootstrap;
 const GAME = BOOTSTRAP.game;
 let sim = BOOTSTRAP.initialResult;
 
-const BASE_ICON = "https://www.aoe2database.com/images";
-
 // Explicit slug overrides — add entries when the auto-generated name doesn't match aoe2database.com.
 // Entity overrides: key = entity id, value = icon slug (without extension)
 const ENTITY_ICON_SLUGS: Record<string, string> = {
@@ -94,30 +93,33 @@ const RESOURCE_ICON_SLUGS: Record<string, string> = {
     pop: "b_town_center",
 };
 
+function iconUrl(slug: string): string {
+    return BOOTSTRAP.iconDataUris?.[slug] ?? "";
+}
+
 function entityIconUrl(entityType: string): string {
     const slug = ENTITY_ICON_SLUGS[entityType];
-    if (slug) return `${BASE_ICON}/${slug}.png`;
+    if (slug) return iconUrl(slug);
     const def = GAME.entities[entityType];
     if (!def) return "";
     const prefix = def.kind === "unit" ? "u" : "b";
-    return `${BASE_ICON}/${prefix}_${entityType}.png`;
+    return iconUrl(`${prefix}_${entityType}`);
 }
 
 function resourceIconUrl(resource: string): string {
     const slug = RESOURCE_ICON_SLUGS[resource];
-    if (slug) return `${BASE_ICON}/${slug}.png`;
-    return `${BASE_ICON}/r_${resource}.png`;
+    return iconUrl(slug ?? `r_${resource}`);
 }
 
 function segmentIconUrl(kind: string, detail: string): string {
     if (kind === "gather") {
         const [resource = "", nodeId] = detail.split(":");
         const nodeSlug = nodeId && NODE_ICON_SLUGS[nodeId];
-        return nodeSlug ? `${BASE_ICON}/${nodeSlug}.png` : resourceIconUrl(resource);
+        return nodeSlug ? iconUrl(nodeSlug) : resourceIconUrl(resource);
     }
     if (kind === "action") {
         const actionSlug = ACTION_ICON_SLUGS[detail];
-        if (actionSlug) return `${BASE_ICON}/${actionSlug}.png`;
+        if (actionSlug) return iconUrl(actionSlug);
         const action = GAME.actions[detail];
         if (action?.creates) {
             const entityType = Object.keys(action.creates)[0];
@@ -128,7 +130,7 @@ function segmentIconUrl(kind: string, detail: string): string {
             if (GAME.entities[built]) return entityIconUrl(built);
         }
         const techSlug = detail.replace(/^(research_|advance_)/, "");
-        return `${BASE_ICON}/t_${techSlug}.png`;
+        return iconUrl(`t_${techSlug}`);
     }
     return "";
 }
@@ -362,6 +364,11 @@ function buildTimeline(t: number, center = false): void {
         return Math.min(...starts);
     }
 
+    function isIdleOnly(entry: (typeof entries)[number]): boolean {
+        const segs = entry.timeline.segments ?? [];
+        return segs.length === 0 || segs.every((seg) => seg.kind === "idle");
+    }
+
     const typeStartByType = new Map<string, number>();
     for (const entry of entries) {
         const cur = typeStartByType.get(entry.timeline.entityType);
@@ -369,7 +376,7 @@ function buildTimeline(t: number, center = false): void {
         if (cur === undefined || start < cur) typeStartByType.set(entry.timeline.entityType, start);
     }
 
-    entries.sort((a, b) => {
+    const sortFn = (a: (typeof entries)[number], b: (typeof entries)[number]) => {
         const typeStartA = typeStartByType.get(a.timeline.entityType) ?? 0;
         const typeStartB = typeStartByType.get(b.timeline.entityType) ?? 0;
         if (typeStartA !== typeStartB) return typeStartA - typeStartB;
@@ -382,7 +389,11 @@ function buildTimeline(t: number, center = false): void {
         if (entityStartA !== entityStartB) return entityStartA - entityStartB;
 
         return a.entityId.localeCompare(b.entityId);
-    });
+    };
+
+    const activeEntries = entries.filter((e) => !isIdleOnly(e)).sort(sortFn);
+    const idleEntries = entries.filter((e) => isIdleOnly(e)).sort(sortFn);
+    const sortedEntries = [...activeEntries, ...idleEntries];
 
 
     const axisTicks: string[] = [];
@@ -393,8 +404,9 @@ function buildTimeline(t: number, center = false): void {
     }
 
     const cursorLeft = round2(t * scale);
-    const rowsHtml = entries
-        .map((entry) => {
+    const rowsHtml = sortedEntries
+        .map((entry, i) => {
+            const idle = activeEntries.length > 0 && i >= activeEntries.length;
             const segs = (entry.timeline.segments ?? []).map((seg) => {
                 const left = round2(seg.start * scale);
                 const w = Math.max(1, round2((seg.end - seg.start) * scale));
@@ -409,7 +421,10 @@ function buildTimeline(t: number, center = false): void {
 
             const labelTitle = escapeHtml(`${entry.entityId} (${entry.timeline.entityType})`);
             const entityIcon = iconImg(entityIconUrl(entry.timeline.entityType), entry.timeline.entityType);
-            return `<div class='timeline-row'><div class='timeline-label' title='${labelTitle}'>${entityIcon}${labelTitle}</div><div class='timeline-track' style='width:${width}px'><div class='timeline-cursor' style='left:${cursorLeft}px'></div>${segs.join("")}</div></div>`;
+            const rowClass = idle
+                ? `timeline-row timeline-row--idle${i === activeEntries.length ? " timeline-row--idle-sep" : ""}`
+                : "timeline-row";
+            return `<div class='${rowClass}'><div class='timeline-label' title='${labelTitle}'>${entityIcon}${labelTitle}</div><div class='timeline-track' style='width:${width}px'><div class='timeline-cursor' style='left:${cursorLeft}px'></div>${segs.join("")}</div></div>`;
         })
         .join("");
 

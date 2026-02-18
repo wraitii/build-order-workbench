@@ -1,4 +1,6 @@
 # AoE2 feudal archer rush (goal: 5 archers)
+# This particular build is a bit too tight for current params,
+# but that's fine.
 evaluation 18:00
 debt-floor -120
 start with town_center,villager,villager,villager,scout_cavalry
