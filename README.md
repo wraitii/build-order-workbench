@@ -16,7 +16,7 @@ _Write a build order in plain text, run the sim, and immediately see where your 
 - **Live editor** — no install needed; edit your build order and re-run the sim instantly in the browser.
 - **Statistics** — set goals like "Feudal click by 8:30" or "3 scouts by 10:00", see resources over time.
 - **On-device AI assistant** — optional; runs entirely in your browser, can suggest tweaks and answer questions about the build.
-- **Not modeled** — walking time, continuous dropoff distance, deer lure, gather efficiency; timings will run slightly tighter than real play.
+- **Not modeled** — walking time, continuous dropoff distance, decay rate, gather efficiency; timings will run slightly tighter than real play.
 
 ---
 
@@ -54,14 +54,14 @@ spawn-assign <entityType> to <selector>
 
 `after` defers a command or registers a trigger rule:
 
-| Condition                    | Behaviour                                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------ |
-| `after <entityType> <N>`     | One-shot: fires when entity N exists.                                                            |
-| `after clicked <actionId>`   | One-shot: fires on the next matching action click.                                               |
-| `after completed <actionId>` | One-shot: fires on the next matching action completion.                                          |
-| `after depleted <selector>`  | One-shot: fires on the next matching depletion event.                                            |
-| `after exhausted <selector>` | One-shot: fires on the next matching exhaustion event.                                           |
-| `after every <trigger...>`   | Repeating: same trigger forms as above, but fires on every matching event.                       |
+| Condition                    | Behaviour                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `after <entityType> <N>`     | One-shot: fires when entity N exists.                                      |
+| `after clicked <actionId>`   | One-shot: fires on the next matching action click.                         |
+| `after completed <actionId>` | One-shot: fires on the next matching action completion.                    |
+| `after depleted <selector>`  | One-shot: fires on the next matching depletion event.                      |
+| `after exhausted <selector>` | One-shot: fires on the next matching exhaustion event.                     |
+| `after every <trigger...>`   | Repeating: same trigger forms as above, but fires on every matching event. |
 
 Examples: [`data/aoe2-scout-build-order.dsl`](data/aoe2-scout-build-order.dsl) · [`data/aoe2-archer-rush-build-order.dsl`](data/aoe2-archer-rush-build-order.dsl)
 
