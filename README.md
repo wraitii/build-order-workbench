@@ -18,11 +18,24 @@ Output includes:
 
 ```bash
 bun install
-bun run sim:aoe2
+bun run build
+```
+
+`bun run build` runs the simulation and writes a self-contained offline HTML workbench to `out/aoe2-scout-report.html`. Open the file in a browser to edit DSL and re-run the simulation interactively.
+
+To include the on-device LLM assistant (WebGPU-accelerated, downloads model on first use):
+
+```bash
+bun run build:llm
+```
+
+File-watch loop for CLI development:
+
+```bash
 bun run sim:watch
 ```
 
-Strict mode:
+Strict mode (no resource debt allowed):
 
 ```bash
 bun run sim:strict
@@ -121,22 +134,38 @@ Main directives:
 - `at <t> stop-auto-queue <actionId> [using <actorType>]`
 - `at <t> spawn-assign <entityType> to <selector>`
 
-Example: `data/aoe2-scout-build-order.dsl`
-
-`sim:watch` gives a file-watch loop (edit + save).  
-`sim:aoe2` writes `out/aoe2-scout-report.html` as a self-contained offline workbench where you can edit DSL and re-run directly in the page.
+Examples: `data/aoe2-scout-build-order.dsl`, `data/aoe2-archer-rush-build-order.dsl`
 
 ## Project Files
 
+- `src/index.ts` - CLI entrypoint, arg parsing, report output
 - `src/sim.ts` - simulation orchestration
+- `src/sim_phases.ts` - simulation phase logic
+- `src/sim_shared.ts` - shared simulation utilities and normalization
 - `src/economy.ts` - resource-node economy/depletion
 - `src/scheduler.ts` - scheduling + assign logic
+- `src/actor_eligibility.ts` - actor eligibility checks
+- `src/event_queue.ts` - priority event queue
+- `src/node_selectors.ts` - resource node selector parsing
 - `src/modifiers.ts` - generic numeric modifier system
-- `src/report.ts` - text + HTML report output
-- `data/aoe2-game.json` - AoE2-focused dataset
-- `data/aoe2-scout-build-order.dsl` - AoE2 scout BO example
+- `src/dsl.ts` - DSL parser
+- `src/types.ts` - shared type definitions
+- `src/report.ts` - text + HTML report generation (bundles workbench + LLM)
+- `src/workbench.ts` - browser-side simulation/editor UI (IIFE bundle)
+- `src/workbench.html` - workbench HTML template
+- `src/workbench.css` - workbench styles
+- `src/llm_assistant.ts` - browser-side LLM AI assistant (ESM bundle, WebGPU)
+- `src/repl.ts` - file-watch REPL for CLI development
+- `src/debug.ts` - debug utilities
+- `data/aoe2-game.json` - AoE2-focused game dataset
+- `data/aoe2-scout-build-order.dsl` - AoE2 scout cavalry build order example
+- `data/aoe2-archer-rush-build-order.dsl` - AoE2 archer rush build order example
 
 ## Notes
 
 Current model is intentionally simple and fast.
 It does not yet model pathing, walking/dropoff distance, or micro-level lure behavior.
+
+## License
+
+GPL-3.0-or-later — see [LICENSE](LICENSE).
