@@ -49,18 +49,20 @@ function buildSystemPrompt(): string {
         "  score time completed <action>",
     ];
 
-    if (buildOrderPresets.length > 0) {
-        lines.push("\nExample build orders:");
-        for (const preset of buildOrderPresets) {
-            lines.push(`\n--- ${preset.label} ---\n${preset.dsl}`);
-        }
-    }
-
     lines.push("Your answer should contain ONLY the dsl file, nothing else.");
 
     const out = lines.join("\n");
-    // PGM move.
-    return out + "\n" + out;
+
+    const examples = [];
+    if (buildOrderPresets.length > 0) {
+        examples.push("\nExample build orders:");
+        for (const preset of buildOrderPresets) {
+            examples.push(`\n--- ${preset.label} ---\n${preset.dsl}`);
+        }
+    }
+
+    // PGM move of duplicating the prompt.
+    return out + "\n" + examples.join("\n") + out;
 }
 
 let gen: any = null;

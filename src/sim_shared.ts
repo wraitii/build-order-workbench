@@ -2,6 +2,7 @@ import {
     EntityActivitySegment,
     EntityInstance,
     EntityTimeline,
+    GameData,
     ResourceMap,
     ScheduledEvent,
     SimulationResult,
@@ -13,6 +14,25 @@ import {
     TriggerExecutableCommand,
     HumanDelayBucket,
 } from "./types";
+
+export function normalizeGame(game: GameData): void {
+    for (const [id, entity] of Object.entries(game.entities)) {
+        (entity as { id: string }).id = id;
+    }
+    for (const [id, proto] of Object.entries(game.resourceNodePrototypes)) {
+        (proto as { id: string }).id = id;
+    }
+    const actorTypesMap: Record<string, string[]> = {};
+    for (const [entityId, entity] of Object.entries(game.entities)) {
+        for (const actionId of entity.actions ?? []) {
+            (actorTypesMap[actionId] ??= []).push(entityId);
+        }
+    }
+    for (const [id, action] of Object.entries(game.actions)) {
+        (action as { id: string }).id = id;
+        action.actorTypes = actorTypesMap[id] ?? [];
+    }
+}
 
 export const EPS = 1e-9;
 export const TIME_STEP_SECONDS = 1;

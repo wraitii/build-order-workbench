@@ -3,6 +3,7 @@ import { BuildOrderPreset, toHtmlReport, toTextReport } from "./report";
 import { GameData } from "./types";
 import { parseBuildOrderDsl } from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
+import { normalizeGame } from "./sim_shared";
 
 interface Args {
     game: string;
@@ -55,6 +56,7 @@ async function main(): Promise<void> {
     const args = parseArgs(Bun.argv.slice(2));
 
     const game = await loadJson<GameData>(args.game);
+    normalizeGame(game);
     const buildDsl = await Bun.file(args.build).text();
     const build = parseBuildOrderDsl(buildDsl, {
         selectorAliases: createDslSelectorAliases(game.resources),

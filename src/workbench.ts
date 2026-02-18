@@ -9,14 +9,18 @@ interface BuildOrderPreset {
     dsl: string;
 }
 
+interface WorkbenchBootstrap {
+    game: GameData;
+    initialResult: SimulationResult;
+    buildOrderPresets?: BuildOrderPreset[];
+    iconDataUris?: Record<string, string>;
+    initialDsl?: string;
+    withLlm?: boolean;
+}
+
 declare global {
     interface Window {
-        __WORKBENCH_BOOTSTRAP__?: {
-            game: GameData;
-            initialResult: SimulationResult;
-            buildOrderPresets?: BuildOrderPreset[];
-            iconDataUris?: Record<string, string>;
-        };
+        __WORKBENCH_BOOTSTRAP__?: WorkbenchBootstrap;
     }
 }
 
@@ -60,11 +64,13 @@ function colorForSegment(kind: string, detail: string): string {
     return `hsl(${h % 360} 60% 62%)`;
 }
 
-const bootstrap = window.__WORKBENCH_BOOTSTRAP__;
-if (!bootstrap) {
-    throw new Error("Workbench bootstrap data is missing.");
+const bootstrapEl = document.getElementById("__bootstrap__");
+if (!bootstrapEl || !bootstrapEl.textContent) {
+    throw new Error("Workbench bootstrap element is missing.");
 }
-const BOOTSTRAP = bootstrap;
+const BOOTSTRAP = JSON.parse(bootstrapEl.textContent) as WorkbenchBootstrap;
+// Make available for llm_assistant.ts
+window.__WORKBENCH_BOOTSTRAP__ = BOOTSTRAP;
 
 const GAME = BOOTSTRAP.game;
 let sim = BOOTSTRAP.initialResult;
@@ -232,6 +238,8 @@ function renderScores(): void {
 function renderHealth(): void {
     const timeline = sim.resourceTimeline ?? [];
     const resources: string[] = GAME.resources;
+    const mTime = maxTime();
+    const step = 5;
 
     const totalGathered: Record<string, number> = {};
     const negativeResDuration: Record<string, number> = {};
@@ -254,11 +262,14 @@ function renderHealth(): void {
         }
     }
 
+    const avgs = timeWeightedAverages(mTime);
+
     const chipsHtml = resources
         .map((res: string) => {
             const gathered = totalGathered[res] ?? 0;
             const debt = negativeResMax[res] ?? 0;
             const debtTime = negativeResDuration[res] ?? 0;
+            const avg = avgs[res] ?? 0;
             const icon = iconImg(resourceIconUrl(res), res);
             const debtHtml =
                 debt < -0.01
@@ -267,31 +278,23 @@ function renderHealth(): void {
             return `<div class="health-chip">
   <div class="health-chip-label">${icon}${escapeHtml(res)}</div>
   <div class="health-chip-val">${round2(gathered)}</div>
-  <div class="health-chip-sub">gathered total</div>${debtHtml}
+  <div class="health-chip-sub">gathered total</div>
+  <div class="health-chip-avg">avg balance ${round2(avg)}</div>${debtHtml}
 </div>`;
         })
         .join("");
 
-    const mTime = maxTime();
-    const step = 5;
-    const headerCols = resources.map((r: string) => `<th>${escapeHtml(r)}</th>`).join("");
-    const rows: string[] = [];
-    for (let t = 0; t <= mTime + 0.001; t += step) {
-        const res = resourcesAt(t);
-        const cols = resources.map((r: string) => `<td>${round2(res[r] ?? 0)}</td>`).join("");
-        rows.push(`<tr><td>${formatMSS(t)}</td>${cols}</tr>`);
-    }
+    const graphsHtml = gatherableResources()
+        .map((res: string) => {
+            const icon = iconImg(resourceIconUrl(res), res);
+            return `<div class="res-graph-item">
+  <div class="res-graph-label">${icon}${escapeHtml(res)}</div>
+  ${resourceGraph(res, mTime, step)}
+</div>`;
+        })
+        .join("");
 
-    healthContent.innerHTML = `<div class="health-grid">${chipsHtml}</div>
-<details>
-  <summary>Resources every ${step}s</summary>
-  <div class="res-table-wrap">
-    <table>
-      <thead><tr><th>time</th>${headerCols}</tr></thead>
-      <tbody>${rows.join("")}</tbody>
-    </table>
-  </div>
-</details>`;
+    healthContent.innerHTML = `<div class="health-grid">${chipsHtml}</div><div class="res-graphs">${graphsHtml}</div>`;
 }
 
 function renderTables(): void {
@@ -320,6 +323,75 @@ function gatherableResources(): string[] {
     }
     // Preserve GAME.resources ordering, skip anything with no gather rate (e.g. pop).
     return GAME.resources.filter((r: string) => seen.has(r));
+}
+
+function timeWeightedAverages(mTime: number): Record<string, number> {
+    if (mTime <= 0) return {};
+    const sums: Record<string, number> = {};
+    for (const seg of sim.resourceTimeline ?? []) {
+        const dt = seg.end - seg.start;
+        if (dt <= 0) continue;
+        const rates = (seg.gatherRates ?? {}) as Record<string, number>;
+        for (const res of GAME.resources as string[]) {
+            const v0 = seg.startResources[res] ?? 0;
+            const rate = rates[res] ?? 0;
+            sums[res] = (sums[res] ?? 0) + v0 * dt + 0.5 * rate * dt * dt;
+        }
+    }
+    const result: Record<string, number> = {};
+    for (const res of GAME.resources as string[]) {
+        result[res] = (sums[res] ?? 0) / mTime;
+    }
+    return result;
+}
+
+function resourceGraph(resource: string, mTime: number, step: number): string {
+    if (mTime <= 0) return "";
+    const samples: Array<[number, number]> = [];
+    for (let t = 0; t <= mTime + 0.001; t += step) {
+        samples.push([t, resourcesAt(t)[resource] ?? 0]);
+    }
+    if (samples.length < 2) return "";
+
+    const vw = 200, vh = 72;
+    const padL = 30, padR = 4, padT = 4, padB = 16;
+    const innerW = vw - padL - padR;
+    const innerH = vh - padT - padB;
+
+    const vals = samples.map(([, v]) => v);
+    const vMax = Math.max(...vals, 1);
+    const vMin = Math.min(...vals, 0);
+    const vRange = vMax - vMin || 1;
+
+    const toX = (t: number) => padL + (t / mTime) * innerW;
+    const toY = (v: number) => padT + (1 - (v - vMin) / vRange) * innerH;
+
+    const pts = samples.map(([t, v]) => `${round2(toX(t))},${round2(toY(v))}`).join(" ");
+
+    const yTicks = [vMax, vMin]
+        .map((v) => `<text x="${padL - 3}" y="${round2(toY(v) + 3)}" font-size="8" text-anchor="end" fill="currentColor" opacity="0.5">${Math.round(v)}</text>`)
+        .join("");
+
+    const xStepCount = mTime > 600 ? 4 : 3;
+    const xTicks = Array.from({ length: xStepCount + 1 }, (_, i) => {
+        const t = (i / xStepCount) * mTime;
+        return `<text x="${round2(toX(t))}" y="${vh - 2}" font-size="8" text-anchor="middle" fill="currentColor" opacity="0.5">${formatMSS(t)}</text>`;
+    }).join("");
+
+    const zeroLine =
+        vMin < -0.5
+            ? `<line x1="${padL}" y1="${round2(toY(0))}" x2="${vw - padR}" y2="${round2(toY(0))}" stroke="var(--error)" stroke-width="0.5" stroke-dasharray="2,2" opacity="0.5"/>`
+            : "";
+
+    const colors: Record<string, string> = { food: "#6aa84f", wood: "#a67c52", gold: "#d4af37", stone: "#7f8c8d" };
+    const stroke = colors[resource] ?? "var(--accent)";
+
+    return `<svg viewBox="0 0 ${vw} ${vh}" style="width:100%;height:${vh}px;overflow:visible;color:var(--ink)">
+  <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + innerH}" stroke="currentColor" stroke-width="0.5" opacity="0.12"/>
+  <line x1="${padL}" y1="${padT + innerH}" x2="${vw - padR}" y2="${padT + innerH}" stroke="currentColor" stroke-width="0.5" opacity="0.12"/>
+  ${yTicks}${xTicks}${zeroLine}
+  <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>`;
 }
 
 function renderScrub(t: number): void {
@@ -505,6 +577,17 @@ function setupPresetSelector(): void {
         dslInput.value = picked.dsl;
         runFromDsl();
     });
+}
+
+// Set initial DSL content from bootstrap
+if (BOOTSTRAP.initialDsl) {
+    dslInput.value = BOOTSTRAP.initialDsl;
+}
+
+// Show AI elements if enabled
+if (BOOTSTRAP.withLlm) {
+    const aiTrigger = document.getElementById("aiOpenBtn");
+    if (aiTrigger) aiTrigger.classList.add("visible");
 }
 
 setupPresetSelector();

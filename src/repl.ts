@@ -4,6 +4,7 @@ import { toTextReport } from "./report";
 import { GameData } from "./types";
 import { parseBuildOrderDsl } from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
+import { normalizeGame } from "./sim_shared";
 
 interface Args {
     game: string;
@@ -45,7 +46,9 @@ function parseArgs(argv: string[]): Args {
 }
 
 async function loadGame(path: string): Promise<GameData> {
-    return Bun.file(path).json() as Promise<GameData>;
+    const game = await (Bun.file(path).json() as Promise<GameData>);
+    normalizeGame(game);
+    return game;
 }
 
 async function runOnce(args: Args): Promise<void> {

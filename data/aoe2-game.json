@@ -1,11 +1,5 @@
 {
-  "resources": [
-    "food",
-    "wood",
-    "gold",
-    "stone",
-    "pop"
-  ],
+  "resources": ["food", "wood", "gold", "stone", "pop"],
   "startingResources": {
     "food": 200,
     "wood": 200,
@@ -32,10 +26,10 @@
   ],
   "entities": {
     "villager": {
-      "id": "villager",
       "name": "Villager",
       "kind": "unit",
       "actions": [
+        "lure_boar",
         "build_house",
         "build_lumber_camp",
         "build_mill",
@@ -52,7 +46,6 @@
       ]
     },
     "town_center": {
-      "id": "town_center",
       "name": "Town Center",
       "kind": "building",
       "actions": [
@@ -64,110 +57,79 @@
       ]
     },
     "scout_cavalry": {
-      "id": "scout_cavalry",
       "name": "Scout Cavalry",
       "kind": "unit"
     },
     "house": {
-      "id": "house",
       "name": "House",
       "kind": "building"
     },
     "lumber_camp": {
-      "id": "lumber_camp",
       "name": "Lumber Camp",
       "kind": "building",
-      "actions": [
-        "research_double_bit_axe"
-      ]
+      "actions": ["research_double_bit_axe"]
     },
     "mill": {
-      "id": "mill",
       "name": "Mill",
       "kind": "building",
-      "actions": [
-        "research_horse_collar"
-      ]
+      "actions": ["research_horse_collar"]
     },
     "barracks": {
-      "id": "barracks",
       "name": "Barracks",
       "kind": "building",
-      "actions": [
-        "train_militia",
-        "research_man_at_arms",
-        "train_spearman"
-      ]
+      "actions": ["train_militia", "research_man_at_arms", "train_spearman"]
     },
     "stable": {
-      "id": "stable",
       "name": "Stable",
       "kind": "building",
-      "actions": [
-        "train_scout_cavalry"
-      ]
+      "actions": ["train_scout_cavalry"]
     },
     "farm": {
-      "id": "farm",
       "name": "Farm",
       "kind": "building"
     },
     "archer": {
-      "id": "archer",
       "name": "Archer",
       "kind": "unit"
     },
     "skirmisher": {
-      "id": "skirmisher",
       "name": "Skirmisher",
       "kind": "unit"
     },
     "militia": {
-      "id": "militia",
       "name": "Militia",
       "kind": "unit"
     },
     "fishing_ship": {
-      "id": "fishing_ship",
       "name": "Fishing Ship",
       "kind": "unit"
     },
     "transport_ship": {
-      "id": "transport_ship",
       "name": "Transport Ship",
       "kind": "unit"
     },
     "trade_cog": {
-      "id": "trade_cog",
       "name": "Trade Cog",
       "kind": "unit"
     },
     "galley": {
-      "id": "galley",
       "name": "Galley",
       "kind": "unit"
     },
     "fire_galley": {
-      "id": "fire_galley",
       "name": "Fire Galley",
       "kind": "unit"
     },
     "demolition_raft": {
-      "id": "demolition_raft",
       "name": "Demolition Raft",
       "kind": "unit"
     },
     "archery_range": {
-      "id": "archery_range",
       "name": "Archery Range",
       "kind": "building",
-      "actions": [
-        "train_archer",
-        "train_skirmisher"
-      ]
+      "actions": ["train_archer", "train_skirmisher"]
     },
     "dock": {
-      "id": "dock",
       "name": "Dock",
       "kind": "building",
       "actions": [
@@ -180,12 +142,10 @@
       ]
     },
     "market": {
-      "id": "market",
       "name": "Market",
       "kind": "building"
     },
     "blacksmith": {
-      "id": "blacksmith",
       "name": "Blacksmith",
       "kind": "building",
       "actions": [
@@ -197,29 +157,24 @@
       ]
     },
     "watch_tower": {
-      "id": "watch_tower",
       "name": "Watch Tower",
       "kind": "building"
     },
     "spearman": {
-      "id": "spearman",
       "name": "Spearman",
       "kind": "unit"
     },
     "palisade_wall": {
-      "id": "palisade_wall",
       "name": "Palisade Wall",
       "kind": "building"
     },
     "mining_camp": {
-      "id": "mining_camp",
       "name": "Mining Camp",
       "kind": "building"
     }
   },
   "resourceNodePrototypes": {
     "sheep": {
-      "id": "sheep",
       "name": "Sheep",
       "produces": "food",
       "rateByEntityType": {
@@ -227,25 +182,16 @@
       },
       "maxWorkers": 6,
       "stock": 100,
-      "tags": [
-        "food",
-        "huntables",
-        "herdable"
-      ]
+      "tags": ["food", "huntables", "herdable"]
     },
     "boar": {
-      "id": "boar",
       "name": "Boar",
       "produces": "food",
       "rateByEntityType": {},
       "stock": 1,
-      "tags": [
-        "huntables",
-        "boar_animal"
-      ]
+      "tags": ["huntables", "boar_animal"]
     },
     "boar_lured": {
-      "id": "boar_lured",
       "name": "Lured Boar",
       "produces": "food",
       "rateByEntityType": {
@@ -253,14 +199,9 @@
       },
       "maxWorkers": 10,
       "stock": 340,
-      "tags": [
-        "food",
-        "huntables",
-        "boar_lured"
-      ]
+      "tags": ["food", "huntables", "boar_lured"]
     },
     "berries": {
-      "id": "berries",
       "name": "Berries",
       "produces": "food",
       "rateByEntityType": {
@@ -268,63 +209,42 @@
       },
       "maxWorkers": 6,
       "stock": 750,
-      "tags": [
-        "food",
-        "forage"
-      ]
+      "tags": ["food", "forage"]
     },
     "forest": {
-      "id": "forest",
       "name": "Forest",
       "produces": "wood",
       "rateByEntityType": {
         "villager": 0.39
       },
-      "tags": [
-        "wood",
-        "woodcutting"
-      ]
+      "tags": ["wood", "woodcutting"]
     },
     "straggler_trees": {
-      "id": "straggler_trees",
       "name": "Straggler Trees",
       "produces": "wood",
       "rateByEntityType": {
         "villager": 0.39
       },
       "stock": 125,
-      "tags": [
-        "wood",
-        "woodcutting",
-        "straggler"
-      ]
+      "tags": ["wood", "woodcutting", "straggler"]
     },
     "gold_mine": {
-      "id": "gold_mine",
       "name": "Gold Mine",
       "produces": "gold",
       "rateByEntityType": {
         "villager": 0.38
       },
-      "tags": [
-        "gold",
-        "mining"
-      ]
+      "tags": ["gold", "mining"]
     },
     "stone_mine": {
-      "id": "stone_mine",
       "name": "Stone Mine",
       "produces": "stone",
       "rateByEntityType": {
         "villager": 0.36
       },
-      "tags": [
-        "stone",
-        "mining"
-      ]
+      "tags": ["stone", "mining"]
     },
     "farm_patch": {
-      "id": "farm_patch",
       "name": "Farm",
       "produces": "food",
       "rateByEntityType": {
@@ -332,10 +252,7 @@
       },
       "maxWorkers": 1,
       "stock": 175,
-      "tags": [
-        "food",
-        "farm"
-      ]
+      "tags": ["food", "farm"]
     }
   },
   "startingResourceNodes": [
@@ -428,11 +345,7 @@
   },
   "actions": {
     "train_villager": {
-      "id": "train_villager",
       "name": "Train Villager",
-      "actorTypes": [
-        "town_center"
-      ],
       "taskType": "train",
       "duration": 25,
       "costs": {
@@ -444,11 +357,7 @@
       }
     },
     "research_loom": {
-      "id": "research_loom",
       "name": "Research Loom",
-      "actorTypes": [
-        "town_center"
-      ],
       "taskType": "research",
       "duration": 25,
       "costs": {
@@ -456,11 +365,7 @@
       }
     },
     "advance_feudal_age": {
-      "id": "advance_feudal_age",
       "name": "Advance to Feudal",
-      "actorTypes": [
-        "town_center"
-      ],
       "taskType": "research",
       "duration": 130,
       "costs": {
@@ -468,11 +373,7 @@
       }
     },
     "build_house": {
-      "id": "build_house",
       "name": "Build House",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 25,
@@ -484,11 +385,7 @@
       }
     },
     "build_lumber_camp": {
-      "id": "build_lumber_camp",
       "name": "Build Lumber Camp",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 35,
@@ -500,11 +397,7 @@
       }
     },
     "build_mill": {
-      "id": "build_mill",
       "name": "Build Mill",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 35,
@@ -516,11 +409,7 @@
       }
     },
     "lure_boar": {
-      "id": "lure_boar",
       "name": "Lure Boar",
-      "actorTypes": [
-        "villager"
-      ],
       "duration": 45,
       "createsResourceNodes": [
         {
@@ -530,11 +419,7 @@
       ]
     },
     "build_barracks": {
-      "id": "build_barracks",
       "name": "Build Barracks",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 50,
@@ -546,11 +431,7 @@
       }
     },
     "build_stable": {
-      "id": "build_stable",
       "name": "Build Stable",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 50,
@@ -562,11 +443,7 @@
       }
     },
     "build_farm": {
-      "id": "build_farm",
       "name": "Build Farm",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 15,
@@ -584,11 +461,7 @@
       ]
     },
     "research_double_bit_axe": {
-      "id": "research_double_bit_axe",
       "name": "Research Double-Bit Axe",
-      "actorTypes": [
-        "lumber_camp"
-      ],
       "taskType": "research",
       "duration": 25,
       "costs": {
@@ -604,11 +477,7 @@
       ]
     },
     "research_horse_collar": {
-      "id": "research_horse_collar",
       "name": "Research Horse Collar",
-      "actorTypes": [
-        "mill"
-      ],
       "taskType": "research",
       "duration": 20,
       "costs": {
@@ -624,11 +493,7 @@
       ]
     },
     "train_scout_cavalry": {
-      "id": "train_scout_cavalry",
       "name": "Train Scout Cavalry",
-      "actorTypes": [
-        "stable"
-      ],
       "taskType": "train",
       "duration": 30,
       "costs": {
@@ -640,11 +505,7 @@
       }
     },
     "build_archery_range": {
-      "id": "build_archery_range",
       "name": "Build Archery Range",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 50,
@@ -656,11 +517,7 @@
       }
     },
     "build_dock": {
-      "id": "build_dock",
       "name": "Build Dock",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 35,
@@ -672,11 +529,7 @@
       }
     },
     "build_market": {
-      "id": "build_market",
       "name": "Build Market",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 60,
@@ -688,11 +541,7 @@
       }
     },
     "build_blacksmith": {
-      "id": "build_blacksmith",
       "name": "Build Blacksmith",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 40,
@@ -704,11 +553,7 @@
       }
     },
     "build_watch_tower": {
-      "id": "build_watch_tower",
       "name": "Build Watch Tower",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 80,
@@ -721,11 +566,7 @@
       }
     },
     "train_archer": {
-      "id": "train_archer",
       "name": "Train Archer",
-      "actorTypes": [
-        "archery_range"
-      ],
       "taskType": "train",
       "duration": 35,
       "costs": {
@@ -738,11 +579,7 @@
       }
     },
     "train_skirmisher": {
-      "id": "train_skirmisher",
       "name": "Train Skirmisher",
-      "actorTypes": [
-        "archery_range"
-      ],
       "taskType": "train",
       "duration": 22,
       "costs": {
@@ -755,11 +592,7 @@
       }
     },
     "train_militia": {
-      "id": "train_militia",
       "name": "Train Militia",
-      "actorTypes": [
-        "barracks"
-      ],
       "taskType": "train",
       "duration": 21,
       "costs": {
@@ -772,11 +605,7 @@
       }
     },
     "train_fishing_ship": {
-      "id": "train_fishing_ship",
       "name": "Train Fishing Ship",
-      "actorTypes": [
-        "dock"
-      ],
       "taskType": "train",
       "duration": 40,
       "costs": {
@@ -788,11 +617,7 @@
       }
     },
     "train_transport_ship": {
-      "id": "train_transport_ship",
       "name": "Train Transport Ship",
-      "actorTypes": [
-        "dock"
-      ],
       "taskType": "train",
       "duration": 46,
       "costs": {
@@ -804,11 +629,7 @@
       }
     },
     "train_trade_cog": {
-      "id": "train_trade_cog",
       "name": "Train Trade Cog",
-      "actorTypes": [
-        "dock"
-      ],
       "taskType": "train",
       "duration": 36,
       "costs": {
@@ -821,11 +642,7 @@
       }
     },
     "train_galley": {
-      "id": "train_galley",
       "name": "Train Galley",
-      "actorTypes": [
-        "dock"
-      ],
       "taskType": "train",
       "duration": 60,
       "costs": {
@@ -838,11 +655,7 @@
       }
     },
     "train_fire_galley": {
-      "id": "train_fire_galley",
       "name": "Train Fire Galley",
-      "actorTypes": [
-        "dock"
-      ],
       "taskType": "train",
       "duration": 65,
       "costs": {
@@ -855,11 +668,7 @@
       }
     },
     "train_demolition_raft": {
-      "id": "train_demolition_raft",
       "name": "Train Demolition Raft",
-      "actorTypes": [
-        "dock"
-      ],
       "taskType": "train",
       "duration": 45,
       "costs": {
@@ -872,11 +681,7 @@
       }
     },
     "research_man_at_arms": {
-      "id": "research_man_at_arms",
       "name": "Research Man-at-Arms",
-      "actorTypes": [
-        "barracks"
-      ],
       "taskType": "research",
       "duration": 40,
       "costs": {
@@ -892,11 +697,7 @@
       ]
     },
     "research_wheelbarrow": {
-      "id": "research_wheelbarrow",
       "name": "Research Wheelbarrow",
-      "actorTypes": [
-        "town_center"
-      ],
       "taskType": "research",
       "duration": 75,
       "costs": {
@@ -922,11 +723,7 @@
       ]
     },
     "advance_castle_age": {
-      "id": "advance_castle_age",
       "name": "Advance to Castle Age",
-      "actorTypes": [
-        "town_center"
-      ],
       "taskType": "research",
       "duration": 160,
       "costs": {
@@ -935,11 +732,7 @@
       }
     },
     "research_fletching": {
-      "id": "research_fletching",
       "name": "Research Fletching",
-      "actorTypes": [
-        "blacksmith"
-      ],
       "taskType": "research",
       "duration": 30,
       "costs": {
@@ -965,11 +758,7 @@
       ]
     },
     "research_forging": {
-      "id": "research_forging",
       "name": "Research Forging",
-      "actorTypes": [
-        "blacksmith"
-      ],
       "taskType": "research",
       "duration": 50,
       "costs": {
@@ -989,11 +778,7 @@
       ]
     },
     "research_scale_mail_armor": {
-      "id": "research_scale_mail_armor",
       "name": "Research Scale Mail Armor",
-      "actorTypes": [
-        "blacksmith"
-      ],
       "taskType": "research",
       "duration": 40,
       "costs": {
@@ -1013,11 +798,7 @@
       ]
     },
     "research_scale_barding_armor": {
-      "id": "research_scale_barding_armor",
       "name": "Research Scale Barding Armor",
-      "actorTypes": [
-        "blacksmith"
-      ],
       "taskType": "research",
       "duration": 45,
       "costs": {
@@ -1037,11 +818,7 @@
       ]
     },
     "research_padded_archer_armor": {
-      "id": "research_padded_archer_armor",
       "name": "Research Padded Archer Armor",
-      "actorTypes": [
-        "blacksmith"
-      ],
       "taskType": "research",
       "duration": 40,
       "costs": {
@@ -1061,11 +838,7 @@
       ]
     },
     "train_spearman": {
-      "id": "train_spearman",
       "name": "Train Spearman",
-      "actorTypes": [
-        "barracks"
-      ],
       "taskType": "train",
       "duration": 22,
       "costs": {
@@ -1078,11 +851,7 @@
       }
     },
     "build_palisade_wall": {
-      "id": "build_palisade_wall",
       "name": "Build Palisade Wall",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build_palisade_walk",
       "duration": 7,
       "costs": {
@@ -1093,11 +862,7 @@
       }
     },
     "build_mining_camp": {
-      "id": "build_mining_camp",
       "name": "Build Mining Camp",
-      "actorTypes": [
-        "villager"
-      ],
       "taskType": "build",
       "many_workers": "aoe2",
       "duration": 35,
