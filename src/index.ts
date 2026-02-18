@@ -4,6 +4,7 @@ import { GameData } from "./types";
 import { createCivDslByName, createDslValidationSymbols, parseBuildOrderDsl } from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
 import { normalizeGame } from "./sim_shared";
+import { readdir } from "node:fs/promises";
 
 interface Args {
     game: string;
@@ -76,12 +77,10 @@ async function main(): Promise<void> {
     console.log(toTextReport(result));
 
     if (args.report) {
-        const presetPaths = [
-            "data/aoe2-scout-build-order.dsl",
-            "data/aoe2-mongol-scout-rush.dsl",
-            "data/aoe2-archer-rush-build-order.dsl",
-            "data/aoe2-maa-into-archer-old.dsl",
-        ];
+        const presetPaths = (await readdir("data"))
+            .filter((name) => name.toLowerCase().endsWith(".dsl"))
+            .sort((a, b) => a.localeCompare(b))
+            .map((name) => `data/${name}`);
         const presets: BuildOrderPreset[] = [];
         for (const path of presetPaths) {
             const file = Bun.file(path);

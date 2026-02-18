@@ -235,6 +235,25 @@
       "stock": 750,
       "tags": ["food", "forage"]
     },
+    "shore_fish": {
+      "name": "Shore Fish",
+      "produces": "food",
+      "rateByEntityType": {
+        "villager": 0.28
+      },
+      "maxWorkers": 3,
+      "stock": 200,
+      "tags": ["food", "fish", "shore_fish"]
+    },
+    "deep_fish": {
+      "name": "Deep Fish",
+      "produces": "food",
+      "rateByEntityType": {
+        "fishing_ship": 0.49
+      },
+      "stock": 225,
+      "tags": ["food", "fish", "deep_fish"]
+    },
     "forest": {
       "name": "Forest",
       "produces": "wood",
@@ -297,6 +316,14 @@
       "count": 1
     },
     {
+      "prototypeId": "shore_fish",
+      "count": 4
+    },
+    {
+      "prototypeId": "deep_fish",
+      "count": 6
+    },
+    {
       "prototypeId": "forest",
       "count": 1
     },
@@ -317,32 +344,42 @@
     {
       "selector": "gather.rate.node.sheep",
       "op": "mul",
-      "value": 0.95
+      "value": 0.97
     },
     {
       "selector": "gather.rate.node.boar_lured",
       "op": "mul",
-      "value": 0.95
+      "value": 0.97
     },
     {
       "selector": "gather.rate.node.deer",
       "op": "mul",
-      "value": 0.95
+      "value": 0.97
     },
     {
       "selector": "gather.rate.node.berries",
+      "op": "mul",
+      "value": 0.93
+    },
+    {
+      "selector": "gather.rate.node.shore_fish",
+      "op": "mul",
+      "value": 0.95
+    },
+    {
+      "selector": "gather.rate.node.deep_fish",
       "op": "mul",
       "value": 0.9
     },
     {
       "selector": "gather.rate.node.forest",
       "op": "mul",
-      "value": 0.85
+      "value": 0.93
     },
     {
       "selector": "gather.rate.node.straggler_trees",
       "op": "mul",
-      "value": 0.7
+      "value": 0.75
     }
   ],
   "taskEfficiency": {
