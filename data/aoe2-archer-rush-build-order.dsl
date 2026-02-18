@@ -9,7 +9,8 @@ score time clicked advance_castle_age
 score time completed train_archer x4
 score time completed train_archer x8
 
-# Core macro helpers
+# General AoE2 Rules (keep these high-level reactions together)
+# (you probably want to keep these just to make writing the build order easier)
 after completed lure_boar assign to boar_lured
 after completed lure_boar assign villager all from sheep to boar_lured
 after depleted boar_lured assign to boar_lured sheep
@@ -31,7 +32,7 @@ assign villager 4 to sheep
 assign villager 5 to sheep
 assign villager 6 to sheep
 
-# Wood line
+# 4 on wood
 queue build_lumber_camp using villager 7
 assign villager 7 to forest
 assign villager 8 to forest

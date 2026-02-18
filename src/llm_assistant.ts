@@ -30,7 +30,8 @@ function buildSystemPrompt(): string {
     const { game: g, buildOrderPresets = [] } = window.__WORKBENCH_BOOTSTRAP__;
 
     const lines = [
-        "You are an AoE2 build order expert. Output ONLY valid DSL, no explanation.",
+        "You are a build order DSL scribe assistant. Your goal is to write correct DSL output for build orders.",
+        "When given an existing build order: fix any DSL syntax errors and fill in any missing steps.",
         "Resources: " + g.resources.join(", "),
         "Entities: " + Object.keys(g.entities).join(", "),
         "Actions: " + Object.keys(g.actions).join(", "),
@@ -55,10 +56,12 @@ function buildSystemPrompt(): string {
         }
     }
 
-    return lines.join("\n");
-}
+    lines.push("Your answer should contain ONLY the dsl file, nothing else.");
 
-console.log(buildSystemPrompt());
+    const out = lines.join("\n");
+    // PGM move.
+    return out + "\n" + out;
+}
 
 let gen: any = null;
 const stopping = new InterruptableStoppingCriteria();
@@ -75,9 +78,7 @@ function openModal() {
     // sees the latest DSL and can fix errors / fill blanks.
     const currentDsl = ($("dslInput") as HTMLTextAreaElement).value.trim();
     const prompt = $("aiPrompt") as HTMLTextAreaElement;
-    prompt.value = currentDsl
-        ? `Fix any DSL syntax errors and fill in any missing steps. Output only the corrected DSL:\n\n${currentDsl}`
-        : "";
+    prompt.value = currentDsl;
 
     if (gen) prompt.focus();
 }

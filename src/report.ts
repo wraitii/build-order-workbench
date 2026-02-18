@@ -6,6 +6,8 @@ export interface BuildOrderPreset {
     dsl: string;
 }
 
+const WITH_LLM = process.env.INCLUDE_LLM === "1";
+
 let workbenchBundlePromise: Promise<string> | undefined;
 let llmBundlePromise: Promise<string> | undefined;
 
@@ -99,7 +101,58 @@ export async function toHtmlReport(
 ): Promise<string> {
     const escapedDsl = escapeHtml(initialDsl);
     const bootstrapJson = scriptSafeJson({ game, initialResult: result, buildOrderPresets });
-    const [workbenchBundle, llmBundle] = await Promise.all([getWorkbenchBundle(), getLLMBundle()]);
+    const [workbenchBundle, llmBundle] = await Promise.all([
+        getWorkbenchBundle(),
+        WITH_LLM ? getLLMBundle() : Promise.resolve(null),
+    ]);
+
+    const aiTriggerHtml = WITH_LLM
+        ? `
+          <button id="aiOpenBtn" class="ai-trigger">
+            <span style="font-size:14px">✨</span>
+            Local LLM
+            <span id="aiTriggerDot" class="ai-dot ai-dot-idle"></span>
+          </button>`
+        : "";
+
+    const aiModalHtml = WITH_LLM
+        ? `
+  <div id="aiModal" class="ai-modal-backdrop ai-hidden" role="dialog" aria-modal="true" aria-labelledby="aiModalTitle">
+    <div class="ai-modal">
+      <div class="ai-modal-header">
+        <div class="ai-modal-title">
+          <span style="font-size:16px">✨</span>
+          <span id="aiModalTitle" style="font-weight:600;font-size:15px">Local LLM — Build Order Generator</span>
+          <span id="aiStatusBadge" class="ai-badge ai-badge-idle">
+            <span id="aiStatusDot" class="ai-dot ai-dot-idle"></span>
+            <span id="aiStatusText">Not loaded</span>
+          </span>
+        </div>
+        <button id="aiModalClose" class="btn" style="padding:4px 10px;line-height:1;font-size:16px">✕</button>
+      </div>
+      <div class="ai-modal-body">
+        <p style="margin:0 0 6px;font-size:13px;color:var(--muted)">Runs <strong>LFM2.5-1.2B</strong> fully in your browser via WebGPU — no server, no API key.<br>Downloads ~600 MB on first load.
+        <br/>⚠️ <em>Tech demo.</em> Output quality is hit-or-miss (mostly miss) — don't expect it to really work, but it's pretty cool that it runs at all. Inspired by <a href="https://huggingface.co/spaces/webml-community/GPT-OSS-WebGPU" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">GPT-OSS-WebGPU</a>.</p>
+        <div id="aiLoadSection">
+          <button id="aiLoadBtn" class="btn btn-primary">Load model</button>
+        </div>
+        <div id="aiProgressSection" style="display:none">
+          <div class="ai-progress"><div id="aiProgressBar" class="ai-progress-bar" style="width:0%"></div></div>
+          <div id="aiProgressLabel" style="font-size:12px;color:var(--muted);margin-top:6px;text-align:center">Starting…</div>
+        </div>
+        <textarea id="aiPrompt" disabled class="ai-textarea" placeholder="Paste your DSL here, or describe your strategy from scratch…"></textarea>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="aiGenBtn" class="btn btn-primary" disabled><span id="aiGenLabel">Generate DSL</span></button>
+          <button id="aiStopBtn" class="btn btn-stop" style="display:none">Stop</button>
+          <button id="aiApplyBtn" class="btn" style="display:none">Apply to editor ↵</button>
+        </div>
+        <pre id="aiOutput" class="ai-output" style="display:none"></pre>
+      </div>
+    </div>
+  </div>`
+        : "";
+
+    const llmScriptHtml = llmBundle ? `\n  <script type="module">${llmBundle}</script>` : "";
 
     return `<!doctype html>
 <html lang="en">
@@ -224,33 +277,28 @@ export async function toHtmlReport(
 <body>
   <main>
     <section class="card">
-      <h1>Build Order Workbench</h1>
-      <div class="tags">
-        <span class="tag">offline html</span>
-        <span class="tag">cmd/ctrl+enter to run</span>
-      </div>
-      <div class="source-note">
-        Data reference:
-        <a href="https://www.aoe2database.com" target="_blank" rel="noopener noreferrer">aoe2database.com</a>
-      </div>
+      <h1 style="margin:0 0 4px">Build Order Workbench</h1>
+      <p style="margin:8px 0 0;font-size:13px;color:var(--muted);line-height:1.6">
+        Write a build order in the editor below using a custom scripting language, hit Run, and get a live simulation with a timeline, resource tracking, and scoring. Good for stress-testing timing assumptions without launching a game.
+        <br>Data source from <a href="https://www.aoe2database.com" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">aoe2database.com</a>.
+      </p>
     </section>
 
     <section class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px">
-        <h2 style="margin:0">Build Order Editor</h2>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <h2 style="margin:0">Build Order Editor</h2>
+          <button onclick="document.getElementById('helpModal').classList.remove('ai-hidden')" style="border:none;background:none;padding:0;cursor:pointer;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.3px">? help</button>
+        </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <select id="buildPresetSelect" class="dsl-select"></select>
-          <button id="aiOpenBtn" class="ai-trigger">
-            <span style="font-size:14px">✨</span>
-            Local LLM
-            <span id="aiTriggerDot" class="ai-dot ai-dot-idle"></span>
-          </button>
+          <select id="buildPresetSelect" class="dsl-select"></select>${aiTriggerHtml}
         </div>
       </div>
       <textarea id="dslInput">${escapedDsl}</textarea>
       <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
         <button id="runBtn" class="btn btn-primary">Run</button>
         <span id="runStatus" class="muted">ready</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--muted)">cmd/ctrl+enter to run</span>
       </div>
       <div id="errorBox"></div>
     </section>
@@ -276,7 +324,7 @@ export async function toHtmlReport(
           </span>
         </div>
         <div id="scrubStats" class="tl-stats"></div>
-        <div id="timelineLegend" class="legend"></div>
+        <div id="gatherStats" class="tl-stats" style="margin-top:-4px;margin-bottom:0;font-size:12px"></div>
       </div>
       <div id="entityTimeline" class="timeline-wrap"></div>
     </section>
@@ -295,42 +343,68 @@ export async function toHtmlReport(
     </section>
   </main>
 
-  <div id="aiModal" class="ai-modal-backdrop ai-hidden" role="dialog" aria-modal="true" aria-labelledby="aiModalTitle">
-    <div class="ai-modal">
+  <div id="helpModal" class="ai-modal-backdrop ai-hidden" onclick="if(event.target===this)this.classList.add('ai-hidden')">
+    <div class="ai-modal" style="max-width:700px">
       <div class="ai-modal-header">
-        <div class="ai-modal-title">
-          <span style="font-size:16px">✨</span>
-          <span id="aiModalTitle" style="font-weight:600;font-size:15px">Local LLM — Build Order Generator</span>
-          <span id="aiStatusBadge" class="ai-badge ai-badge-idle">
-            <span id="aiStatusDot" class="ai-dot ai-dot-idle"></span>
-            <span id="aiStatusText">Not loaded</span>
-          </span>
-        </div>
-        <button id="aiModalClose" class="btn" style="padding:4px 10px;line-height:1;font-size:16px">✕</button>
+        <span style="font-weight:600;font-size:15px">DSL Reference</span>
+        <button onclick="document.getElementById('helpModal').classList.add('ai-hidden')" class="btn" style="padding:4px 10px;line-height:1;font-size:16px">✕</button>
       </div>
-      <div class="ai-modal-body">
-        <div id="aiLoadSection">
-          <p style="margin:0 0 10px;font-size:13px;color:var(--muted)">Load the LFM2.5-1.2B model locally in your browser (~600 MB, requires WebGPU).</p>
-          <button id="aiLoadBtn" class="btn btn-primary">Load model</button>
+      <div class="ai-modal-body" style="font-size:13px;line-height:1.6;gap:14px">
+
+        <div>
+          <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Header — declare before commands</div>
+          <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">evaluation &lt;MM:SS&gt;                    # required — how long to simulate
+debt-floor &lt;N&gt;                         # allow debt down to N (default -30)
+start with &lt;entity&gt;[, &lt;entity&gt;...]    # starting units/buildings
+starting-resource &lt;resource&gt; &lt;amount&gt;  # override a starting resource</pre>
         </div>
-        <div id="aiProgressSection" style="display:none">
-          <div class="ai-progress"><div id="aiProgressBar" class="ai-progress-bar" style="width:0%"></div></div>
-          <div id="aiProgressLabel" style="font-size:12px;color:var(--muted);margin-top:6px;text-align:center">Starting…</div>
+
+        <div>
+          <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Commands</div>
+          <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">queue &lt;action&gt; [xN] [using &lt;actor&gt;[, ...]] [from &lt;node&gt;...]
+auto-queue &lt;action&gt; [using &lt;actorType&gt;] [from &lt;node&gt;...]
+stop-auto-queue &lt;action&gt; [using &lt;actorType&gt;]
+assign &lt;actorType&gt; &lt;N | xN | all&gt; [from &lt;node&gt;...] to &lt;node&gt;...
+spawn-assign &lt;entityType&gt; to &lt;node&gt;   # auto-assign new entities on spawn</pre>
         </div>
-        <textarea id="aiPrompt" disabled class="ai-textarea" placeholder="Paste your DSL here, or describe your strategy from scratch…"></textarea>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button id="aiGenBtn" class="btn btn-primary" disabled><span id="aiGenLabel">Generate DSL</span></button>
-          <button id="aiStopBtn" class="btn btn-stop" style="display:none">Stop</button>
-          <button id="aiApplyBtn" class="btn" style="display:none">Apply to editor ↵</button>
+
+        <div>
+          <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Timing &amp; conditions — prefix any command</div>
+          <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">at &lt;MM:SS&gt; &lt;command&gt;
+after &lt;label&gt; &lt;command&gt;                         # after a named event
+after &lt;entityType&gt; &lt;N&gt; &lt;command&gt;               # after Nth entity is ready
+after completed|clicked &lt;action&gt; &lt;command&gt;      # fires once
+after depleted|exhausted &lt;node&gt; &lt;command&gt;       # fires once when node empties
+on completed|clicked &lt;action&gt; &lt;command&gt;         # fires every time
+on depleted|exhausted &lt;node&gt; &lt;command&gt;          # fires every time</pre>
         </div>
-        <pre id="aiOutput" class="ai-output" style="display:none"></pre>
+
+        <div>
+          <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Scoring &amp; misc</div>
+          <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">score time completed|clicked &lt;action&gt; [xN]       # lower time = better score
+human-delay &lt;action&gt; &lt;chance&gt; &lt;minSec&gt; &lt;maxSec&gt; # simulate reaction time
+# anything after a hash is a comment</pre>
+        </div>
+
+        <div>
+          <div style="font-weight:600;margin-bottom:4px;color:var(--ink)">Tips</div>
+          <ul style="margin:0;padding-left:18px;color:var(--muted)">
+            <li><strong>Actor selectors</strong> — <code>villager</code> (any idle one), <code>villager 3</code> / <code>villager-3</code> (the 3rd villager specifically), <code>villager x2</code> (two of them), <code>villager all</code> (everyone of that type)</li>
+            <li><strong>Filtering actors by where they are</strong> — append <code>from &lt;node&gt;...</code> to restrict to actors currently on those nodes. E.g. <code>assign villager x3 from sheep boar_lured to forest</code> pulls 3 villagers who are on sheep <em>or</em> boar_lured and sends them to wood. <code>idle</code> matches anyone not currently gathering.</li>
+            <li><strong>Node selectors</strong> — resource names (<code>food</code>, <code>wood</code>, <code>gold</code>…) match any node of that type; node ids (<code>sheep</code>, <code>forest</code>, <code>boar_lured</code>…) match a specific node prototype</li>
+            <li><strong><code>after &lt;label&gt;</code></strong> — fires once after a command with that label completes. The label defaults to the action or node id, so <code>after build_stable</code> waits for the stable to finish building.</li>
+            <li>Cmd/Ctrl+Enter runs the simulation from the editor</li>
+          </ul>
+        </div>
+
       </div>
     </div>
   </div>
 
+${aiModalHtml}
+  <script>document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('helpModal').classList.add('ai-hidden');});</script>
   <script>window.__WORKBENCH_BOOTSTRAP__ = ${bootstrapJson};</script>
-  <script>${workbenchBundle}</script>
-  <script type="module">${llmBundle}</script>
+  <script>${workbenchBundle}</script>${llmScriptHtml}
 </body>
 </html>`;
 }

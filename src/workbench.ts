@@ -84,6 +84,16 @@ const NODE_ICON_SLUGS: Record<string, string> = {
     berries: "u_bush",
 };
 
+// Action overrides: key = action id, value = icon slug
+const ACTION_ICON_SLUGS: Record<string, string> = {
+    lure_boar: "u_boar",
+};
+
+// Resource overrides: key = resource id, value = icon slug
+const RESOURCE_ICON_SLUGS: Record<string, string> = {
+    pop: "b_town_center",
+};
+
 function entityIconUrl(entityType: string): string {
     const slug = ENTITY_ICON_SLUGS[entityType];
     if (slug) return `${BASE_ICON}/${slug}.png`;
@@ -94,6 +104,8 @@ function entityIconUrl(entityType: string): string {
 }
 
 function resourceIconUrl(resource: string): string {
+    const slug = RESOURCE_ICON_SLUGS[resource];
+    if (slug) return `${BASE_ICON}/${slug}.png`;
     return `${BASE_ICON}/r_${resource}.png`;
 }
 
@@ -104,6 +116,8 @@ function segmentIconUrl(kind: string, detail: string): string {
         return nodeSlug ? `${BASE_ICON}/${nodeSlug}.png` : resourceIconUrl(resource);
     }
     if (kind === "action") {
+        const actionSlug = ACTION_ICON_SLUGS[detail];
+        if (actionSlug) return `${BASE_ICON}/${actionSlug}.png`;
         const action = GAME.actions[detail];
         if (action?.creates) {
             const entityType = Object.keys(action.creates)[0];
@@ -136,12 +150,12 @@ const dslInput = mustElement<HTMLTextAreaElement>("dslInput");
 const buildPresetSelect = mustElement<HTMLSelectElement>("buildPresetSelect");
 const errorBox = mustElement<HTMLElement>("errorBox");
 
+const gatherStats = mustElement<HTMLElement>("gatherStats");
 const range = mustElement<HTMLInputElement>("timeRange");
 const readout = mustElement<HTMLElement>("timeReadout");
 const stats = mustElement<HTMLElement>("scrubStats");
 
 const entityTimeline = mustElement<HTMLElement>("entityTimeline");
-const timelineLegend = mustElement<HTMLElement>("timelineLegend");
 const pxPerSecond = mustElement<HTMLInputElement>("pxPerSecond");
 const pxPerSecondReadout = mustElement<HTMLElement>("pxPerSecondReadout");
 
@@ -173,6 +187,22 @@ function resourcesAt(t: number): Record<string, number> {
     const firstSeg = sim.resourceTimeline[0];
     if (firstSeg && t <= firstSeg.start) return { ...sim.initialResources };
     return { ...sim.resourcesAtEvaluation };
+}
+
+function gatherersAt(t: number): Record<string, number> {
+    const counts: Record<string, number> = {};
+    for (const timeline of Object.values(sim.entityTimelines ?? {})) {
+        for (const seg of timeline.segments ?? []) {
+            if (t >= seg.start && t < seg.end) {
+                if (seg.kind === "gather") {
+                    const resource = seg.detail.split(":")[0] ?? seg.detail;
+                    counts[resource] = (counts[resource] ?? 0) + 1;
+                }
+                break;
+            }
+        }
+    }
+    return counts;
 }
 
 function scoreCriterionLabel(c: ScoreCriterion): string {
@@ -280,19 +310,38 @@ function renderTables(): void {
     renderHealth();
 }
 
+// Resources that any node can actually produce — computed once per sim result.
+function gatherableResources(): string[] {
+    const seen = new Set<string>();
+    for (const seg of sim.resourceTimeline ?? []) {
+        for (const k of Object.keys(seg.gatherRates ?? {})) seen.add(k);
+    }
+    // Preserve GAME.resources ordering, skip anything with no gather rate (e.g. pop).
+    return GAME.resources.filter((r: string) => seen.has(r));
+}
+
 function renderScrub(t: number): void {
     readout.textContent = `${formatMSS(t)} / ${formatMSS(maxTime())}`;
+
     const res = resourcesAt(t);
-    const entries = Object.entries(res);
-    stats.innerHTML =
-        entries.length > 0
-            ? entries
-                  .map(
-                      ([k, v]: [string, number]) =>
-                          `<span class='res-stat'>${iconImg(resourceIconUrl(k), k)}<span>${escapeHtml(k)}: ${round2(Number(v))}</span></span>`,
-                  )
-                  .join("")
-            : "";
+    const gathered = gatherableResources();
+
+    stats.innerHTML = (GAME.resources as string[])
+        .map(
+            (k: string) =>
+                `<span class='res-stat'>${iconImg(resourceIconUrl(k), k)}<span>${Math.floor(Number(res[k] ?? 0))}</span></span>`,
+        )
+        .join("");
+
+    const gatherers = gatherersAt(t);
+    const villagerIcon = iconImg(entityIconUrl("villager"), "villager");
+    gatherStats.innerHTML = villagerIcon + gathered
+        .filter((k: string) => k in gatherers)
+        .map(
+            (k: string) =>
+                `<span class='res-stat'>${iconImg(resourceIconUrl(k), k)}<span>${gatherers[k]}</span></span>`,
+        )
+        .join("");
 }
 
 function buildTimeline(t: number, center = false): void {
@@ -335,22 +384,6 @@ function buildTimeline(t: number, center = false): void {
         return a.entityId.localeCompare(b.entityId);
     });
 
-    const legends = new Map<string, { kind: string; detail: string; color: string }>();
-    for (const e of entries) {
-        for (const seg of e.timeline.segments ?? []) {
-            const key = `${seg.kind}:${seg.detail}`;
-            if (!legends.has(key))
-                legends.set(key, { kind: seg.kind, detail: seg.detail, color: colorForSegment(seg.kind, seg.detail) });
-        }
-    }
-
-    timelineLegend.innerHTML = Array.from(legends.values())
-        .slice(0, 18)
-        .map((item) => {
-            const icon = iconImg(segmentIconUrl(item.kind, item.detail));
-            return `<span class='legend-item'><span class='legend-swatch' style='background:${item.color}'></span>${icon}${escapeHtml(`${item.kind} ${item.detail}`)}</span>`;
-        })
-        .join("");
 
     const axisTicks: string[] = [];
     for (let x = 0; x <= mTime + 0.0001; x += tickEvery) {
@@ -441,7 +474,7 @@ function runFromDsl(): void {
 
 function setupPresetSelector(): void {
     const presets: BuildOrderPreset[] = BOOTSTRAP.buildOrderPresets ?? [];
-    const options = ["<option value=''>custom</option>"];
+    const options = [];
     for (const preset of presets) {
         options.push(`<option value="${escapeHtml(preset.id)}">${escapeHtml(preset.label)}</option>`);
     }

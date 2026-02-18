@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "bun run src/index.ts --game data/aoe2-game.json --build data/aoe2-scout-build-order.dsl --report out/aoe2-scout-report.html",
+    "build:llm": "INCLUDE_LLM=1 bun run src/index.ts --game data/aoe2-game.json --build data/aoe2-scout-build-order.dsl --report out/aoe2-scout-report.html",
     "sim": "bun run src/index.ts",
     "sim:strict": "bun run src/index.ts --strict",
     "sim:watch": "bun run src/repl.ts --game data/aoe2-game.json --build data/aoe2-scout-build-order.dsl",

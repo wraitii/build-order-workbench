@@ -213,14 +213,17 @@ export function tryScheduleActionNow(
         };
     }
 
-    const crossedNegative = chargeCosts(state, costs);
-    if (crossedNegative.length > 0) {
-        state.violations.push({
-            time: state.now,
-            code: "NEGATIVE_RESOURCE",
-            message: `Warning: '${action.id}' pushed ${crossedNegative.join(", ")} below 0 (debt-floor=${options.debtFloor}).`,
-        });
-    }
+  const crossedNegative = chargeCosts(state, costs);
+  if (crossedNegative.length > 0) {
+    const crossedWithValues = crossedNegative
+      .map((resource) => `${resource}=${(state.resources[resource] ?? 0).toFixed(2)}`)
+      .join(", ");
+    state.violations.push({
+      time: state.now,
+      code: "NEGATIVE_RESOURCE",
+      message: `Warning: '${action.id}' pushed ${crossedWithValues} (debt-floor=${options.debtFloor}).`,
+    });
+  }
 
     const singleWorkerDuration = applyNumericModifiers(
         action.duration,

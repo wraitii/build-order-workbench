@@ -17,7 +17,6 @@ after exhausted sheep assign to straggler_trees
 after depleted straggler_trees assign to straggler_trees
 after completed build_farm assign to created
 
-# Build Order (Scout)
 # Open: two houses, then sheep
 auto-queue train_villager using town_center
 queue build_house using villager 1, villager 2
