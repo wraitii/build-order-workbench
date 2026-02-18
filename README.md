@@ -16,7 +16,7 @@ _Write a build order in plain text, run the sim, and immediately see where your 
 - **Live editor** — no install needed; edit your build order and re-run the sim instantly in the browser.
 - **Statistics** — set goals like "Feudal click by 8:30" or "3 scouts by 10:00", see resources over time.
 - **On-device AI assistant** — optional; runs entirely in your browser, can suggest tweaks and answer questions about the build.
-- **Not modeled** — walking time, continuous dropoff distance, decay rate, gather efficiency; timings will run slightly tighter than real play.
+- **Approximations** — walking time, continuous dropoff distance, gather efficiency; timings will run slightly tighter than real play.
 
 ---
 
