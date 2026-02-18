@@ -1,76 +1,107 @@
 import { GameData, SimulationResult } from "./types";
 
+export interface BuildOrderPreset {
+    id: string;
+    label: string;
+    dsl: string;
+}
+
 let workbenchBundlePromise: Promise<string> | undefined;
+let llmBundlePromise: Promise<string> | undefined;
 
 function formatMap(map: Record<string, number>): string {
-  return Object.entries(map)
-    .map(([k, v]) => `${k}: ${v.toFixed(2)}`)
-    .join(", ");
+    return Object.entries(map)
+        .map(([k, v]) => `${k}: ${v.toFixed(2)}`)
+        .join(", ");
 }
 
 function escapeHtml(input: string): string {
-  return input
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+    return input.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 function scriptSafeJson(input: unknown): string {
-  return JSON.stringify(input).replaceAll("</script>", "<\\/script>");
+    return JSON.stringify(input).replaceAll("</script>", "<\\/script>");
 }
 
 async function getWorkbenchBundle(): Promise<string> {
-  if (!workbenchBundlePromise) {
-    workbenchBundlePromise = (async () => {
-      const entrypoint = new URL("./workbench.ts", import.meta.url).pathname;
-      const buildResult = await Bun.build({
-        entrypoints: [entrypoint],
-        target: "browser",
-        format: "iife",
-        minify: true,
-        sourcemap: "none",
-      });
+    if (!workbenchBundlePromise) {
+        workbenchBundlePromise = (async () => {
+            const entrypoint = new URL("./workbench.ts", import.meta.url).pathname;
+            const buildResult = await Bun.build({
+                entrypoints: [entrypoint],
+                target: "browser",
+                format: "iife",
+                minify: true,
+                sourcemap: "none",
+            });
 
-      const firstOutput = buildResult.outputs[0];
-      if (!buildResult.success || !firstOutput) {
-        const logs = buildResult.logs.map((log) => log.message).join("\n");
-        throw new Error(`Failed to build workbench bundle.\n${logs}`);
-      }
+            const firstOutput = buildResult.outputs[0];
+            if (!buildResult.success || !firstOutput) {
+                const logs = buildResult.logs.map((log) => log.message).join("\n");
+                throw new Error(`Failed to build workbench bundle.\n${logs}`);
+            }
 
-      const js = await firstOutput.text();
-      return js.replaceAll("</script>", "<\\/script>");
-    })();
-  }
+            const js = await firstOutput.text();
+            return js.replaceAll("</script>", "<\\/script>");
+        })();
+    }
 
-  return workbenchBundlePromise;
+    return workbenchBundlePromise;
+}
+
+async function getLLMBundle(): Promise<string> {
+    if (!llmBundlePromise) {
+        llmBundlePromise = (async () => {
+            const entrypoint = new URL("./llm_assistant.ts", import.meta.url).pathname;
+            const buildResult = await Bun.build({
+                entrypoints: [entrypoint],
+                target: "browser",
+                format: "esm",
+                minify: true,
+                sourcemap: "none",
+            });
+            const first = buildResult.outputs[0];
+            if (!buildResult.success || !first) {
+                throw new Error(buildResult.logs.map((l) => l.message).join("\n"));
+            }
+            const js = await first.text();
+            return js.replaceAll("</script>", "<\\/script>");
+        })();
+    }
+    return llmBundlePromise;
 }
 
 export function toTextReport(result: SimulationResult): string {
-  const lines: string[] = [];
-  lines.push(`scenarioScore: ${result.scenarioScore.toFixed(1)}`);
-  lines.push(`resources: ${formatMap(result.resourcesAtEvaluation)}`);
-  lines.push(`entities: ${formatMap(result.entitiesByType)}`);
-  lines.push(`maxDebt: ${result.maxDebt.toFixed(2)}`);
-  lines.push(`totalDelays: ${result.totalDelays.toFixed(2)}s`);
-  lines.push(`completedActions: ${result.completedActions}`);
-  lines.push(`violations: ${result.violations.length}`);
+    const lines: string[] = [];
+    lines.push(`scenarioScore: ${result.scenarioScore.toFixed(1)}`);
+    lines.push(`resources: ${formatMap(result.resourcesAtEvaluation)}`);
+    lines.push(`entities: ${formatMap(result.entitiesByType)}`);
+    lines.push(`maxDebt: ${result.maxDebt.toFixed(2)}`);
+    lines.push(`totalDelays: ${result.totalDelays.toFixed(2)}s`);
+    lines.push(`completedActions: ${result.completedActions}`);
+    lines.push(`violations: ${result.violations.length}`);
 
-  if (result.violations.length > 0) {
-    lines.push("violationDetails:");
-    for (const v of result.violations) {
-      lines.push(`  - t=${v.time.toFixed(2)} [${v.code}] ${v.message}`);
+    if (result.violations.length > 0) {
+        lines.push("violationDetails:");
+        for (const v of result.violations) {
+            lines.push(`  - t=${v.time.toFixed(2)} [${v.code}] ${v.message}`);
+        }
     }
-  }
 
-  return lines.join("\n");
+    return lines.join("\n");
 }
 
-export async function toHtmlReport(result: SimulationResult, game: GameData, initialDsl: string): Promise<string> {
-  const escapedDsl = escapeHtml(initialDsl);
-  const bootstrapJson = scriptSafeJson({ game, initialResult: result });
-  const workbenchBundle = await getWorkbenchBundle();
+export async function toHtmlReport(
+    result: SimulationResult,
+    game: GameData,
+    initialDsl: string,
+    buildOrderPresets: BuildOrderPreset[] = [],
+): Promise<string> {
+    const escapedDsl = escapeHtml(initialDsl);
+    const bootstrapJson = scriptSafeJson({ game, initialResult: result, buildOrderPresets });
+    const [workbenchBundle, llmBundle] = await Promise.all([getWorkbenchBundle(), getLLMBundle()]);
 
-  return `<!doctype html>
+    return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -96,6 +127,9 @@ export async function toHtmlReport(result: SimulationResult, game: GameData, ini
     h2 { margin: 0 0 12px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
     .tags { display: flex; gap: 6px; flex-wrap: wrap; }
     .tag { background: var(--accent-dim); color: var(--accent); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 500; }
+    .source-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .source-note a { color: var(--accent); text-decoration: none; }
+    .source-note a:hover { text-decoration: underline; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 6px 8px; vertical-align: top; }
     th { color: var(--muted); font-weight: 500; font-size: 12px; }
@@ -105,6 +139,7 @@ export async function toHtmlReport(result: SimulationResult, game: GameData, ini
     .btn:hover { border-color: var(--accent); color: var(--accent); }
     .btn:active { background: var(--accent-dim); }
     .dsl-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .dsl-select { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 6px 10px; font-size: 13px; color: var(--ink); }
     #dslInput { width: 100%; min-height: 260px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; color: var(--ink); line-height: 1.5; }
     #dslInput:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
     #errorBox { color: var(--error); white-space: pre-wrap; margin-top: 8px; font-size: 13px; }
@@ -136,7 +171,54 @@ export async function toHtmlReport(result: SimulationResult, game: GameData, ini
     .timeline-track { position: relative; height: 26px; flex-shrink: 0; cursor: crosshair; user-select: none; background-image: repeating-linear-gradient(to right, #00000009 0, #00000009 1px, transparent 1px, transparent 20px); }
     .timeline-seg { position: absolute; top: 2px; height: 22px; border-radius: 4px; border: 1px solid #0002; box-sizing: border-box; overflow: hidden; display: flex; align-items: center; gap: 2px; padding: 0 3px; font-size: 10px; white-space: nowrap; pointer-events: auto; cursor: default; }
     .timeline-cursor { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--accent); opacity: 0.6; z-index: 3; pointer-events: none; }
+    .score-val { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
+    .health-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .health-chip { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+    .health-chip-label { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+    .health-chip-val { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .health-chip-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .health-chip-debt { font-size: 11px; color: #9e2a2a; margin-top: 2px; }
+    .res-table-wrap { max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+    details > summary { cursor: pointer; font-size: 12px; color: var(--muted); margin-bottom: 6px; user-select: none; }
     @media (max-width: 680px) { table { font-size: 12px; } .tl-time { min-width: 90px; font-size: 13px; } }
+    /* ── AI trigger ─────────────────────────────────────────────────────────── */
+    .ai-trigger { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px 12px; cursor: pointer; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px; transition: border-color .15s, color .15s; }
+    .ai-trigger:hover { border-color: var(--accent); color: var(--accent); }
+    /* ── AI modal ───────────────────────────────────────────────────────────── */
+    .ai-modal-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(2px); }
+    .ai-hidden { display: none !important; }
+    .ai-modal { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; width: 100%; max-width: 620px; height: 82vh; max-height: 820px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+    .ai-modal-header { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .ai-modal-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .ai-modal-body { padding: 16px 18px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    /* ── Status badge ───────────────────────────────────────────────────────── */
+    .ai-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; border-radius: 999px; padding: 3px 9px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
+    .ai-badge-idle { background: #f0f0f0; color: var(--muted); }
+    .ai-badge-loading { background: #fef3c7; color: #92400e; }
+    .ai-badge-ready { background: var(--accent-dim); color: var(--accent); }
+    .ai-badge-generating { background: #dbeafe; color: #1d4ed8; }
+    .ai-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .ai-dot-idle { background: var(--muted); }
+    .ai-dot-loading { background: #d97706; animation: ai-pulse 1s ease-in-out infinite; }
+    .ai-dot-ready { background: var(--accent); }
+    .ai-dot-generating { background: #2563eb; animation: ai-pulse .7s ease-in-out infinite; }
+    @keyframes ai-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+    /* ── Progress bar ───────────────────────────────────────────────────────── */
+    .ai-progress { width: 100%; height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; }
+    .ai-progress-bar { height: 100%; background: var(--accent); transition: width .4s ease; border-radius: 3px; }
+    /* ── Button variants ────────────────────────────────────────────────────── */
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #266d52; border-color: #266d52; color: #fff; }
+    .btn-primary:disabled { background: #9dc5b8; border-color: #9dc5b8; cursor: not-allowed; color: #fff; }
+    .btn-stop { background: #fee2e2; color: #9e2a2a; border-color: #fca5a5; }
+    .btn-stop:hover { background: #fecaca; border-color: #f87171; color: #7f1d1d; }
+    /* ── AI textarea + output ───────────────────────────────────────────────── */
+    .ai-textarea { width: 100%; min-height: 120px; flex: 1; resize: none; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; color: var(--ink); line-height: 1.5; }
+    .ai-textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .ai-textarea:disabled { background: #f7f6f2; color: var(--muted); cursor: not-allowed; }
+    .ai-output { margin: 0; padding: 10px 12px; background: #fff; border: 1px solid var(--line); border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; min-height: 48px; flex: 1; overflow-y: auto; line-height: 1.55; }
+    @keyframes ai-spin { to { transform: rotate(360deg); } }
+    .ai-spin { display: inline-block; animation: ai-spin .7s linear infinite; }
   </style>
 </head>
 <body>
@@ -147,16 +229,38 @@ export async function toHtmlReport(result: SimulationResult, game: GameData, ini
         <span class="tag">offline html</span>
         <span class="tag">cmd/ctrl+enter to run</span>
       </div>
+      <div class="source-note">
+        Data reference:
+        <a href="https://www.aoe2database.com" target="_blank" rel="noopener noreferrer">aoe2database.com</a>
+      </div>
     </section>
 
     <section class="card">
-      <h2>DSL Editor</h2>
-      <div class="dsl-controls">
-        <button id="runBtn" class="btn">Run</button>
-        <span id="runStatus" class="muted">ready</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px">
+        <h2 style="margin:0">Build Order Editor</h2>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select id="buildPresetSelect" class="dsl-select"></select>
+          <button id="aiOpenBtn" class="ai-trigger">
+            <span style="font-size:14px">✨</span>
+            Local LLM
+            <span id="aiTriggerDot" class="ai-dot ai-dot-idle"></span>
+          </button>
+        </div>
       </div>
       <textarea id="dslInput">${escapedDsl}</textarea>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+        <button id="runBtn" class="btn btn-primary">Run</button>
+        <span id="runStatus" class="muted">ready</span>
+      </div>
       <div id="errorBox"></div>
+    </section>
+
+    <section class="card" id="scoresCard">
+      <h2>Scores</h2>
+      <table>
+        <thead><tr><th>Criterion</th><th>Value</th></tr></thead>
+        <tbody id="scoresBody"></tbody>
+      </table>
     </section>
 
     <section class="card">
@@ -184,10 +288,49 @@ export async function toHtmlReport(result: SimulationResult, game: GameData, ini
         <tbody id="violationsBody"></tbody>
       </table>
     </section>
+
+    <section class="card">
+      <h2>Health Metrics</h2>
+      <div id="healthContent"></div>
+    </section>
   </main>
+
+  <div id="aiModal" class="ai-modal-backdrop ai-hidden" role="dialog" aria-modal="true" aria-labelledby="aiModalTitle">
+    <div class="ai-modal">
+      <div class="ai-modal-header">
+        <div class="ai-modal-title">
+          <span style="font-size:16px">✨</span>
+          <span id="aiModalTitle" style="font-weight:600;font-size:15px">Local LLM — Build Order Generator</span>
+          <span id="aiStatusBadge" class="ai-badge ai-badge-idle">
+            <span id="aiStatusDot" class="ai-dot ai-dot-idle"></span>
+            <span id="aiStatusText">Not loaded</span>
+          </span>
+        </div>
+        <button id="aiModalClose" class="btn" style="padding:4px 10px;line-height:1;font-size:16px">✕</button>
+      </div>
+      <div class="ai-modal-body">
+        <div id="aiLoadSection">
+          <p style="margin:0 0 10px;font-size:13px;color:var(--muted)">Load the LFM2.5-1.2B model locally in your browser (~600 MB, requires WebGPU).</p>
+          <button id="aiLoadBtn" class="btn btn-primary">Load model</button>
+        </div>
+        <div id="aiProgressSection" style="display:none">
+          <div class="ai-progress"><div id="aiProgressBar" class="ai-progress-bar" style="width:0%"></div></div>
+          <div id="aiProgressLabel" style="font-size:12px;color:var(--muted);margin-top:6px;text-align:center">Starting…</div>
+        </div>
+        <textarea id="aiPrompt" disabled class="ai-textarea" placeholder="Paste your DSL here, or describe your strategy from scratch…"></textarea>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="aiGenBtn" class="btn btn-primary" disabled><span id="aiGenLabel">Generate DSL</span></button>
+          <button id="aiStopBtn" class="btn btn-stop" style="display:none">Stop</button>
+          <button id="aiApplyBtn" class="btn" style="display:none">Apply to editor ↵</button>
+        </div>
+        <pre id="aiOutput" class="ai-output" style="display:none"></pre>
+      </div>
+    </div>
+  </div>
 
   <script>window.__WORKBENCH_BOOTSTRAP__ = ${bootstrapJson};</script>
   <script>${workbenchBundle}</script>
+  <script type="module">${llmBundle}</script>
 </body>
 </html>`;
 }

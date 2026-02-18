@@ -1,13 +1,20 @@
 import { parseBuildOrderDsl } from "./dsl";
 import { runSimulation } from "./sim";
-import { GameData, SimulationResult } from "./types";
+import { EntityTimeline, GameData, ScoreCriterion, ScoreResult, SimulationResult } from "./types";
 import { createDslSelectorAliases } from "./node_selectors";
+
+interface BuildOrderPreset {
+    id: string;
+    label: string;
+    dsl: string;
+}
 
 declare global {
     interface Window {
         __WORKBENCH_BOOTSTRAP__?: {
             game: GameData;
             initialResult: SimulationResult;
+            buildOrderPresets?: BuildOrderPreset[];
         };
     }
 }
@@ -56,9 +63,10 @@ const bootstrap = window.__WORKBENCH_BOOTSTRAP__;
 if (!bootstrap) {
     throw new Error("Workbench bootstrap data is missing.");
 }
+const BOOTSTRAP = bootstrap;
 
-const GAME = bootstrap.game;
-let sim = bootstrap.initialResult;
+const GAME = BOOTSTRAP.game;
+let sim = BOOTSTRAP.initialResult;
 
 const BASE_ICON = "https://www.aoe2database.com/images";
 
@@ -91,7 +99,7 @@ function resourceIconUrl(resource: string): string {
 
 function segmentIconUrl(kind: string, detail: string): string {
     if (kind === "gather") {
-        const [resource, nodeId] = detail.split(":");
+        const [resource = "", nodeId] = detail.split(":");
         const nodeSlug = nodeId && NODE_ICON_SLUGS[nodeId];
         return nodeSlug ? `${BASE_ICON}/${nodeSlug}.png` : resourceIconUrl(resource);
     }
@@ -125,6 +133,7 @@ function mustElement<T extends Element>(id: string): T {
 const runBtn = mustElement<HTMLButtonElement>("runBtn");
 const runStatus = mustElement<HTMLElement>("runStatus");
 const dslInput = mustElement<HTMLTextAreaElement>("dslInput");
+const buildPresetSelect = mustElement<HTMLSelectElement>("buildPresetSelect");
 const errorBox = mustElement<HTMLElement>("errorBox");
 
 const range = mustElement<HTMLInputElement>("timeRange");
@@ -138,6 +147,9 @@ const pxPerSecondReadout = mustElement<HTMLElement>("pxPerSecondReadout");
 
 const violationsTitle = mustElement<HTMLElement>("violationsTitle");
 const violationsBody = mustElement<HTMLElement>("violationsBody");
+const scoresCard = mustElement<HTMLElement>("scoresCard");
+const scoresBody = mustElement<HTMLElement>("scoresBody");
+const healthContent = mustElement<HTMLElement>("healthContent");
 
 function maxTime(): number {
     const entityMax = sim.entityCountTimeline?.[sim.entityCountTimeline.length - 1]?.time ?? 0;
@@ -152,7 +164,8 @@ function resourcesAt(t: number): Record<string, number> {
         if (t >= seg.start && t <= seg.end) {
             const dt = t - seg.start;
             const out = { ...seg.startResources };
-            for (const [k, rate] of Object.entries(seg.gatherRates ?? {})) out[k] = (out[k] ?? 0) + rate * dt;
+            const gatherRates = (seg.gatherRates ?? {}) as Record<string, number>;
+            for (const [k, rate] of Object.entries(gatherRates)) out[k] = (out[k] ?? 0) + rate * dt;
             return out;
         }
     }
@@ -160,6 +173,93 @@ function resourcesAt(t: number): Record<string, number> {
     const firstSeg = sim.resourceTimeline[0];
     if (firstSeg && t <= firstSeg.start) return { ...sim.initialResources };
     return { ...sim.resourcesAtEvaluation };
+}
+
+function scoreCriterionLabel(c: ScoreCriterion): string {
+    const cond = c.condition;
+    const suffix = (c.count ?? 1) > 1 ? ` x${c.count}` : "";
+    if (cond.kind === "clicked" || cond.kind === "completed") return `${cond.kind} ${cond.actionId}${suffix}`;
+    return `${cond.kind} ${cond.resourceNodeSelector}${suffix}`;
+}
+
+function renderScores(): void {
+    const scores: ScoreResult[] = sim.scores ?? [];
+    scoresCard.style.display = scores.length === 0 ? "none" : "";
+    scoresBody.innerHTML = scores
+        .map((s: ScoreResult) => {
+            const label = escapeHtml(scoreCriterionLabel(s.criterion));
+            const val =
+                s.value !== null
+                    ? `<span class="score-val">${formatMSS(s.value)}</span>`
+                    : `<span class="muted">—</span>`;
+            return `<tr><td>${label}</td><td>${val}</td></tr>`;
+        })
+        .join("");
+}
+
+function renderHealth(): void {
+    const timeline = sim.resourceTimeline ?? [];
+    const resources: string[] = GAME.resources;
+
+    const totalGathered: Record<string, number> = {};
+    const negativeResDuration: Record<string, number> = {};
+    const negativeResMax: Record<string, number> = {};
+
+    for (const seg of timeline) {
+        const dt = seg.end - seg.start;
+        const gatherRates = (seg.gatherRates ?? {}) as Record<string, number>;
+        for (const [res, rate] of Object.entries(gatherRates)) {
+            if (rate > 0) totalGathered[res] = (totalGathered[res] ?? 0) + rate * dt;
+        }
+        for (const res of resources) {
+            const startVal = seg.startResources[res] ?? 0;
+            if (startVal < 0) {
+                negativeResMax[res] = Math.min(negativeResMax[res] ?? 0, startVal);
+                const rate = gatherRates[res] ?? 0;
+                const debtDuration = rate > 0 ? Math.min(dt, -startVal / rate) : dt;
+                negativeResDuration[res] = (negativeResDuration[res] ?? 0) + debtDuration;
+            }
+        }
+    }
+
+    const chipsHtml = resources
+        .map((res: string) => {
+            const gathered = totalGathered[res] ?? 0;
+            const debt = negativeResMax[res] ?? 0;
+            const debtTime = negativeResDuration[res] ?? 0;
+            const icon = iconImg(resourceIconUrl(res), res);
+            const debtHtml =
+                debt < -0.01
+                    ? `<div class="health-chip-debt">peak debt: ${round2(debt)} (${formatMSS(debtTime)})</div>`
+                    : "";
+            return `<div class="health-chip">
+  <div class="health-chip-label">${icon}${escapeHtml(res)}</div>
+  <div class="health-chip-val">${round2(gathered)}</div>
+  <div class="health-chip-sub">gathered total</div>${debtHtml}
+</div>`;
+        })
+        .join("");
+
+    const mTime = maxTime();
+    const step = 5;
+    const headerCols = resources.map((r: string) => `<th>${escapeHtml(r)}</th>`).join("");
+    const rows: string[] = [];
+    for (let t = 0; t <= mTime + 0.001; t += step) {
+        const res = resourcesAt(t);
+        const cols = resources.map((r: string) => `<td>${round2(res[r] ?? 0)}</td>`).join("");
+        rows.push(`<tr><td>${formatMSS(t)}</td>${cols}</tr>`);
+    }
+
+    healthContent.innerHTML = `<div class="health-grid">${chipsHtml}</div>
+<details>
+  <summary>Resources every ${step}s</summary>
+  <div class="res-table-wrap">
+    <table>
+      <thead><tr><th>time</th>${headerCols}</tr></thead>
+      <tbody>${rows.join("")}</tbody>
+    </table>
+  </div>
+</details>`;
 }
 
 function renderTables(): void {
@@ -175,6 +275,9 @@ function renderTables(): void {
                           `<tr><td>${Number(v.time).toFixed(2)}</td><td>${escapeHtml(v.code)}</td><td>${escapeHtml(v.message)}</td></tr>`,
                   )
                   .join("");
+
+    renderScores();
+    renderHealth();
 }
 
 function renderScrub(t: number): void {
@@ -185,7 +288,7 @@ function renderScrub(t: number): void {
         entries.length > 0
             ? entries
                   .map(
-                      ([k, v]) =>
+                      ([k, v]: [string, number]) =>
                           `<span class='res-stat'>${iconImg(resourceIconUrl(k), k)}<span>${escapeHtml(k)}: ${round2(Number(v))}</span></span>`,
                   )
                   .join("")
@@ -199,7 +302,10 @@ function buildTimeline(t: number, center = false): void {
     const width = Math.max(720, Math.ceil(mTime * scale));
     const tickEvery = mTime > 1200 ? 120 : mTime > 600 ? 60 : mTime > 240 ? 30 : 10;
 
-    const entries = Object.entries(sim.entityTimelines ?? {}).map(([entityId, timeline]) => ({ entityId, timeline }));
+    const timelines: Record<string, EntityTimeline> = sim.entityTimelines ?? {};
+    const entries: Array<{ entityId: string; timeline: EntityTimeline }> = Object.entries(timelines).map(
+        ([entityId, timeline]) => ({ entityId, timeline }),
+    );
 
     function entityStart(entry: (typeof entries)[number]): number {
         const starts = (entry.timeline.segments ?? []).map((seg) => Number(seg.start));
@@ -263,7 +369,7 @@ function buildTimeline(t: number, center = false): void {
                 const segIcon = w >= 20 ? iconImg(segmentIconUrl(seg.kind, seg.detail), "", "seg-icon") : "";
                 const label = w >= 52 ? escapeHtml(seg.detail) : "";
                 const title = escapeHtml(
-                    `${entry.entityId} | ${seg.kind} ${seg.detail} | ${round2(seg.start)}s-${round2(seg.end)}s`,
+                    `${entry.entityId} | ${seg.kind} ${seg.detail} | ${formatMSS(seg.start)}-${formatMSS(seg.end)}`,
                 );
                 return `<div class='timeline-seg' title='${title}' style='left:${left}px;width:${w}px;background:${color}'>${segIcon}${label}</div>`;
             });
@@ -333,6 +439,27 @@ function runFromDsl(): void {
     }
 }
 
+function setupPresetSelector(): void {
+    const presets: BuildOrderPreset[] = BOOTSTRAP.buildOrderPresets ?? [];
+    const options = ["<option value=''>custom</option>"];
+    for (const preset of presets) {
+        options.push(`<option value="${escapeHtml(preset.id)}">${escapeHtml(preset.label)}</option>`);
+    }
+    buildPresetSelect.innerHTML = options.join("");
+
+    const initial = dslInput.value.trim();
+    const matched = presets.find((p: BuildOrderPreset) => p.dsl.trim() === initial);
+    buildPresetSelect.value = matched?.id ?? "";
+
+    buildPresetSelect.addEventListener("change", () => {
+        const picked = presets.find((p: BuildOrderPreset) => p.id === buildPresetSelect.value);
+        if (!picked) return;
+        dslInput.value = picked.dsl;
+        runFromDsl();
+    });
+}
+
+setupPresetSelector();
 runBtn.addEventListener("click", runFromDsl);
 dslInput.addEventListener("keydown", (ev) => {
     if ((ev.metaKey || ev.ctrlKey) && ev.key === "Enter") {

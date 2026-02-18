@@ -108,7 +108,7 @@ Main directives:
   `after <label>` (defers execution; for assign it waits for selected workers, otherwise waits for the next task completion event)
   or `after <entityType> <idNum>` / `after <entityType>-<idNum>` (fires as soon as that entity exists)
 - Optional trigger prefix:
-  `after completed <actionId>`, `after depleted <selector>`, or `after exhausted <selector>`
+  `after clicked <actionId>`, `after completed <actionId>`, `after depleted <selector>`, or `after exhausted <selector>`
   (registers a reactive rule that runs the directive whenever the trigger fires)
 - `at <t> queue <actionId> [xN] [using <selector>[, <selector>...]]` where selector is `<actorType>`, `<actorType> <n>`, or `<actorType>-<n>`
 - Optional actor gather filter on queue/assign/auto-queue/stop-auto-queue: `from <selectors...>` (only actors currently assigned to matching gather nodes are eligible)

@@ -236,6 +236,19 @@ after completed build_farm assign to created
     expect(cmd.command.resourceNodeSelectors).toEqual(["id:created"]);
   });
 
+  test("parses after clicked trigger", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 120
+after clicked build_farm assign villager 1 to sheep
+`);
+    const cmd = build.commands[0];
+    expect(cmd?.type).toBe("onTrigger");
+    if (!cmd || cmd.type !== "onTrigger") return;
+    expect(cmd.trigger.kind).toBe("clicked");
+    if (cmd.trigger.kind !== "clicked") return;
+    expect(cmd.trigger.actionId).toBe("build_farm");
+  });
+
   test("parses after exhausted trigger", () => {
     const build = parseBuildOrderDsl(`
 evaluation 120
@@ -349,6 +362,44 @@ at 0 queue build_house_plain
 });
 
 describe("after directives", () => {
+  test("after clicked trigger runs on action start", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 2
+start with villager,villager
+after clicked lure_boar assign villager 2 to forest
+at 0 queue lure_boar using villager 1
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    const villager2 = result.entityTimelines["villager-2"];
+    const gathersForestAtStart = villager2?.segments.some((s) => s.kind === "gather" && s.detail === "wood:forest" && s.start === 0);
+    expect(gathersForestAtStart).toBe(true);
+  });
+
+  test("score time clicked tracks action start time", () => {
+    const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager
+score time clicked lure_boar
+score time clicked lure_boar x2
+at 0 queue lure_boar x2 using villager 1
+`);
+
+    const result = runSimulation(TEST_GAME, build, {
+      strict: false,
+      evaluationTime: build.evaluationTime,
+      debtFloor: -30,
+    });
+
+    expect(result.scores[0]?.value).toBe(0);
+    expect(result.scores[1]?.value).toBe(1);
+  });
+
   test("deferred commands do not shift same-timestamp command registration", () => {
     const build = parseBuildOrderDsl(`
 evaluation 50
