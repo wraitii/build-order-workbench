@@ -244,6 +244,7 @@ export interface SimOptions {
     evaluationTime: number;
     debtFloor: number;
     strict: boolean;
+    captureEventLog?: boolean;
 }
 
 export interface EntityInstance {
@@ -313,7 +314,14 @@ export interface SimulationResult {
     resourceTimeline: ResourceTimelineInterval[];
     entityCountTimeline: EntityCountPoint[];
     entityTimelines: Record<string, EntityTimeline>;
+    eventLogs: EventLogEntry[];
     scores: ScoreResult[];
+}
+
+export interface EventLogEntry {
+    time: number;
+    entityId: string;
+    to: string;
 }
 
 export interface ResourceTimelineInterval {

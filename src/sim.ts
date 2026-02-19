@@ -16,6 +16,8 @@ import {
     BuildOrderInput,
     BuildOrderCommand,
     GameData,
+    ResourceMap,
+    ResourceTimelineInterval,
     SimOptions,
     SimulationResult,
     ScoreCriterion,
@@ -693,6 +695,7 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         resourceTimeline: [],
         entityCountTimeline: [],
         entityTimelines: {},
+        eventLogs: [],
         currentActivities: {},
         queueRules: [],
         autoQueueRules: [],
@@ -813,6 +816,7 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         resourceTimeline: state.resourceTimeline,
         entityCountTimeline: state.entityCountTimeline,
         entityTimelines: state.entityTimelines,
+        eventLogs: options.captureEventLog ? state.eventLogs : [],
         scores: computeScores(state, buildOrder.scores ?? []),
     };
 }

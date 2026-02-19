@@ -200,6 +200,13 @@ Custom game data and build orders:
 bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --report out/report.html
 ```
 
+Optional event transition log (`MM:SS [entity] switched to X`):
+
+```bash
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --event-log
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --event-log out/events.log
+```
+
 Game data is a plain JSON file (`data/aoe2-game.json`) — adaptable to other RTS titles.
 
 ---

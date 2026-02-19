@@ -19,6 +19,12 @@ function formatMSS(s: number): string {
     return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
+function formatMMSS(s: number): string {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
 function formatMap(map: Record<string, number>): string {
     return Object.entries(map)
         .map(([k, v]) => `${k}: ${v.toFixed(2)}`)
@@ -138,6 +144,10 @@ export function toTextReport(result: SimulationResult): string {
     }
 
     return lines.join("\n");
+}
+
+export function toEventLogLines(result: SimulationResult): string[] {
+    return result.eventLogs.map((entry) => `${formatMMSS(entry.time)} [${entry.entityId}] switched to ${entry.to}`);
 }
 
 async function getBgDataUri(): Promise<string> {

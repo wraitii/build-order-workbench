@@ -53,7 +53,7 @@ function mapToString(obj: Record<string, number>): string {
 
 function uint8ToBase64url(bytes: Uint8Array): string {
     let bin = "";
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i] ?? 0);
     return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
@@ -61,7 +61,7 @@ function base64urlToUint8(str: string): Uint8Array {
     const b64 = str.replaceAll("-", "+").replaceAll("_", "/");
     const bin = atob(b64);
     const out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i) ?? 0;
     return out;
 }
 
@@ -69,7 +69,7 @@ async function compressDsl(dsl: string): Promise<string> {
     const input = new TextEncoder().encode(dsl);
     const cs = new CompressionStream("deflate-raw");
     const writer = cs.writable.getWriter();
-    writer.write(input);
+    writer.write(input as BufferSource);
     writer.close();
     const buf = await new Response(cs.readable).arrayBuffer();
     return uint8ToBase64url(new Uint8Array(buf));
@@ -79,7 +79,7 @@ async function decompressDsl(encoded: string): Promise<string> {
     const input = base64urlToUint8(encoded);
     const ds = new DecompressionStream("deflate-raw");
     const writer = ds.writable.getWriter();
-    writer.write(input);
+    writer.write(input as BufferSource);
     writer.close();
     const buf = await new Response(ds.readable).arrayBuffer();
     return new TextDecoder().decode(buf);
@@ -728,7 +728,8 @@ saveBuildBtn.addEventListener("click", () => {
     let fromExternal = false;
     if (match) {
         try {
-            dslInput.value = await decompressDsl(match[1]);
+            const encoded = match[1];
+            if (encoded) dslInput.value = await decompressDsl(encoded);
             fromExternal = true;
         } catch {
             // ignore malformed hash

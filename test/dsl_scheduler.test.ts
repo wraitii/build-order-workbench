@@ -3,6 +3,7 @@ import { createDslValidationSymbols, parseBuildOrderDsl } from "../src/dsl";
 import { runSimulation } from "../src/sim";
 import { GameData } from "../src/types";
 import { createDslSelectorAliases } from "../src/node_selectors";
+import { toEventLogLines } from "../src/report";
 
 const TEST_GAME: GameData = {
     resources: ["food", "wood", "gold", "stone", "pop"],
@@ -1388,5 +1389,22 @@ at 0 auto-queue train_villager using town_center
         const trainStarts =
             tc?.segments.filter((s) => s.kind === "action" && s.detail === "train_villager").map((s) => s.start) ?? [];
         expect(trainStarts).toEqual([0, 45, 90]);
+    });
+
+    test("event log captures assignment transition as MM:SS switched lines", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 5
+at 0 assign villager 1 to sheep
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+            captureEventLog: true,
+        });
+
+        const lines = toEventLogLines(result);
+        expect(lines).toContain("00:00 [villager-1] switched to gather:food:sheep");
     });
 });

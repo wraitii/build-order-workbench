@@ -19,6 +19,9 @@ declare global {
             game: GameData;
             initialResult: SimulationResult;
             buildOrderPresets?: BuildOrderPreset[];
+            iconDataUris?: Record<string, string>;
+            initialDsl?: string;
+            withLlm?: boolean;
         };
     }
 }

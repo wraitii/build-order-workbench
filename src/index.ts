@@ -1,5 +1,5 @@
 import { runSimulation } from "./sim";
-import { BuildOrderPreset, toGameObjectsHtml, toHtmlReport, toTextReport } from "./report";
+import { BuildOrderPreset, toEventLogLines, toGameObjectsHtml, toHtmlReport, toTextReport } from "./report";
 import { GameData } from "./types";
 import { createActionDslLines, createCivDslByName, createDslValidationSymbols, createRulesetDslByName, createSettingDslByName, parseBuildOrderDsl } from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
@@ -13,6 +13,7 @@ interface Args {
     strict: boolean;
     debtFloor?: number;
     at?: number;
+    eventLog?: string | true;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -43,6 +44,13 @@ function parseArgs(argv: string[]): Args {
         } else if (cur === "--at" && next) {
             args.at = Number(next);
             i += 1;
+        } else if (cur === "--event-log") {
+            if (next && !next.startsWith("--")) {
+                args.eventLog = next;
+                i += 1;
+            } else {
+                args.eventLog = true;
+            }
         }
     }
 
@@ -82,9 +90,21 @@ async function main(): Promise<void> {
         strict: args.strict,
         evaluationTime,
         debtFloor,
+        captureEventLog: Boolean(args.eventLog),
     });
 
     console.log(toTextReport(result));
+    if (args.eventLog) {
+        const lines = toEventLogLines(result);
+        if (typeof args.eventLog === "string") {
+            const body = lines.length > 0 ? `${lines.join("\n")}\n` : "";
+            await Bun.write(args.eventLog, body);
+            console.log(`wrote event log: ${args.eventLog}`);
+        } else {
+            console.log("eventLog:");
+            for (const line of lines) console.log(line);
+        }
+    }
 
     if (args.report) {
         const presetPaths = (await readdir("data"))

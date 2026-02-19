@@ -101,6 +101,7 @@ export interface SimState {
     resourceTimeline: SimulationResult["resourceTimeline"];
     entityCountTimeline: SimulationResult["entityCountTimeline"];
     entityTimelines: Record<string, EntityTimeline>;
+    eventLogs: SimulationResult["eventLogs"];
     currentActivities: Record<string, Omit<EntityActivitySegment, "end">>;
     queueRules: QueueRule[];
     autoQueueRules: AutoQueueRule[];
@@ -110,6 +111,11 @@ export interface SimState {
     actionClickTimes: Record<string, number[]>;
     actionCompletionTimes: Record<string, number[]>;
     nodeDepletionTimes: Record<string, number>;
+}
+
+function formatActivityTarget(kind: EntityActivitySegment["kind"], detail: string): string {
+    if (kind === "idle") return "idle";
+    return `${kind}:${detail}`;
 }
 
 export function cloneResources(input: ResourceMap): ResourceMap {
@@ -192,6 +198,7 @@ export function switchEntityActivity(
     }
 
     state.currentActivities[entityId] = { start: state.now, kind, detail };
+    state.eventLogs.push({ time: state.now, entityId, to: formatActivityTarget(kind, detail) });
 }
 
 export function findNextEventTime(events: ScheduledEvent[], now: number): number | undefined {

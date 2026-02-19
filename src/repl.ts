@@ -1,6 +1,6 @@
 import { watch } from "node:fs";
 import { runSimulation } from "./sim";
-import { toTextReport } from "./report";
+import { toEventLogLines, toTextReport } from "./report";
 import { GameData } from "./types";
 import { createActionDslLines, createCivDslByName, createDslValidationSymbols, createRulesetDslByName, createSettingDslByName, parseBuildOrderDsl } from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
@@ -12,6 +12,7 @@ interface Args {
     strict: boolean;
     debtFloor?: number;
     at?: number;
+    eventLog: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -19,6 +20,7 @@ function parseArgs(argv: string[]): Args {
         game: "data/aoe2-game.json",
         build: "data/aoe2-scout-build-order.dsl",
         strict: false,
+        eventLog: false,
     };
 
     for (let i = 0; i < argv.length; i += 1) {
@@ -39,6 +41,8 @@ function parseArgs(argv: string[]): Args {
         } else if (cur === "--at" && next) {
             args.at = Number(next);
             i += 1;
+        } else if (cur === "--event-log") {
+            args.eventLog = true;
         }
     }
 
@@ -69,11 +73,16 @@ async function runOnce(args: Args): Promise<void> {
         strict: args.strict,
         evaluationTime,
         debtFloor,
+        captureEventLog: args.eventLog,
     });
 
     const ts = new Date().toLocaleTimeString();
     console.log(`\n[${ts}] ${args.build}`);
     console.log(toTextReport(result));
+    if (args.eventLog) {
+        console.log("eventLog:");
+        for (const line of toEventLogLines(result)) console.log(line);
+    }
 }
 
 async function main(): Promise<void> {

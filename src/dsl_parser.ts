@@ -63,25 +63,26 @@ function collapseCommas(tokens: string[]): string[] {
 class CommandLineCstParser extends CstParser {
     constructor() {
         super(allTokens, { recoveryEnabled: false });
+        const self = this as any;
 
         this.RULE("commandLine", () => {
             this.OPTION(() => {
-                this.SUBRULE(this.atClause);
+                this.SUBRULE(self.atClause);
             });
 
             this.MANY(() => {
-                this.SUBRULE(this.afterCondition);
+                this.SUBRULE(self.afterCondition);
             });
 
             this.OPTION2(() => {
-                this.SUBRULE(this.onCondition);
+                this.SUBRULE(self.onCondition);
             });
 
-            this.SUBRULE(this.directiveTokens);
+            this.SUBRULE(self.directiveTokens);
 
             this.OPTION3(() => {
                 this.CONSUME(Then);
-                this.SUBRULE2(this.directiveTokens, { LABEL: "thenDirectiveTokens" });
+                this.SUBRULE2(self.directiveTokens, { LABEL: "thenDirectiveTokens" });
             });
         });
 
@@ -109,7 +110,7 @@ class CommandLineCstParser extends CstParser {
                         return next === Clicked || next === Completed || next === Depleted || next === Exhausted;
                     },
                     ALT: () => {
-                        this.SUBRULE(this.triggerKeyword);
+                        this.SUBRULE(self.triggerKeyword);
                         this.CONSUME(Word, { LABEL: "afterTarget" });
                     },
                 },
@@ -124,13 +125,13 @@ class CommandLineCstParser extends CstParser {
 
         this.RULE("onCondition", () => {
             this.CONSUME(On);
-            this.SUBRULE(this.triggerKeyword);
+            this.SUBRULE(self.triggerKeyword);
             this.CONSUME(Word, { LABEL: "onTarget" });
         });
 
         this.RULE("directiveTokens", () => {
             this.AT_LEAST_ONE({
-                DEF: () => this.SUBRULE(this.directiveToken),
+                DEF: () => this.SUBRULE(self.directiveToken),
             });
         });
 
@@ -162,6 +163,12 @@ class CommandLineCstParser extends CstParser {
 }
 
 const parser = new CommandLineCstParser();
+
+function imageOf(token: unknown): string | undefined {
+    if (typeof token !== "object" || token === null) return undefined;
+    const maybe = token as { image?: unknown };
+    return typeof maybe.image === "string" ? maybe.image : undefined;
+}
 
 function collectDirectiveImages(node: CstNode): string[] {
     const images: string[] = [];
@@ -195,11 +202,12 @@ function toAstConditions(commandLine: CstNode, lineNo: number): AstCommandCondit
             undefined;
         if (triggerToken) {
             const target = c.afterTarget?.[0];
-            if (!target || !("image" in target)) throw new Error(`Line ${lineNo}: expected trigger target after 'after'.`);
+            const targetImage = imageOf(target);
+            if (!targetImage) throw new Error(`Line ${lineNo}: expected trigger target after 'after'.`);
             out.push({
                 type: "afterTrigger",
-                triggerKind: tokenToTriggerKind(triggerToken.image),
-                target: target.image,
+                triggerKind: tokenToTriggerKind(imageOf(triggerToken) ?? ""),
+                target: targetImage,
                 mode: every ? "every" : "once",
             });
             continue;
@@ -210,12 +218,14 @@ function toAstConditions(commandLine: CstNode, lineNo: number): AstCommandCondit
         }
 
         const entityToken = c.entityToken?.[0];
-        if (!entityToken || !("image" in entityToken)) throw new Error(`Line ${lineNo}: expected condition after 'after'.`);
+        const entityTokenImage = imageOf(entityToken);
+        if (!entityTokenImage) throw new Error(`Line ${lineNo}: expected condition after 'after'.`);
         const countToken = c.entityCount?.[0];
+        const countTokenImage = imageOf(countToken);
         out.push({
             type: "afterEntity",
-            entityToken: entityToken.image,
-            ...(countToken && "image" in countToken ? { countToken: countToken.image } : {}),
+            entityToken: entityTokenImage,
+            ...(countTokenImage !== undefined ? { countToken: countTokenImage } : {}),
         });
     }
 
@@ -232,13 +242,14 @@ function toAstConditions(commandLine: CstNode, lineNo: number): AstCommandCondit
             triggerChildren?.Exhausted?.[0] ??
             undefined;
         const target = c.onTarget?.[0];
-        if (!triggerToken || !target || !("image" in target)) {
+        const targetImage = imageOf(target);
+        if (!triggerToken || !targetImage) {
             throw new Error(`Line ${lineNo}: expected 'on <clicked|completed|depleted|exhausted> <target> <directive...>'.`);
         }
         out.push({
             type: "onTrigger",
-            triggerKind: tokenToTriggerKind(triggerToken.image),
-            target: target.image,
+            triggerKind: tokenToTriggerKind(imageOf(triggerToken) ?? ""),
+            target: targetImage,
         });
     }
 
@@ -253,7 +264,7 @@ export function parseDslCommandLine(line: string, lineNo: number): AstCommandLin
     }
 
     parser.input = lexResult.tokens;
-    const cst = parser.commandLine();
+    const cst = (parser as any).commandLine();
     if (parser.errors.length > 0) {
         const first = parser.errors[0];
         throw new Error(`Line ${lineNo}: ${first?.message ?? "parse error"}\n  source: ${line}`);
