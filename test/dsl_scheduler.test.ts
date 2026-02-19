@@ -494,6 +494,30 @@ assign villager 1 to mystery_woods
             ),
         ).toThrow("Line 3: unknown resource 'mystery_woods'");
     });
+
+    test("parses sell command and lowers in 100-resource lots", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 60
+sell 500 wood
+`);
+        expect(build.commands).toHaveLength(5);
+        for (const cmd of build.commands) {
+            expect(cmd?.type).toBe("tradeResources");
+            if (!cmd || cmd.type !== "tradeResources") continue;
+            expect(cmd.amount).toBe(100);
+            expect(cmd.sellResource).toBe("wood");
+            expect(cmd.buyResource).toBe("gold");
+        }
+    });
+
+    test("rejects buy/sell amounts that are not multiples of 100", () => {
+        expect(() =>
+            parseBuildOrderDsl(`
+evaluation 60
+buy 150 food
+`),
+        ).toThrow("multiple of 100");
+    });
 });
 
 describe("start with", () => {
@@ -531,6 +555,155 @@ assign villager 1 to forest
 
         expect(result.resourcesAtEvaluation.wood).toBeCloseTo(210, 6);
         expect(result.resourcesAtEvaluation.food).toBeCloseTo(205, 6);
+    });
+
+    test("Portuguese civ bonus adds wood while foraging", () => {
+        const game: GameData = {
+            ...TEST_GAME,
+            resourceNodePrototypes: {
+                ...TEST_GAME.resourceNodePrototypes,
+                berries: {
+                    id: "berries",
+                    name: "Berries",
+                    produces: "food",
+                    rateByEntityType: { villager: 1 },
+                    tags: ["food", "forage"],
+                },
+            },
+            startingResourceNodes: [{ prototypeId: "berries", count: 1 }],
+        };
+        const build = parseBuildOrderDsl(
+            `
+evaluation 10
+start with villager
+civ Portuguese
+assign villager 1 to berries
+`,
+            {
+                civDslByName: {
+                    Portuguese: ["modifier gather.secondary.wood.tag.forage add 0.33"],
+                },
+            },
+        );
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        expect(result.resourcesAtEvaluation.food).toBeCloseTo(210, 6);
+        expect(result.resourcesAtEvaluation.wood).toBeCloseTo(203.3, 6);
+    });
+
+    test("Poles civ bonus adds gold while mining stone", () => {
+        const game: GameData = {
+            ...TEST_GAME,
+            resourceNodePrototypes: {
+                ...TEST_GAME.resourceNodePrototypes,
+                stone_mine: {
+                    id: "stone_mine",
+                    name: "Stone Mine",
+                    produces: "stone",
+                    rateByEntityType: { villager: 1 },
+                    tags: ["stone", "mining"],
+                },
+            },
+            startingResourceNodes: [{ prototypeId: "stone_mine", count: 1 }],
+        };
+        const build = parseBuildOrderDsl(
+            `
+evaluation 10
+start with villager
+civ Poles
+assign villager 1 to stone_mine
+`,
+            {
+                civDslByName: {
+                    Poles: ["modifier gather.secondary.gold.resource.stone add 0.5"],
+                },
+            },
+        );
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        expect(result.resourcesAtEvaluation.stone).toBeCloseTo(210, 6);
+        expect(result.resourcesAtEvaluation.gold).toBeCloseTo(105, 6);
+    });
+});
+
+describe("market trading", () => {
+    test("uses default AoE2 market prices and updates exchange rate", () => {
+        const game: GameData = {
+            ...TEST_GAME,
+            startingEntities: [{ entityType: "market", count: 1 }],
+            entities: {
+                ...TEST_GAME.entities,
+                market: { id: "market", name: "Market", kind: "building" },
+            },
+            market: {
+                baseExchangeRateByResource: { wood: 100, food: 115, stone: 130 },
+                rateStep: 2,
+                minExchangeRate: 20,
+                maxExchangeRate: 9999,
+                fee: 0.3,
+            },
+        };
+        const build = parseBuildOrderDsl(`
+evaluation 0
+sell 100 wood
+sell 100 wood
+buy 100 wood
+`);
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        expect(result.resourcesAtEvaluation.wood).toBeCloseTo(100, 6);
+        expect(result.resourcesAtEvaluation.gold).toBeCloseTo(114, 6);
+    });
+
+    test("Saracen fee modifies market prices via modifier market.fee", () => {
+        const game: GameData = {
+            ...TEST_GAME,
+            startingEntities: [{ entityType: "market", count: 1 }],
+            entities: {
+                ...TEST_GAME.entities,
+                market: { id: "market", name: "Market", kind: "building" },
+            },
+            market: {
+                baseExchangeRateByResource: { wood: 100, food: 115, stone: 130 },
+                rateStep: 2,
+                minExchangeRate: 20,
+                maxExchangeRate: 9999,
+                fee: 0.3,
+            },
+        };
+        const build = parseBuildOrderDsl(
+            `
+evaluation 0
+civ Saracens
+sell 100 wood
+buy 100 wood
+`,
+            {
+                civDslByName: {
+                    Saracens: ["modifier market.fee set 0.05"],
+                },
+            },
+        );
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        expect(result.resourcesAtEvaluation.wood).toBeCloseTo(200, 6);
+        expect(result.resourcesAtEvaluation.gold).toBeCloseTo(92, 6);
     });
 });
 

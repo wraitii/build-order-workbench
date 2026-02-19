@@ -111,6 +111,7 @@ export interface SimState {
     actionClickTimes: Record<string, number[]>;
     actionCompletionTimes: Record<string, number[]>;
     nodeDepletionTimes: Record<string, number>;
+    marketRates: Record<string, number>;
 }
 
 function formatActivityTarget(kind: EntityActivitySegment["kind"], detail: string): string {

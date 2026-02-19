@@ -136,6 +136,14 @@ queue advance_feudal_age</pre>
         </div>
 
         <div>
+          <div style="font-weight:600;margin-bottom:6px">Market trading</div>
+          <pre class="help-pre">sell 100 wood      # sell 100 wood for gold
+buy 100 food       # buy exactly 100 food with gold
+sell 500 stone     # expands to five 100-stone market actions</pre>
+          <p style="margin:6px 0 0;color:var(--muted)">Amounts must be positive multiples of <code>100</code>. Use <code>buy</code>/<code>sell</code> (not <code>trade X for Y</code>).</p>
+        </div>
+
+        <div>
           <div style="font-weight:600;margin-bottom:6px">Timing and triggers</div>
           <p style="margin:0 0 8px;color:var(--muted)">Use <code>at</code> to schedule at a fixed time, or <code>after</code> to react to in-game events:</p>
           <pre class="help-pre">at 4:30 queue lure_deer
@@ -189,7 +197,9 @@ queue &lt;action&gt; [xN] [using &lt;selector&gt;[, &hellip;]] [from &lt;node&gt
 assign &lt;actorType&gt; &lt;N | xN | all&gt; [from &lt;node&gt;&hellip;] to &lt;node&gt;&hellip;
 auto-queue &lt;action&gt; [using &lt;actorType&gt;] [from &lt;node&gt;&hellip;]
 stop-auto-queue &lt;action&gt; [using &lt;actorType&gt;]
-spawn-assign &lt;entityType&gt; to &lt;node&gt;</pre>
+spawn-assign &lt;entityType&gt; to &lt;node&gt;
+sell &lt;amount&gt; &lt;resource&gt;   # positive multiple of 100, non-gold
+buy &lt;amount&gt; &lt;resource&gt;    # positive multiple of 100, non-gold</pre>
         </details>
 
 

@@ -119,6 +119,16 @@ auto-queue build_farm using villager from straggler_trees idle  # keep placing f
 stop-auto-queue build_farm                   # stop the auto-farm
 ```
 
+#### Market trading
+
+Use AoE2-style market commands. Amounts are in resource units and must be multiples of 100.
+
+```
+sell 100 wood      # sell 100 wood for gold at current market rate
+buy 100 food       # buy exactly 100 food, paying gold at current market rate
+sell 500 stone     # lowered into five 100-stone market actions
+```
+
 ---
 
 ### Specifying villagers and resources
@@ -168,6 +178,8 @@ assign <actorType> <xN|idNum|all> [from <selectors...>] to <selectors...>
 auto-queue <actionId> [using <actorType>] [from <selectors...>]
 stop-auto-queue <actionId> [using <actorType>]
 spawn-assign <entityType> to <selector>
+sell <amount> <resource>    # amount must be a positive multiple of 100 (non-gold)
+buy <amount> <resource>     # amount must be a positive multiple of 100 (non-gold)
 ```
 
 </details>

@@ -47,6 +47,7 @@ import { EventQueue } from "./event_queue";
 import { TriggerEvent, TriggerEventContext, processBoundaryPhases, processTriggers } from "./sim_phases";
 import { isSimDebugEnabled, simDebug } from "./debug";
 import { nextEligibleActorAvailabilityTime, pickEligibleActorIds } from "./actor_eligibility";
+import { applyNumericModifiers } from "./modifiers";
 
 function populationCapacityProvidedForEntityType(game: GameData, entityType: string, count: number): number {
     const population = game.population;
@@ -73,6 +74,53 @@ function nextEntityId(state: SimState, entityType: string): string {
     const next = (state.entityTypeCounters[entityType] ?? 0) + 1;
     state.entityTypeCounters[entityType] = next;
     return `${entityType}-${next}`;
+}
+
+function effectiveMarketFee(state: SimState, resource: string, baseFee: number): number {
+    const fee = applyNumericModifiers(
+        baseFee,
+        ["market.fee", `market.fee.resource.${resource}`],
+        state.activeModifiers,
+    );
+    return Math.min(0.99, Math.max(0, fee));
+}
+
+function exchangeRateStep(game: GameData): number {
+    return Math.max(0, game.market?.rateStep ?? 2);
+}
+
+function exchangeRateMin(game: GameData): number {
+    return Math.max(0, game.market?.minExchangeRate ?? 20);
+}
+
+function exchangeRateMax(game: GameData): number {
+    return Math.max(exchangeRateMin(game), game.market?.maxExchangeRate ?? 9_999);
+}
+
+function getMarketRate(state: SimState, game: GameData, resource: string): number | undefined {
+    const fromState = state.marketRates[resource];
+    if (fromState !== undefined) return fromState;
+    const fromConfig = game.market?.baseExchangeRateByResource[resource];
+    if (fromConfig === undefined) return undefined;
+    return Math.min(exchangeRateMax(game), Math.max(exchangeRateMin(game), fromConfig));
+}
+
+function setMarketRate(state: SimState, game: GameData, resource: string, nextRate: number): void {
+    state.marketRates[resource] = Math.min(exchangeRateMax(game), Math.max(exchangeRateMin(game), nextRate));
+}
+
+function sellPricePer100Gold(state: SimState, game: GameData, resource: string): number | undefined {
+    const rate = getMarketRate(state, game, resource);
+    if (rate === undefined) return undefined;
+    const fee = effectiveMarketFee(state, resource, game.market?.fee ?? 0.3);
+    return Math.max(1, Math.round(rate * (1 - fee)));
+}
+
+function buyPricePer100Gold(state: SimState, game: GameData, resource: string): number | undefined {
+    const rate = getMarketRate(state, game, resource);
+    if (rate === undefined) return undefined;
+    const fee = effectiveMarketFee(state, resource, game.market?.fee ?? 0.3);
+    return Math.max(1, Math.round(rate * (1 + fee)));
 }
 
 function onEventComplete(
@@ -552,6 +600,143 @@ function executeCommand(
             applyStockModifierToExistingNodes(state, modCmd.modifier);
             pushScheduled(modCmd.type, state.now);
         },
+        tradeResources: () => {
+            const tradeCmd = cmd as Extract<BuildOrderCommand, { type: "tradeResources" }>;
+            const requestedAt = state.now;
+            const { sellResource, buyResource, amount } = tradeCmd;
+            if (!state.entities.some((e) => e.entityType === "market")) {
+                const message = "Trade requires at least one market.";
+                state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
+                state.commandResults.push({
+                    index: commandIndex,
+                    type: tradeCmd.type,
+                    requestedAt,
+                    status: "failed",
+                    message,
+                });
+                return;
+            }
+
+            if (sellResource !== "gold" && buyResource !== "gold") {
+                const sellPrice = sellPricePer100Gold(state, game, sellResource);
+                const buyPrice = buyPricePer100Gold(state, game, buyResource);
+                if (sellPrice === undefined || buyPrice === undefined) {
+                    const message =
+                        `Market does not support trade ${sellResource} -> ${buyResource}. ` +
+                        `Only configured commodities can be exchanged.`;
+                    state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
+                    state.commandResults.push({
+                        index: commandIndex,
+                        type: tradeCmd.type,
+                        requestedAt,
+                        status: "failed",
+                        message,
+                    });
+                    return;
+                }
+
+                const sellBalance = state.resources[sellResource] ?? 0;
+                if (sellBalance - amount < options.debtFloor) {
+                    const message =
+                        `Insufficient ${sellResource} for trade: need ${amount.toFixed(2)}, have ${sellBalance.toFixed(2)} ` +
+                        `(debt-floor=${options.debtFloor}).`;
+                    state.violations.push({ time: state.now, code: "INSUFFICIENT_RESOURCES", message });
+                    state.commandResults.push({
+                        index: commandIndex,
+                        type: tradeCmd.type,
+                        requestedAt,
+                        status: "failed",
+                        message,
+                    });
+                    return;
+                }
+                const earnedGold = (amount * sellPrice) / 100;
+                const boughtAmount = (earnedGold * 100) / buyPrice;
+                state.resources[sellResource] = sellBalance - amount;
+                state.resources[buyResource] = (state.resources[buyResource] ?? 0) + boughtAmount;
+                const step = exchangeRateStep(game);
+                setMarketRate(state, game, sellResource, (getMarketRate(state, game, sellResource) ?? 0) - step);
+                setMarketRate(state, game, buyResource, (getMarketRate(state, game, buyResource) ?? 0) + step);
+                pushScheduled(tradeCmd.type, requestedAt);
+                return;
+            }
+
+            if (sellResource === "gold" && buyResource === "gold") {
+                pushScheduled(tradeCmd.type, requestedAt);
+                return;
+            }
+
+            if (buyResource === "gold") {
+                const sellPrice = sellPricePer100Gold(state, game, sellResource);
+                if (sellPrice === undefined) {
+                    const message = `Market does not support selling '${sellResource}'.`;
+                    state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
+                    state.commandResults.push({
+                        index: commandIndex,
+                        type: tradeCmd.type,
+                        requestedAt,
+                        status: "failed",
+                        message,
+                    });
+                    return;
+                }
+                const sellBalance = state.resources[sellResource] ?? 0;
+                if (sellBalance - amount < options.debtFloor) {
+                    const message =
+                        `Insufficient ${sellResource} for trade: need ${amount.toFixed(2)}, have ${sellBalance.toFixed(2)} ` +
+                        `(debt-floor=${options.debtFloor}).`;
+                    state.violations.push({ time: state.now, code: "INSUFFICIENT_RESOURCES", message });
+                    state.commandResults.push({
+                        index: commandIndex,
+                        type: tradeCmd.type,
+                        requestedAt,
+                        status: "failed",
+                        message,
+                    });
+                    return;
+                }
+                const earnedGold = (amount * sellPrice) / 100;
+                state.resources[sellResource] = sellBalance - amount;
+                state.resources.gold = (state.resources.gold ?? 0) + earnedGold;
+                setMarketRate(state, game, sellResource, (getMarketRate(state, game, sellResource) ?? 0) - exchangeRateStep(game));
+                pushScheduled(tradeCmd.type, requestedAt);
+                return;
+            }
+
+            const buyPrice = buyPricePer100Gold(state, game, buyResource);
+            if (buyPrice === undefined) {
+                const message = `Market does not support buying '${buyResource}'.`;
+                state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
+                state.commandResults.push({
+                    index: commandIndex,
+                    type: tradeCmd.type,
+                    requestedAt,
+                    status: "failed",
+                    message,
+                });
+                return;
+            }
+            const goldCost = (amount * buyPrice) / 100;
+            const goldBalance = state.resources.gold ?? 0;
+            if (goldBalance - goldCost < options.debtFloor) {
+                const message =
+                    `Insufficient gold for trade: need ${goldCost.toFixed(2)}, have ${goldBalance.toFixed(2)} ` +
+                    `(debt-floor=${options.debtFloor}).`;
+                state.violations.push({ time: state.now, code: "INSUFFICIENT_RESOURCES", message });
+                state.commandResults.push({
+                    index: commandIndex,
+                    type: tradeCmd.type,
+                    requestedAt,
+                    status: "failed",
+                    message,
+                });
+                return;
+            }
+            state.resources.gold = goldBalance - goldCost;
+            state.resources[buyResource] = (state.resources[buyResource] ?? 0) + amount;
+            setMarketRate(state, game, buyResource, (getMarketRate(state, game, buyResource) ?? 0) + exchangeRateStep(game));
+            pushScheduled(tradeCmd.type, requestedAt);
+        },
         onTrigger: () => {
             const onTriggerCmd = cmd as Extract<BuildOrderCommand, { type: "onTrigger" }>;
             const triggerMode = onTriggerCmd.triggerMode ?? "once";
@@ -704,6 +889,7 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         actionClickTimes: {},
         actionCompletionTimes: {},
         nodeDepletionTimes: {},
+        marketRates: { ...(game.market?.baseExchangeRateByResource ?? {}) },
         humanDelays: Object.fromEntries(
             Object.entries(buildOrder.humanDelays ?? {}).map(([actionId, buckets]) => [
                 actionId,

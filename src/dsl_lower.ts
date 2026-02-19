@@ -275,7 +275,7 @@ function buildCommandFromDirectiveTokens(
     selectorAliases: Record<string, string>,
     conditions: CommandCondition[],
     symbols?: DslValidationSymbols,
-): BuildOrderCommand {
+): BuildOrderCommand[] {
     const hasTriggerCondition = conditions.some((condition) => condition.trigger !== undefined);
     const wrap = (cmd: BuildOrderCommand): BuildOrderCommand => wrapCommandWithConditions(at, conditions, cmd);
     const op = rest[0];
@@ -323,7 +323,7 @@ function buildCommandFromDirectiveTokens(
         if (count !== undefined) cmd.count = count;
         if (actorSelectors !== undefined) cmd.actorSelectors = actorSelectors;
         if (actorResourceNodeSelectors !== undefined) cmd.actorResourceNodeSelectors = actorResourceNodeSelectors;
-        return wrap(cmd);
+        return [wrap(cmd)];
     }
 
     if (op === "assign") {
@@ -336,7 +336,7 @@ function buildCommandFromDirectiveTokens(
                 return parsed ?? "";
             });
             if (selectors.some((x) => !x)) throw new Error(`Line ${lineNo}: invalid selector in 'assign event ...'.`);
-            return wrap({ type: "assignEventGather", at, resourceNodeSelectors: selectors });
+            return [wrap({ type: "assignEventGather", at, resourceNodeSelectors: selectors })];
         }
         const fromIdx = rest.indexOf("from");
         if (fromIdx >= 0 && fromIdx >= toIdx) throw new Error(`Line ${lineNo}: 'from' must appear before 'to' in assign.`);
@@ -372,7 +372,7 @@ function buildCommandFromDirectiveTokens(
         } else {
             throw new Error(`Line ${lineNo}: assign amount must be 'x<count>', 'all', or '<idNum>'.`);
         }
-        return wrap(cmd);
+        return [wrap(cmd)];
     }
 
     if (op === "auto-queue") {
@@ -408,7 +408,7 @@ function buildCommandFromDirectiveTokens(
         const cmd: Extract<BuildOrderCommand, { type: "autoQueue" }> = { type: "autoQueue", at, actionId };
         if (actorType !== undefined) cmd.actorType = actorType;
         if (actorResourceNodeSelectors !== undefined) cmd.actorResourceNodeSelectors = actorResourceNodeSelectors;
-        return wrap(cmd);
+        return [wrap(cmd)];
     }
 
     if (op === "stop-auto-queue") {
@@ -444,7 +444,7 @@ function buildCommandFromDirectiveTokens(
         const cmd: Extract<BuildOrderCommand, { type: "stopAutoQueue" }> = { type: "stopAutoQueue", at, actionId };
         if (actorType !== undefined) cmd.actorType = actorType;
         if (actorResourceNodeSelectors !== undefined) cmd.actorResourceNodeSelectors = actorResourceNodeSelectors;
-        return wrap(cmd);
+        return [wrap(cmd)];
     }
 
     if (op === "spawn-assign") {
@@ -457,12 +457,12 @@ function buildCommandFromDirectiveTokens(
         if (!entityType || toIdx < 0 || !selector || toIdx + 2 !== rest.length) {
             throw new Error(`Line ${lineNo}: expected 'spawn-assign <entityType> to <selector>'.`);
         }
-        return wrap({
+        return [wrap({
             type: "setSpawnGather",
             at,
             entityType,
             resourceNodeSelectors: parseAndValidateSelectors([selector], selectorAliases, lineNo, symbols),
-        });
+        })];
     }
 
     if (op === "grant") {
@@ -478,7 +478,7 @@ function buildCommandFromDirectiveTokens(
         if (Object.keys(resources).length === 0) {
             throw new Error(`Line ${lineNo}: 'grant' requires at least one <resource> <amount> pair.`);
         }
-        return wrap({ type: "grantResources", at, resources });
+        return [wrap({ type: "grantResources", at, resources })];
     }
 
     if (op === "spawn") {
@@ -490,7 +490,44 @@ function buildCommandFromDirectiveTokens(
         const countToken = rest[2];
         const count = countToken !== undefined ? parseNumber(countToken, lineNo) : 1;
         if (!Number.isInteger(count) || count < 1) throw new Error(`Line ${lineNo}: spawn count must be a positive integer.`);
-        return wrap({ type: "spawnEntities", at, entityType, count });
+        return [wrap({ type: "spawnEntities", at, entityType, count })];
+    }
+
+    if (op === "buy" || op === "sell") {
+        const amountToken = rest[1];
+        const resource = rest[2];
+        if (!amountToken || !resource || rest.length !== 3) {
+            throw new Error(`Line ${lineNo}: expected '${op} <amount> <resource>'.`);
+        }
+        if (symbols?.resources && !symbols.resources.has(resource)) {
+            throw new Error(
+                `Line ${lineNo}: unknown resource '${resource}'.${suggestionSuffix(resource, symbols.resources)}`,
+            );
+        }
+        const amount = parseNumber(amountToken, lineNo);
+        if (!Number.isInteger(amount) || amount <= 0) {
+            throw new Error(`Line ${lineNo}: ${op} amount must be a positive integer.`);
+        }
+        if (amount % 100 !== 0) {
+            throw new Error(`Line ${lineNo}: ${op} amount must be a multiple of 100.`);
+        }
+        if (resource === "gold") {
+            throw new Error(`Line ${lineNo}: ${op} resource cannot be gold.`);
+        }
+        const lots = amount / 100;
+        const out: BuildOrderCommand[] = [];
+        for (let i = 0; i < lots; i += 1) {
+            out.push(
+                wrap({
+                    type: "tradeResources",
+                    at,
+                    amount: 100,
+                    sellResource: op === "sell" ? resource : "gold",
+                    buyResource: op === "sell" ? "gold" : resource,
+                }),
+            );
+        }
+        return out;
     }
 
     if (op === "modifier") {
@@ -503,7 +540,7 @@ function buildCommandFromDirectiveTokens(
         if (opToken !== "mul" && opToken !== "add" && opToken !== "set") {
             throw new Error(`Line ${lineNo}: modifier op must be 'mul', 'add', or 'set'.`);
         }
-        return wrap({ type: "addModifier", at, modifier: { selector, op: opToken, value: parseNumber(valueToken, lineNo) } });
+        return [wrap({ type: "addModifier", at, modifier: { selector, op: opToken, value: parseNumber(valueToken, lineNo) } })];
     }
 
     throw new Error(`Line ${lineNo}: unknown directive '${op}'.`);
@@ -517,7 +554,7 @@ function lowerAstCommandLine(
 ): BuildOrderCommand[] {
     const at = ast.atToken !== undefined ? parseTimeValue(ast.atToken, lineNo) : 0;
     const conditions = astConditionsToCommandConditions(ast.conditions, lineNo, selectorAliases, symbols);
-    const out = [buildCommandFromDirectiveTokens(at, ast.directiveTokens, lineNo, selectorAliases, conditions, symbols)];
+    const out = [...buildCommandFromDirectiveTokens(at, ast.directiveTokens, lineNo, selectorAliases, conditions, symbols)];
     if (!ast.thenDirectiveTokens) return out;
     if (ast.directiveTokens[0] !== "queue") {
         throw new Error(`Line ${lineNo}: 'then' is currently only supported after a queue directive.`);
@@ -564,7 +601,7 @@ function lowerAstCommandLine(
         },
     ];
     out.push(
-        buildCommandFromDirectiveTokens(at, normalizedThenDirectiveTokens, lineNo, selectorAliases, thenConditions, symbols),
+        ...buildCommandFromDirectiveTokens(at, normalizedThenDirectiveTokens, lineNo, selectorAliases, thenConditions, symbols),
     );
     return out;
 }

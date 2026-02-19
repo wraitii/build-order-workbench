@@ -65,6 +65,17 @@
       ]
     }
   },
+  "market": {
+    "baseExchangeRateByResource": {
+      "wood": 100,
+      "food": 115,
+      "stone": 130
+    },
+    "rateStep": 2,
+    "minExchangeRate": 20,
+    "maxExchangeRate": 9999,
+    "fee": 0.3
+  },
   "taskEfficiency": {
     "default": 1.4,
     "byTaskType": {
@@ -1029,7 +1040,10 @@
     },
     {
       "name": "Saracens",
-      "dslLines": ["modifier action.cost.build_market.wood add -100"]
+      "dslLines": [
+        "modifier action.cost.build_market.wood add -100",
+        "modifier market.fee set 0.05"
+      ]
     },
     {
       "name": "Turks",

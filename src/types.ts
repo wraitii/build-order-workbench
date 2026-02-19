@@ -82,6 +82,14 @@ export interface SettingDef {
     dslLines: string[];
 }
 
+export interface MarketConfig {
+    baseExchangeRateByResource: Record<string, number>;
+    rateStep?: number;
+    minExchangeRate?: number;
+    maxExchangeRate?: number;
+    fee?: number;
+}
+
 export interface GameData {
     resources: string[];
     startingResources?: ResourceMap;
@@ -93,6 +101,7 @@ export interface GameData {
     taskEfficiency?: TaskEfficiencyConfig;
     population?: PopulationConfig;
     actions: Record<string, ActionDef>;
+    market?: MarketConfig;
     civilizations?: CivilizationDef[];
     ruleset?: RulesetDef;
     settings?: Record<string, SettingDef>;
@@ -190,6 +199,15 @@ export interface AddModifierCommand {
     modifier: NumericModifier;
 }
 
+export interface TradeResourcesCommand {
+    type: "tradeResources";
+    at?: number;
+    afterEntityId?: string;
+    sellResource: string;
+    buyResource: string;
+    amount: number;
+}
+
 export type TriggerExecutableCommand =
     | QueueActionCommand
     | AssignGatherCommand
@@ -199,7 +217,8 @@ export type TriggerExecutableCommand =
     | SetSpawnGatherCommand
     | GrantResourcesCommand
     | SpawnEntitiesCommand
-    | AddModifierCommand;
+    | AddModifierCommand
+    | TradeResourcesCommand;
 
 export interface OnTriggerCommand {
     type: "onTrigger";
