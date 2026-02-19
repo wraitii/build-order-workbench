@@ -53,6 +53,12 @@ export function quantizeDuration(seconds: number): number {
     return Math.max(TIME_STEP_SECONDS, Math.round(seconds / TIME_STEP_SECONDS) * TIME_STEP_SECONDS);
 }
 
+export function appendDslLineContext(message: string, line: number | undefined): string {
+    if (!Number.isFinite(line)) return message;
+    if ((line ?? 0) <= 0) return `${message} (DSL built-in line)`;
+    return `${message} (DSL line ${line})`;
+}
+
 export interface AutoQueueRule {
     actionId: string;
     actorSelectors?: string[];
@@ -60,12 +66,15 @@ export interface AutoQueueRule {
     actorResourceNodeSelectors?: string[];
     nextAttemptAt: number;
     delayUntil?: number;
+    lastBlockedReason?: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP" | "NO_RESOURCE_NODES";
 }
 
 export interface QueueRule {
     commandIndex: number;
     requestedAt: number;
     actionId: string;
+    warnOnLongDelay?: boolean;
+    firstBlockedMessage?: string;
     totalIterations: number;
     completedIterations: number;
     actorSelectors?: string[];
@@ -112,6 +121,7 @@ export interface SimState {
     actionCompletionTimes: Record<string, number[]>;
     nodeDepletionTimes: Record<string, number>;
     marketRates: Record<string, number>;
+    commandSourceLines: number[];
 }
 
 function formatActivityTarget(kind: EntityActivitySegment["kind"], detail: string): string {

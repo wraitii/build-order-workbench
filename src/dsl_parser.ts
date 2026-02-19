@@ -15,6 +15,7 @@ const Clicked = createToken({ name: "Clicked", pattern: /clicked(?![^,\s])/ });
 const Completed = createToken({ name: "Completed", pattern: /completed(?![^,\s])/ });
 const Depleted = createToken({ name: "Depleted", pattern: /depleted(?![^,\s])/ });
 const Exhausted = createToken({ name: "Exhausted", pattern: /exhausted(?![^,\s])/ });
+const XCount = createToken({ name: "XCount", pattern: /x\d+/ });
 const Word = createToken({ name: "Word", pattern: /[^,\s]+/ });
 
 const allTokens = [
@@ -31,6 +32,7 @@ const allTokens = [
     Completed,
     Depleted,
     Exhausted,
+    XCount,
     Word,
 ];
 
@@ -112,6 +114,35 @@ class CommandLineCstParser extends CstParser {
                     ALT: () => {
                         this.SUBRULE(self.triggerKeyword);
                         this.CONSUME(Word, { LABEL: "afterTarget" });
+                        this.OPTION3({
+                            GATE: () => {
+                                const la1 = this.LA(1);
+                                const la2 = this.LA(2);
+                                if (la1.tokenType === XCount) return true;
+                                if (la1.tokenType !== Word || la1.image !== "x") return false;
+                                return la2.tokenType === NumberTok || (la2.tokenType === Word && /^\d+$/.test(la2.image));
+                            },
+                            DEF: () => {
+                            this.OR2([
+                                { ALT: () => this.CONSUME(XCount, { LABEL: "afterTriggerCountCompact" }) },
+                                {
+                                    GATE: () => {
+                                        const la1 = this.LA(1);
+                                        const la2 = this.LA(2);
+                                        if (la1.tokenType !== Word || la1.image !== "x") return false;
+                                        return la2.tokenType === NumberTok || (la2.tokenType === Word && /^\d+$/.test(la2.image));
+                                    },
+                                    ALT: () => {
+                                        this.CONSUME3(Word, { LABEL: "afterTriggerCountPrefix" });
+                                        this.OR3([
+                                            { ALT: () => this.CONSUME2(NumberTok, { LABEL: "afterTriggerCountValue" }) },
+                                            { ALT: () => this.CONSUME4(Word, { LABEL: "afterTriggerCountValueWord" }) },
+                                        ]);
+                                    },
+                                },
+                            ]);
+                            },
+                        });
                     },
                 },
                 {
@@ -152,6 +183,7 @@ class CommandLineCstParser extends CstParser {
                             { ALT: () => this.CONSUME(Completed) },
                             { ALT: () => this.CONSUME(Depleted) },
                             { ALT: () => this.CONSUME(Exhausted) },
+                            { ALT: () => this.CONSUME(XCount) },
                             { ALT: () => this.CONSUME(Word) },
                         ]),
                 },
@@ -204,11 +236,32 @@ function toAstConditions(commandLine: CstNode, lineNo: number): AstCommandCondit
             const target = c.afterTarget?.[0];
             const targetImage = imageOf(target);
             if (!targetImage) throw new Error(`Line ${lineNo}: expected trigger target after 'after'.`);
+            const compactCount = imageOf(c.afterTriggerCountCompact?.[0]);
+            const prefix = imageOf(c.afterTriggerCountPrefix?.[0]);
+            const countValue = imageOf(c.afterTriggerCountValue?.[0]) ?? imageOf(c.afterTriggerCountValueWord?.[0]);
+            let countToken: string | undefined;
+            if (compactCount !== undefined) {
+                if (!compactCount.startsWith("x")) throw new Error(`Line ${lineNo}: expected count like 'x2'.`);
+                countToken = compactCount.slice(1);
+            } else if (prefix !== undefined || countValue !== undefined) {
+                if (prefix !== "x") {
+                    throw new Error(`Line ${lineNo}: expected trigger count in form 'x2' or 'x 2'.`);
+                }
+                if (!countValue) throw new Error(`Line ${lineNo}: missing trigger count value after 'x'.`);
+                countToken = countValue;
+            }
+            if (countToken !== undefined && !/^\d+$/.test(countToken)) {
+                throw new Error(`Line ${lineNo}: trigger count must be a positive integer.`);
+            }
+            if (every && countToken !== undefined) {
+                throw new Error(`Line ${lineNo}: 'after every ...' does not support count suffixes like 'x2'.`);
+            }
             out.push({
                 type: "afterTrigger",
                 triggerKind: tokenToTriggerKind(imageOf(triggerToken) ?? ""),
                 target: targetImage,
                 mode: every ? "every" : "once",
+                ...(countToken !== undefined ? { countToken } : {}),
             });
             continue;
         }

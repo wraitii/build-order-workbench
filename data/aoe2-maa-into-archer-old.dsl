@@ -82,7 +82,7 @@ after completed advance_feudal_age queue build_archery_range using villager x2 f
 after villager 22 queue build_archery_range using villager from wood
 after villager 24 queue build_blacksmith using villager from wood
 after completed build_archery_range queue train_archer x16
-after completed build_archery_range queue train_archer x16
+after completed build_archery_range x2 queue train_archer x16
 after villager 26 queue research_fletching
 
 # Switch to farms after

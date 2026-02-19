@@ -40,8 +40,12 @@ export function processTriggers(
         triggerContext?: TriggerEventContext,
     ) => void,
 ): void {
-    for (let i = 0; i < state.triggerRules.length; i += 1) {
-        const rule = state.triggerRules[i];
+    // Snapshot current rules so newly registered triggers (from executed commands)
+    // do not retroactively match the same event.
+    const rulesToCheck = state.triggerRules.slice();
+    for (const rule of rulesToCheck) {
+        const liveIndex = state.triggerRules.indexOf(rule);
+        if (liveIndex < 0) continue;
         if (!rule) continue;
         let matched = false;
         if (rule.trigger.kind === "clicked" || rule.trigger.kind === "completed") {
@@ -76,8 +80,7 @@ export function processTriggers(
             triggerMode: rule.mode,
         });
         if (rule.mode === "once") {
-            state.triggerRules.splice(i, 1);
-            i -= 1;
+            state.triggerRules.splice(liveIndex, 1);
         }
     }
 }

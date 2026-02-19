@@ -242,6 +242,7 @@ export interface BuildOrderInput {
     humanDelays?: Record<string, HumanDelayBucket[]>;
     scores?: ScoreCriterion[];
     commands: BuildOrderCommand[];
+    commandSourceLines?: number[];
 }
 
 export interface HumanDelayBucket {
@@ -306,12 +307,16 @@ export interface Violation {
     code:
         | "ACTION_NOT_FOUND"
         | "NO_ACTORS"
+        | "NO_RESOURCE"
+        | "RESOURCE_FULL"
+        | "NO_UNIT_AVAILABLE"
         | "INVALID_ASSIGNMENT"
         | "AMBIGUOUS_TRIGGER"
         | "HOUSED"
         | "INSUFFICIENT_RESOURCES"
         | "NEGATIVE_RESOURCE"
-        | "RESOURCE_STALL";
+        | "RESOURCE_STALL"
+        | "DELAYED_ACTION";
     message: string;
 }
 

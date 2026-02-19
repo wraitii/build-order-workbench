@@ -5,6 +5,7 @@ export interface AstAfterTriggerCondition {
     triggerKind: AstTriggerKind;
     target: string;
     mode: "once" | "every";
+    countToken?: string;
 }
 
 export interface AstAfterEntityCondition {

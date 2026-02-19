@@ -1,10 +1,19 @@
 import { applyNumericModifiers } from "./modifiers";
-import { BuildOrderCommand, CommandResult, GameData, NumericModifier, ResourceMap, ResourceNodeInstance, SimOptions } from "./types";
+import {
+    BuildOrderCommand,
+    CommandResult,
+    GameData,
+    NumericModifier,
+    ResourceMap,
+    ResourceNodeInstance,
+    SimOptions,
+} from "./types";
 import {
     AutoQueueRule,
     EPS,
     QueueRule,
     SimState,
+    appendDslLineContext,
     compareEntityIdNatural,
     quantizeDuration,
     switchEntityActivity,
@@ -14,6 +23,7 @@ import { activateNodeDecay, computeEconomySnapshot } from "./economy";
 import { shouldDebugAction, simDebug } from "./debug";
 import { matchesNodeSelector } from "./node_selectors";
 import { nextEligibleActorAvailabilityTime, pickEligibleActorIds } from "./actor_eligibility";
+import { formatMMSS } from "./time_format";
 
 const NON_DEBT_RESOURCE_FLOORS: Record<string, number> = {
     feudal: 0,
@@ -22,13 +32,17 @@ const NON_DEBT_RESOURCE_FLOORS: Record<string, number> = {
     mill_built: 0,
     barracks_built: 0,
 };
+const DELAYED_ACTION_WARNING_SECONDS = 30;
 
 function effectiveCosts(action: GameData["actions"][string], modifiers: NumericModifier[]): ResourceMap {
     const raw = action.costs ?? {};
     if (modifiers.length === 0) return raw;
     const result: ResourceMap = {};
     for (const [resource, cost] of Object.entries(raw)) {
-        result[resource] = Math.max(0, applyNumericModifiers(cost, [`action.cost.${action.id}.${resource}`], modifiers));
+        result[resource] = Math.max(
+            0,
+            applyNumericModifiers(cost, [`action.cost.${action.id}.${resource}`], modifiers),
+        );
     }
     return result;
 }
@@ -201,7 +215,11 @@ function activateDecayOnFirstGather(node: ResourceNodeInstance): void {
     activateNodeDecay(node);
 }
 
-function resolveConsumableNodes(state: SimState, prototypeId: string, count: number): ResourceNodeInstance[] | undefined {
+function resolveConsumableNodes(
+    state: SimState,
+    prototypeId: string,
+    count: number,
+): ResourceNodeInstance[] | undefined {
     const available = [...state.resourceNodes]
         .filter(
             (node) =>
@@ -214,10 +232,7 @@ function resolveConsumableNodes(state: SimState, prototypeId: string, count: num
     return available.slice(0, count);
 }
 
-function consumeResourceNodes(
-    state: SimState,
-    specs: Array<{ prototypeId: string; count?: number }>,
-): boolean {
+function consumeResourceNodes(state: SimState, specs: Array<{ prototypeId: string; count?: number }>): boolean {
     if (specs.length === 0) return true;
 
     const requiredByPrototype: Record<string, number> = {};
@@ -284,6 +299,7 @@ export function tryScheduleActionNow(
         "actionId" | "actorSelectors" | "actorResourceNodeIds" | "actorResourceNodeSelectors"
     >,
     extraResourceFloorOverrides?: Record<string, number>,
+    commandSourceLine?: number,
 ):
     | { status: "scheduled"; completionTime: number; actionId: string; actors: string[]; startedAt: number }
     | { status: "blocked"; reason: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP" | "NO_RESOURCE_NODES" }
@@ -332,17 +348,20 @@ export function tryScheduleActionNow(
         };
     }
 
-  const crossedNegative = chargeCosts(state, costs);
-  if (crossedNegative.length > 0) {
-    const crossedWithValues = crossedNegative
-      .map((resource) => `${resource}=${(state.resources[resource] ?? 0).toFixed(2)}`)
-      .join(", ");
-    state.violations.push({
-      time: state.now,
-      code: "NEGATIVE_RESOURCE",
-      message: `Warning: '${action.id}' pushed ${crossedWithValues} (debt-floor=${options.debtFloor}).`,
-    });
-  }
+    const crossedNegative = chargeCosts(state, costs);
+    if (crossedNegative.length > 0) {
+        const crossedWithValues = crossedNegative
+            .map((resource) => `${resource}=${(state.resources[resource] ?? 0).toFixed(2)}`)
+            .join(", ");
+        state.violations.push({
+            time: state.now,
+            code: "NEGATIVE_RESOURCE",
+            message: appendDslLineContext(
+                `'${action.id}' pushed resources below zero: ${crossedWithValues} (debt-floor=${options.debtFloor}).`,
+                commandSourceLine,
+            ),
+        });
+    }
 
     const singleWorkerDuration = applyNumericModifiers(
         action.duration,
@@ -440,8 +459,153 @@ function pushInvalidAssignment(
     requestedAt: number,
     message: string,
 ): void {
-    state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
-    pushCommandFailedResult(state, commandIndex, type, requestedAt, message);
+    pushViolationForCommand(state, commandIndex, type, requestedAt, "INVALID_ASSIGNMENT", message);
+}
+
+function pushNoUnitAvailable(
+    state: SimState,
+    commandIndex: number,
+    type: BuildOrderCommand["type"],
+    requestedAt: number,
+    message: string,
+): void {
+    pushViolationForCommand(state, commandIndex, type, requestedAt, "NO_UNIT_AVAILABLE", message);
+}
+
+function pushNoResource(
+    state: SimState,
+    commandIndex: number,
+    type: BuildOrderCommand["type"],
+    requestedAt: number,
+    message: string,
+): void {
+    pushViolationForCommand(state, commandIndex, type, requestedAt, "NO_RESOURCE", message);
+}
+
+function pushResourceFull(
+    state: SimState,
+    commandIndex: number,
+    type: BuildOrderCommand["type"],
+    requestedAt: number,
+    message: string,
+): void {
+    pushViolationForCommand(state, commandIndex, type, requestedAt, "RESOURCE_FULL", message);
+}
+
+function pushViolationForCommand(
+    state: SimState,
+    commandIndex: number,
+    type: BuildOrderCommand["type"],
+    requestedAt: number,
+    code: "INVALID_ASSIGNMENT" | "NO_UNIT_AVAILABLE" | "NO_RESOURCE" | "RESOURCE_FULL",
+    message: string,
+): void {
+    const withLine = appendDslLineContext(message, state.commandSourceLines[commandIndex]);
+    state.violations.push({ time: state.now, code, message: withLine });
+    pushCommandFailedResult(state, commandIndex, type, requestedAt, withLine);
+}
+
+function pluralize(word: string, count: number): string {
+    if (count === 1) return word;
+    if (word.endsWith("s")) return word;
+    return `${word}s`;
+}
+
+function describeSelector(selector: string): string {
+    if (selector.startsWith("res:")) return selector.slice("res:".length);
+    if (selector.startsWith("proto:")) return selector.slice("proto:".length);
+    if (selector.startsWith("tag:")) return selector.slice("tag:".length);
+    if (selector.startsWith("actor:")) return selector.slice("actor:".length);
+    if (selector.startsWith("id:")) return selector.slice("id:".length);
+    return selector;
+}
+
+function describeSelectorList(selectors?: string[]): string | undefined {
+    if (!selectors || selectors.length === 0) return undefined;
+    return selectors.map(describeSelector).join(" / ");
+}
+
+function describeNodeTargets(resourceNodeIds?: string[], resourceNodeSelectors?: string[]): string | undefined {
+    const selectorText = describeSelectorList(resourceNodeSelectors);
+    if (selectorText) return selectorText;
+    if (resourceNodeIds && resourceNodeIds.length > 0) return resourceNodeIds.join(" / ");
+    return undefined;
+}
+
+function describeQueueWho(rule: Pick<QueueRule, "actorSelectors" | "actorResourceNodeSelectors">): string {
+    const actorText = describeSelectorList(rule.actorSelectors);
+    const fromText = describeSelectorList(rule.actorResourceNodeSelectors);
+    if (actorText && fromText) return ` for ${actorText} from ${fromText}`;
+    if (actorText) return ` for ${actorText}`;
+    if (fromText) return ` for actors from ${fromText}`;
+    return "";
+}
+
+function describeResourceShortfallNow(
+    state: SimState,
+    game: GameData,
+    options: SimOptions,
+    action: GameData["actions"][string],
+): string | undefined {
+    const costs = effectiveCosts(action, state.activeModifiers);
+    const entries = Object.entries(costs);
+    if (entries.length === 0) return undefined;
+
+    const resourceFloorOverrides = baseResourceFloorOverrides(game);
+    const shortfalls = entries
+        .map(([resource, cost]) => {
+            const floor = resourceFloorOverrides?.[resource] ?? options.debtFloor;
+            const availableAboveFloor = (state.resources[resource] ?? 0) - floor;
+            const missing = cost - availableAboveFloor;
+            return missing > EPS ? `missing ${missing.toFixed(0)} ${resource}` : undefined;
+        })
+        .filter((x): x is string => Boolean(x));
+    if (shortfalls.length === 0) return undefined;
+    return shortfalls.join(", ");
+}
+
+export type GatherAssignFailure = {
+    ok: false;
+    reason: "NO_TARGET_NODES" | "MISSING_ACTORS" | "NO_GATHER_SLOT";
+    message: string;
+};
+
+export function classifyGatherAssignFailure(
+    failure: GatherAssignFailure,
+    resourceNodeIds?: string[],
+    resourceNodeSelectors?: string[],
+): { code: "NO_RESOURCE" | "RESOURCE_FULL" | "INVALID_ASSIGNMENT"; message: string } {
+    if (failure.reason === "NO_TARGET_NODES") {
+        const targets = describeNodeTargets(resourceNodeIds, resourceNodeSelectors);
+        return {
+            code: "NO_RESOURCE",
+            message: targets
+                ? `Could not find any '${targets}' to gather from.`
+                : "Could not find any resource nodes to gather from.",
+        };
+    }
+    if (failure.reason === "NO_GATHER_SLOT") {
+        const targets = describeNodeTargets(resourceNodeIds, resourceNodeSelectors);
+        return {
+            code: "RESOURCE_FULL",
+            message: targets
+                ? `All '${targets}' gathering spots are full right now.`
+                : "All matching gathering spots are full right now.",
+        };
+    }
+    return { code: "INVALID_ASSIGNMENT", message: failure.message };
+}
+
+function describeAssignGatherAttempt(
+    cmd: Extract<BuildOrderCommand, { type: "assignGather" }>,
+    requestedCount: number,
+): string {
+    const actorCountText = `${requestedCount} ${pluralize(cmd.actorType, requestedCount)}`;
+    const fromSelectors = describeSelectorList(cmd.actorResourceNodeSelectors);
+    const toSelectors = describeSelectorList(cmd.resourceNodeSelectors);
+    const fromText = fromSelectors ? ` from ${fromSelectors}` : "";
+    const toText = toSelectors ? toSelectors : "the requested targets";
+    return `Tried to assign ${actorCountText}${fromText} to ${toText}`;
 }
 
 function computeBlockedNextAttempt(
@@ -519,6 +683,7 @@ export function registerQueueAction(
     state: SimState,
     cmd: Extract<BuildOrderCommand, { type: "queueAction" }>,
     commandIndex: number,
+    options?: { warnOnLongDelay?: boolean },
 ): void {
     const requestedAt = state.now;
     const iterations = Math.max(1, cmd.count ?? 1);
@@ -526,6 +691,7 @@ export function registerQueueAction(
         commandIndex,
         requestedAt,
         actionId: cmd.actionId,
+        warnOnLongDelay: options?.warnOnLongDelay ?? true,
         totalIterations: iterations,
         completedIterations: 0,
         nextAttemptAt: state.now,
@@ -567,7 +733,14 @@ export function processQueueRules(
             if (rule.actorResourceNodeSelectors !== undefined)
                 queueCmd.actorResourceNodeSelectors = rule.actorResourceNodeSelectors;
 
-            const result = tryScheduleActionNow(state, game, options, queueCmd);
+            const result = tryScheduleActionNow(
+                state,
+                game,
+                options,
+                queueCmd,
+                undefined,
+                state.commandSourceLines[rule.commandIndex],
+            );
             if (shouldDebugAction(rule.actionId)) {
                 simDebug(
                     "processQueueRules.attempt",
@@ -579,10 +752,24 @@ export function processQueueRules(
             }
 
             if (result.status === "scheduled") {
+                const delayedBy = state.now - rule.requestedAt;
+                if (
+                    rule.warnOnLongDelay !== false &&
+                    rule.completedIterations === 0 &&
+                    delayedBy > DELAYED_ACTION_WARNING_SECONDS + EPS
+                ) {
+                    const firstBlockedContext = rule.firstBlockedMessage ? ` ${rule.firstBlockedMessage}` : "";
+                    const message = appendDslLineContext(
+                        `'${rule.actionId}' fired at ${formatMMSS(state.now)} after waiting ${formatMMSS(delayedBy)}.${firstBlockedContext}`,
+                        state.commandSourceLines[rule.commandIndex],
+                    );
+                    state.violations.push({ time: state.now, code: "DELAYED_ACTION", message });
+                }
                 state.commandResults.push(commandScheduledResult(rule, state.now));
                 onActionClicked?.(result.actionId, result.actors, result.startedAt);
                 rule.completedIterations += 1;
                 delete rule.lastBlockedReason;
+                delete rule.firstBlockedMessage;
                 changed = true;
                 if (rule.completedIterations >= rule.totalIterations) {
                     state.queueRules = state.queueRules.filter((r) => r !== rule);
@@ -595,13 +782,15 @@ export function processQueueRules(
                     // measures genuine blocking time (resource/actor shortage), not
                     // natural sequential wait from the previous iteration.
                     rule.requestedAt = rule.delayUntil;
+                    delete rule.firstBlockedMessage;
                 }
                 continue;
             }
 
             if (result.status === "invalid") {
-                state.commandResults.push(commandFailureResult(rule, result.message));
-                state.violations.push({ time: state.now, code: "ACTION_NOT_FOUND", message: result.message });
+                const message = appendDslLineContext(result.message, state.commandSourceLines[rule.commandIndex]);
+                state.commandResults.push(commandFailureResult(rule, message));
+                state.violations.push({ time: state.now, code: "ACTION_NOT_FOUND", message });
                 state.queueRules = state.queueRules.filter((r) => r !== rule);
                 continue;
             }
@@ -611,10 +800,12 @@ export function processQueueRules(
                 state.violations.push({
                     time: state.now,
                     code: result.reason === "POP_CAP" ? "HOUSED" : "INSUFFICIENT_RESOURCES",
-                    message:
+                    message: appendDslLineContext(
                         result.reason === "POP_CAP"
-                            ? `population capacity blocks '${rule.actionId}' at ${state.now.toFixed(2)}s.`
-                            : `Insufficient resources for '${rule.actionId}' at ${state.now.toFixed(2)}s.`,
+                            ? `Population is full, so '${rule.actionId}' could not start at ${state.now.toFixed(2)}s${describeQueueWho(rule)}.`
+                            : `Could not queue '${rule.actionId}' at ${state.now.toFixed(2)}s due to insufficient resources.`,
+                        state.commandSourceLines[rule.commandIndex],
+                    ),
                 });
                 const iter = rule.completedIterations + 1;
                 state.commandResults.push(
@@ -622,6 +813,27 @@ export function processQueueRules(
                 );
                 state.queueRules = state.queueRules.filter((r) => r !== rule);
                 continue;
+            }
+            if (!options.strict && !rule.firstBlockedMessage) {
+                const firstBlockedAt = formatMMSS(state.now);
+                if (result.reason === "NO_ACTORS") {
+                    rule.firstBlockedMessage = `First blocked at ${firstBlockedAt} due to no available actors${describeQueueWho(rule)}.`;
+                } else if (result.reason === "POP_CAP") {
+                    rule.firstBlockedMessage =
+                        `First blocked at ${firstBlockedAt} because population was full${describeQueueWho(rule)}.`;
+                } else if (result.reason === "NO_RESOURCE_NODES") {
+                    rule.firstBlockedMessage =
+                        `First blocked at ${firstBlockedAt} due to missing required map resource nodes.`;
+                } else {
+                    const action = game.actions[rule.actionId];
+                    const gap =
+                        action !== undefined
+                            ? describeResourceShortfallNow(state, game, options, action)
+                            : undefined;
+                    rule.firstBlockedMessage = gap
+                        ? `First blocked at ${firstBlockedAt} due to insufficient resources: ${gap}.`
+                        : `First blocked at ${firstBlockedAt} due to insufficient resources.`;
+                }
             }
 
             const nextAttemptAt = computeBlockedNextAttempt(state, game, options, rule, result.reason);
@@ -655,11 +867,11 @@ function describeResourceShortfallAtEvaluation(
             const floor = resourceFloorOverrides?.[resource] ?? options.debtFloor;
             const availableAboveFloor = (state.resources[resource] ?? 0) - floor;
             const missing = cost - availableAboveFloor;
-            return missing > EPS ? `${resource} short ${missing.toFixed(2)}` : undefined;
+            return missing > EPS ? `missing ${missing.toFixed(0)} ${resource}` : undefined;
         })
         .filter((x): x is string => Boolean(x));
     if (shortfalls.length === 0) return undefined;
-    return `Resource gap at evaluation: ${shortfalls.join(", ")}.`;
+    return `Resource gap at sim end: ${shortfalls.join(", ")}.`;
 }
 
 function describeActorAvailabilityAtEvaluation(
@@ -681,7 +893,7 @@ function describeActorAvailabilityAtEvaluation(
     if (!Number.isFinite(nextActorAt)) return undefined;
     const actorTypes = action.actorTypes.length > 0 ? action.actorTypes.join(", ") : "none";
     if (nextActorAt > evaluationTime + EPS) {
-        return `Required actors (${actorTypes}) next available at ${nextActorAt.toFixed(2)}s.`;
+        return `Required actors (${actorTypes}) next available at ${nextActorAt.toFixed(0)}s.`;
     }
     return `Requires actors of type: ${actorTypes}.`;
 }
@@ -695,7 +907,9 @@ export function finalizeQueueRulesAtEvaluation(
     for (const rule of state.queueRules) {
         const action = game.actions[rule.actionId];
         const reason = rule.lastBlockedReason ?? "INSUFFICIENT_RESOURCES";
+        const remainingIterations = Math.max(1, rule.totalIterations - rule.completedIterations);
         const code = reason === "NO_ACTORS" ? "NO_ACTORS" : reason === "POP_CAP" ? "HOUSED" : "RESOURCE_STALL";
+        const firstBlockedContext = rule.firstBlockedMessage ? ` ${rule.firstBlockedMessage}` : "";
         const contextParts: string[] = [];
         if (action) {
             if (reason === "NO_ACTORS") {
@@ -711,12 +925,14 @@ export function finalizeQueueRulesAtEvaluation(
             }
         }
         const context = contextParts.length > 0 ? ` ${contextParts.join(" ")}` : "";
-        const message =
+        const message = appendDslLineContext(
             reason === "NO_ACTORS"
-                ? `No available actors to perform '${rule.actionId}' before evaluation time (${evaluationTime.toFixed(2)}s).${context}`
+                ? `${remainingIterations} more '${rule.actionId}' action could not be scheduled before sim ended at ${formatMMSS(evaluationTime)} due to no available actors.${firstBlockedContext}${context}`
                 : reason === "POP_CAP"
-                  ? `Could not schedule '${rule.actionId}' before evaluation time (${evaluationTime.toFixed(2)}s): population capacity.${context}`
-                  : `Could not schedule '${rule.actionId}' before evaluation time (${evaluationTime.toFixed(2)}s).${context}`;
+                  ? `Population was full, so ${remainingIterations} '${rule.actionId}' action could not be scheduled before sim ended at ${formatMMSS(evaluationTime)}${describeQueueWho(rule)}.${firstBlockedContext}${context}`
+                  : `${remainingIterations} more '${rule.actionId}' action could not be scheduled before sim ended at ${formatMMSS(evaluationTime)}.${firstBlockedContext}${context}`,
+            state.commandSourceLines[rule.commandIndex],
+        );
         state.violations.push({ time: state.now, code, message });
 
         const iter = rule.completedIterations + 1;
@@ -855,6 +1071,7 @@ export function processAutoQueue(
                 onActionClicked?.(result.actionId, result.actors, result.startedAt);
                 // Auto-queue may fire multiple times in the same tick as long as
                 // there are still eligible actors/resources after each click.
+                delete rule.lastBlockedReason;
                 rule.delayUntil = toFutureTick(result.completionTime + sampleHumanDelaySeconds(state, rule.actionId));
                 rule.nextAttemptAt = state.now;
                 changed = true;
@@ -876,6 +1093,7 @@ export function processAutoQueue(
             }
 
             if (result.reason === "NO_ACTORS") {
+                rule.lastBlockedReason = "NO_ACTORS";
                 rule.nextAttemptAt = applyDelayFloor(
                     rule,
                     computeBlockedNextAttempt(state, game, options, rule, result.reason),
@@ -893,6 +1111,14 @@ export function processAutoQueue(
             }
 
             if (result.reason === "POP_CAP") {
+                if (rule.lastBlockedReason !== "POP_CAP") {
+                    state.violations.push({
+                        time: state.now,
+                        code: "HOUSED",
+                        message: `Population is full, so auto-queue '${rule.actionId}' is waiting. Build houses before this step.`,
+                    });
+                }
+                rule.lastBlockedReason = "POP_CAP";
                 rule.nextAttemptAt = applyDelayFloor(
                     rule,
                     computeBlockedNextAttempt(state, game, options, rule, result.reason),
@@ -908,6 +1134,7 @@ export function processAutoQueue(
                 }
                 continue;
             }
+            rule.lastBlockedReason = result.reason;
             rule.nextAttemptAt = applyDelayFloor(
                 rule,
                 computeBlockedNextAttempt(state, game, options, rule, result.reason, reservedFloors),
@@ -965,8 +1192,10 @@ export function assignGather(
         !options?.allowEmptySelectorMatch &&
         (cmd.actorResourceNodeIds?.length ?? 0) + (cmd.actorResourceNodeSelectors?.length ?? 0) > 0
     ) {
-        const msg = `assignGather selector matched no '${cmd.actorType}' actors.`;
-        pushInvalidAssignment(state, commandIndex, cmd.type, requestedAt, msg);
+        const requestedCountFromSelectors = cmd.count ?? 1;
+        const attempt = describeAssignGatherAttempt(cmd, requestedCountFromSelectors);
+        const msg = `${attempt}, but none were available.`;
+        pushNoUnitAvailable(state, commandIndex, cmd.type, requestedAt, msg);
         return;
     }
     const assignRequest: Parameters<typeof pickEligibleActorIds>[1] = {
@@ -980,16 +1209,28 @@ export function assignGather(
         assignRequest.actorResourceNodeSelectors = cmd.actorResourceNodeSelectors;
     const actorIds = pickEligibleActorIds(state, assignRequest);
     if (actorIds.length < requestedCount) {
-        const msg = cmd.actorSelectors
-            ? `assignGather requested specific ${cmd.actorType} selectors, found ${actorIds.length}/${requestedCount}.`
-            : `assignGather requested ${requestedCount} '${cmd.actorType}', found ${actorIds.length}.`;
-        pushInvalidAssignment(state, commandIndex, cmd.type, requestedAt, msg);
+        const attempt = describeAssignGatherAttempt(cmd, requestedCount);
+        const availableText =
+            actorIds.length === 0
+                ? "none were available"
+                : `only ${actorIds.length} ${pluralize(cmd.actorType, actorIds.length)} were available`;
+        const msg = `${attempt}, but ${availableText}.`;
+        pushNoUnitAvailable(state, commandIndex, cmd.type, requestedAt, msg);
         return;
     }
 
     const assignResult = assignGatherByEntityIds(state, actorIds, cmd.resourceNodeIds, cmd.resourceNodeSelectors);
     if (!assignResult.ok) {
-        pushInvalidAssignment(state, commandIndex, cmd.type, requestedAt, assignResult.message);
+        const mapped = classifyGatherAssignFailure(assignResult, cmd.resourceNodeIds, cmd.resourceNodeSelectors);
+        if (mapped.code === "NO_RESOURCE") {
+            pushNoResource(state, commandIndex, cmd.type, requestedAt, mapped.message);
+            return;
+        }
+        if (mapped.code === "RESOURCE_FULL") {
+            pushResourceFull(state, commandIndex, cmd.type, requestedAt, mapped.message);
+            return;
+        }
+        pushInvalidAssignment(state, commandIndex, cmd.type, requestedAt, mapped.message);
         return;
     }
     pushCommandScheduledResult(state, commandIndex, cmd.type, requestedAt);
@@ -1000,17 +1241,21 @@ export function assignGatherByEntityIds(
     actorIds: string[],
     resourceNodeIds?: string[],
     resourceNodeSelectors?: string[],
-): { ok: true } | { ok: false; message: string } {
+): { ok: true } | GatherAssignFailure {
     const targets = resolveNodeTargets(state, resourceNodeIds, resourceNodeSelectors);
     if (targets.length === 0) {
-        return { ok: false, message: "No valid resource nodes for gather assignment." };
+        return { ok: false, reason: "NO_TARGET_NODES", message: "No valid resource nodes for gather assignment." };
     }
 
     const picked = actorIds
         .map((id) => state.entities.find((e) => e.id === id))
         .filter((e): e is NonNullable<typeof e> => Boolean(e));
     if (picked.length < actorIds.length) {
-        return { ok: false, message: `assign requested specific IDs, found ${picked.length}/${actorIds.length}.` };
+        return {
+            ok: false,
+            reason: "MISSING_ACTORS",
+            message: `assign requested specific IDs, found ${picked.length}/${actorIds.length}.`,
+        };
     }
 
     const assignedCount: Record<string, number> = {};
@@ -1019,9 +1264,30 @@ export function assignGatherByEntityIds(
     }
 
     for (const ent of picked) {
+        const currentNodeId = ent.resourceNodeId;
+        if (currentNodeId) {
+            const currentNode = state.resourceNodeById[currentNodeId];
+            const currentIsTarget = currentNode && targets.some((target) => target.id === currentNode.id);
+            const currentSupportsGather =
+                currentNode &&
+                (currentNode.rateByEntityType[ent.entityType] ?? 0) > 0 &&
+                (currentNode.remainingStock === undefined || currentNode.remainingStock > EPS);
+            if (currentIsTarget && currentSupportsGather) {
+                activateDecayOnFirstGather(currentNode);
+                if (ent.busyUntil <= state.now + EPS) {
+                    switchEntityActivity(state, ent.id, "gather", `${currentNode.produces}:${currentNode.prototypeId}`);
+                }
+                continue;
+            }
+        }
+
         const node = pickGatherNode(ent.entityType, targets, assignedCount);
         if (!node) {
-            return { ok: false, message: `No gather slot available for '${ent.id}' on requested resource nodes.` };
+            return {
+                ok: false,
+                reason: "NO_GATHER_SLOT",
+                message: "All matching gathering spots are full right now.",
+            };
         }
 
         ent.resourceNodeId = node.id;

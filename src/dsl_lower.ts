@@ -12,6 +12,7 @@ import {
 
 export interface DslLoweringState {
     commands: BuildOrderCommand[];
+    commandSourceLines: number[];
     evaluationTime?: number;
     stopAfter?: StopAfterCondition;
     debtFloor?: number;
@@ -31,7 +32,7 @@ export interface DslValidationSymbols {
 }
 
 export function createDslLoweringState(): DslLoweringState {
-    return { commands: [] };
+    return { commands: [], commandSourceLines: [] };
 }
 
 function levenshtein(a: string, b: string): number {
@@ -124,7 +125,20 @@ function normalizeActorSelector(entry: string, lineNo: number): string {
     return entry;
 }
 
-function parseQueueUsingSelectors(tokens: string[], lineNo: number): { selectors: string[]; consumed: number } {
+function validateActorSelector(selector: string, lineNo: number, symbols?: DslValidationSymbols): void {
+    if (!symbols?.entityTypes) return;
+    const match = selector.match(/^(.+)-(\d+)$/);
+    const actorType = match?.[1] ?? selector;
+    if (!symbols.entityTypes.has(actorType)) {
+        throw new Error(`Line ${lineNo}: unknown actor type '${actorType}'.${suggestionSuffix(actorType, symbols.entityTypes)}`);
+    }
+}
+
+function parseQueueUsingSelectors(
+    tokens: string[],
+    lineNo: number,
+    symbols?: DslValidationSymbols,
+): { selectors: string[]; consumed: number } {
     const fromIdx = tokens.findIndex((t) => t === "from");
     const scope = fromIdx >= 0 ? tokens.slice(0, fromIdx) : tokens;
     const parsed = parseCommaEntriesFromTokens(scope, lineNo, "invalid empty selector in 'using' list.");
@@ -137,6 +151,7 @@ function parseQueueUsingSelectors(tokens: string[], lineNo: number): { selectors
         if (!selectorEntry) throw new Error(`Line ${lineNo}: missing actor selector before multiplier in 'using' list.`);
         if (count < 1) throw new Error(`Line ${lineNo}: selector multiplier must be >= 1.`);
         const normalized = normalizeActorSelector(selectorEntry, lineNo);
+        validateActorSelector(normalized, lineNo, symbols);
         for (let i = 0; i < count; i += 1) selectors.push(normalized);
     }
     return { selectors, consumed: parsed.consumed };
@@ -181,10 +196,17 @@ function astConditionsToCommandConditions(
     const out: CommandCondition[] = [];
     for (const condition of conditions) {
         if (condition.type === "afterTrigger") {
-            out.push({
-                trigger: parseTriggerCondition(condition.triggerKind, condition.target, lineNo, selectorAliases, symbols),
-                triggerMode: condition.mode,
-            });
+            const repeatRaw = condition.countToken ?? "1";
+            const repeat = parseNumber(repeatRaw, lineNo);
+            if (!Number.isInteger(repeat) || repeat < 1) {
+                throw new Error(`Line ${lineNo}: trigger count must be a positive integer.`);
+            }
+            for (let i = 0; i < repeat; i += 1) {
+                out.push({
+                    trigger: parseTriggerCondition(condition.triggerKind, condition.target, lineNo, selectorAliases, symbols),
+                    triggerMode: condition.mode,
+                });
+            }
             continue;
         }
         if (condition.type === "onTrigger") {
@@ -314,7 +336,7 @@ function buildCommandFromDirectiveTokens(
                 continue;
             }
             if (t === "using") {
-                const parsed = parseQueueUsingSelectors(rest.slice(i + 1), lineNo);
+                const parsed = parseQueueUsingSelectors(rest.slice(i + 1), lineNo, symbols);
                 actorSelectors = parsed.selectors;
                 i += parsed.consumed;
                 continue;
@@ -338,13 +360,13 @@ function buildCommandFromDirectiveTokens(
     if (op === "assign") {
         const toIdx = rest.indexOf("to");
         if (toIdx < 0 || toIdx + 1 >= rest.length) throw new Error(`Line ${lineNo}: assign requires 'to <selectors...>'.`);
-        if (rest[1] === "event" || (hasTriggerCondition && rest[1] === "to")) {
+        if (hasTriggerCondition && rest[1] === "to") {
             const selectors = rest.slice(toIdx + 1).map((raw) => {
                 if (raw === "created") return "id:created";
                 const parsed = parseAndValidateSelectors([raw], selectorAliases, lineNo, symbols)[0];
                 return parsed ?? "";
             });
-            if (selectors.some((x) => !x)) throw new Error(`Line ${lineNo}: invalid selector in 'assign event ...'.`);
+            if (selectors.some((x) => !x)) throw new Error(`Line ${lineNo}: invalid selector in trigger-context 'assign to ...'.`);
             return [wrap({ type: "assignEventGather", at, resourceNodeSelectors: selectors })];
         }
         const fromIdx = rest.indexOf("from");
@@ -396,7 +418,7 @@ function buildCommandFromDirectiveTokens(
             const t = rest[i];
             if (!t) continue;
             if (t === "using") {
-                const parsed = parseQueueUsingSelectors(rest.slice(i + 1), lineNo);
+                const parsed = parseQueueUsingSelectors(rest.slice(i + 1), lineNo, symbols);
                 if (parsed.selectors.length !== 1) throw new Error(`Line ${lineNo}: auto-queue supports exactly one selector in 'using'.`);
                 const selector = parsed.selectors[0];
                 if (!selector) throw new Error(`Line ${lineNo}: missing selector after 'using'.`);
@@ -432,7 +454,7 @@ function buildCommandFromDirectiveTokens(
             const t = rest[i];
             if (!t) continue;
             if (t === "using") {
-                const parsed = parseQueueUsingSelectors(rest.slice(i + 1), lineNo);
+                const parsed = parseQueueUsingSelectors(rest.slice(i + 1), lineNo, symbols);
                 if (parsed.selectors.length !== 1) throw new Error(`Line ${lineNo}: stop-auto-queue supports exactly one selector in 'using'.`);
                 const selector = parsed.selectors[0];
                 if (!selector) throw new Error(`Line ${lineNo}: missing selector after 'using'.`);
@@ -571,7 +593,7 @@ function lowerAstCommandLine(
     const queuedActionId = ast.directiveTokens[1];
     if (!queuedActionId) throw new Error(`Line ${lineNo}: missing action id before 'then'.`);
     let normalizedThenDirectiveTokens = [...ast.thenDirectiveTokens];
-    const inheritedQueueUsingSelectors = inferInheritedQueueUsingSelectors(ast.directiveTokens, lineNo);
+    const inheritedQueueUsingSelectors = inferInheritedQueueUsingSelectors(ast.directiveTokens, lineNo, symbols);
     const inheritedSpecificActorId =
         inheritedQueueUsingSelectors.length === 1 && inheritedQueueUsingSelectors[0]?.match(/^(.*)-(\d+)$/)
             ? inheritedQueueUsingSelectors[0]
@@ -615,14 +637,14 @@ function lowerAstCommandLine(
     return out;
 }
 
-function inferInheritedQueueUsingSelectors(directiveTokens: string[], lineNo: number): string[] {
+function inferInheritedQueueUsingSelectors(directiveTokens: string[], lineNo: number, symbols?: DslValidationSymbols): string[] {
     if (directiveTokens[0] !== "queue") return [];
     const selectors: string[] = [];
     for (let i = 2; i < directiveTokens.length; i += 1) {
         const token = directiveTokens[i];
         if (!token) continue;
         if (token === "using") {
-            const parsed = parseQueueUsingSelectors(directiveTokens.slice(i + 1), lineNo);
+            const parsed = parseQueueUsingSelectors(directiveTokens.slice(i + 1), lineNo, symbols);
             selectors.push(...parsed.selectors);
             break;
         }
@@ -740,5 +762,7 @@ export function applyAstDslLine(
         applyPreambleLine(line.preamble, lineNo, selectorAliases, state, symbols);
         return;
     }
-    state.commands.push(...lowerAstCommandLine(line.command, lineNo, selectorAliases, symbols));
+    const lowered = lowerAstCommandLine(line.command, lineNo, selectorAliases, symbols);
+    state.commands.push(...lowered);
+    state.commandSourceLines.push(...lowered.map(() => lineNo));
 }

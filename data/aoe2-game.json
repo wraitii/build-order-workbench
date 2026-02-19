@@ -15,8 +15,6 @@
     "name": "aoe2",
     "dslLines": [
       "# Some common 'rules' that simulate unit AI and make writing build orders more convenient",
-      "after every completed lure_boar assign to boar",
-      "after every completed lure_boar assign villager all from sheep to boar",
       "after every depleted boar assign to boar deer sheep",
       "after every depleted deer assign to boar deer sheep",
       "after every depleted sheep assign to boar deer sheep straggler_trees",
@@ -25,7 +23,10 @@
       "after every depleted straggler_trees assign to straggler_trees",
       "after every completed build_farm assign to created",
       "after every depleted shore_fish assign to boar deer sheep berries straggler_trees",
-      "after every depleted deep_fish assign to deep_fish shore_fish"
+      "after every depleted deep_fish assign to deep_fish shore_fish",
+      "after every completed lure_boar assign to boar",
+      "after every completed lure_boar assign villager all from sheep to boar",
+      "after every completed lure_deer assign villager x3 from sheep to deer"
     ]
   },
   "settings": {

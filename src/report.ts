@@ -1,6 +1,7 @@
 import { GameData, SimulationResult } from "./types";
 import { compareEntityIdNatural, EPS } from "./sim_shared";
 import { readdir } from "fs/promises";
+import { formatMMSS } from "./time_format";
 
 export interface BuildOrderPreset {
     id: string;
@@ -13,18 +14,6 @@ const WITH_LLM = process.env.INCLUDE_LLM === "1";
 let workbenchBundlePromise: Promise<string> | undefined;
 let llmBundlePromise: Promise<string> | undefined;
 let gameObjectsBundlePromise: Promise<string> | undefined;
-
-function formatMSS(s: number): string {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${String(sec).padStart(2, "0")}`;
-}
-
-function formatMMSS(s: number): string {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-}
 
 function formatMap(map: Record<string, number>): string {
     return Object.entries(map)
@@ -131,9 +120,9 @@ export function toTextReport(result: SimulationResult): string {
     lines.push(`gathered: ${formatMap(stripInternalResources(result.totalGathered))}`);
     lines.push(`avgFloat: ${formatMap(stripInternalResources(result.avgFloat))}`);
     lines.push(`entities: ${formatIntMap(result.entitiesByType)}`);
-    lines.push(`tcIdleTime: ${formatMSS(result.tcIdleTime)} (${result.tcIdleTime.toFixed(2)}s)`);
+    lines.push(`tcIdleTime: ${formatMMSS(result.tcIdleTime)} (${result.tcIdleTime.toFixed(2)}s)`);
     lines.push(
-        `totalVillagerIdleTime: ${formatMSS(result.totalVillagerIdleTime)} (${result.totalVillagerIdleTime.toFixed(2)}s)`,
+        `totalVillagerIdleTime: ${formatMMSS(result.totalVillagerIdleTime)} (${result.totalVillagerIdleTime.toFixed(2)}s)`,
     );
     lines.push(`maxDebt: ${result.maxDebt.toFixed(2)}`);
     lines.push(`completedActions: ${result.completedActions}`);
@@ -146,7 +135,7 @@ export function toTextReport(result: SimulationResult): string {
                 cond.kind === "clicked" || cond.kind === "completed"
                     ? `${cond.kind} ${cond.actionId}${suffix}`
                     : `${cond.kind} ${cond.resourceNodeSelector}${suffix}`;
-            const val = s.value !== null ? formatMSS(s.value) : "—";
+            const val = s.value !== null ? formatMMSS(s.value) : "—";
             return `  ${label}: ${val}`;
         });
         lines.push(`scores:\n${scoreLines.join("\n")}`);
@@ -156,7 +145,7 @@ export function toTextReport(result: SimulationResult): string {
     if (result.violations.length > 0) {
         lines.push("warningDetails:");
         for (const v of result.violations) {
-            lines.push(`  - t=${v.time.toFixed(2)} [${v.code}] ${v.message}`);
+            lines.push(`  - t=${formatMMSS(v.time)} [${v.code}] ${v.message}`);
         }
     }
 

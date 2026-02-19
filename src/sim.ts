@@ -6,6 +6,7 @@ import {
     normalizeCommandTimes,
     recordEntityCountPoint,
     SimState,
+    appendDslLineContext,
     switchEntityActivity,
     EPS,
     toFutureTick,
@@ -36,6 +37,7 @@ import {
     assignEntityToGatherTargets,
     assignGather,
     assignGatherByEntityIds,
+    classifyGatherAssignFailure,
     finalizeQueueRulesAtEvaluation,
     processAutoQueue,
     processQueueRules,
@@ -477,6 +479,10 @@ function executeCommand(
     commandIndex: number,
     triggerContext?: TriggerEventContext,
 ): void {
+    const withCommandLine = (message: string): string => {
+        return appendDslLineContext(message, state.commandSourceLines[commandIndex]);
+    };
+
     const pushScheduled = (type: BuildOrderCommand["type"], requestedAt: number): void => {
         state.commandResults.push({
             index: commandIndex,
@@ -489,8 +495,19 @@ function executeCommand(
     };
 
     const pushInvalidAssignment = (type: BuildOrderCommand["type"], requestedAt: number, message: string): void => {
-        state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
-        state.commandResults.push({ index: commandIndex, type, requestedAt, status: "failed", message });
+        const withLine = withCommandLine(message);
+        state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message: withLine });
+        state.commandResults.push({ index: commandIndex, type, requestedAt, status: "failed", message: withLine });
+    };
+    const pushNoResource = (type: BuildOrderCommand["type"], requestedAt: number, message: string): void => {
+        const withLine = withCommandLine(message);
+        state.violations.push({ time: state.now, code: "NO_RESOURCE", message: withLine });
+        state.commandResults.push({ index: commandIndex, type, requestedAt, status: "failed", message: withLine });
+    };
+    const pushResourceFull = (type: BuildOrderCommand["type"], requestedAt: number, message: string): void => {
+        const withLine = withCommandLine(message);
+        state.violations.push({ time: state.now, code: "RESOURCE_FULL", message: withLine });
+        state.commandResults.push({ index: commandIndex, type, requestedAt, status: "failed", message: withLine });
     };
 
     const handlers: Record<BuildOrderCommand["type"], () => void> = {
@@ -527,7 +544,9 @@ function executeCommand(
                     }
                 }
             }
-            registerQueueAction(state, queueCmd, commandIndex);
+            registerQueueAction(state, queueCmd, commandIndex, {
+                warnOnLongDelay: triggerContext?.triggerMode !== "every",
+            });
         },
         assignGather: () => {
             assignGather(state, cmd as Extract<BuildOrderCommand, { type: "assignGather" }>, commandIndex, {
@@ -555,6 +574,7 @@ function executeCommand(
                 return;
             }
             const targetIds = new Set(assignEventCmd.resourceNodeIds ?? []);
+            const usesCreatedSelector = (assignEventCmd.resourceNodeSelectors ?? []).includes("id:created");
             for (const selector of assignEventCmd.resourceNodeSelectors ?? []) {
                 if (selector === "id:created") {
                     for (const id of triggerContext?.createdNodeIds ?? []) targetIds.add(id);
@@ -563,6 +583,14 @@ function executeCommand(
             const selectorTargets = (assignEventCmd.resourceNodeSelectors ?? []).filter(
                 (selector) => selector !== "id:created",
             );
+            if (usesCreatedSelector && targetIds.size === 0 && selectorTargets.length === 0) {
+                pushNoResource(
+                    assignEventCmd.type,
+                    requestedAt,
+                    "'created' only targets resource nodes created by the triggering action.",
+                );
+                return;
+            }
             const result = assignGatherByEntityIds(
                 state,
                 actorIds,
@@ -570,7 +598,20 @@ function executeCommand(
                 selectorTargets.length > 0 ? selectorTargets : undefined,
             );
             if (!result.ok) {
-                pushInvalidAssignment(assignEventCmd.type, requestedAt, result.message);
+                const mapped = classifyGatherAssignFailure(
+                    result,
+                    targetIds.size > 0 ? [...targetIds] : undefined,
+                    selectorTargets.length > 0 ? selectorTargets : undefined,
+                );
+                if (mapped.code === "NO_RESOURCE") {
+                    pushNoResource(assignEventCmd.type, requestedAt, mapped.message);
+                    return;
+                }
+                if (mapped.code === "RESOURCE_FULL") {
+                    pushResourceFull(assignEventCmd.type, requestedAt, mapped.message);
+                    return;
+                }
+                pushInvalidAssignment(assignEventCmd.type, requestedAt, mapped.message);
                 return;
             }
             state.commandResults.push({
@@ -631,16 +672,22 @@ function executeCommand(
             const tradeCmd = cmd as Extract<BuildOrderCommand, { type: "tradeResources" }>;
             const requestedAt = state.now;
             const { sellResource, buyResource, amount } = tradeCmd;
-            if (!state.entities.some((e) => e.entityType === "market")) {
-                const message = "Trade requires at least one market.";
-                state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
+            const pushTradeFailure = (
+                code: "INVALID_ASSIGNMENT" | "INSUFFICIENT_RESOURCES",
+                message: string,
+            ): void => {
+                const withLine = withCommandLine(message);
+                state.violations.push({ time: state.now, code, message: withLine });
                 state.commandResults.push({
                     index: commandIndex,
                     type: tradeCmd.type,
                     requestedAt,
                     status: "failed",
-                    message,
+                    message: withLine,
                 });
+            };
+            if (!state.entities.some((e) => e.entityType === "market")) {
+                pushTradeFailure("INVALID_ASSIGNMENT", "Trade requires at least one market.");
                 return;
             }
 
@@ -651,14 +698,7 @@ function executeCommand(
                     const message =
                         `Market does not support trade ${sellResource} -> ${buyResource}. ` +
                         `Only configured commodities can be exchanged.`;
-                    state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
-                    state.commandResults.push({
-                        index: commandIndex,
-                        type: tradeCmd.type,
-                        requestedAt,
-                        status: "failed",
-                        message,
-                    });
+                    pushTradeFailure("INVALID_ASSIGNMENT", message);
                     return;
                 }
 
@@ -667,14 +707,7 @@ function executeCommand(
                     const message =
                         `Insufficient ${sellResource} for trade: need ${amount.toFixed(2)}, have ${sellBalance.toFixed(2)} ` +
                         `(debt-floor=${options.debtFloor}).`;
-                    state.violations.push({ time: state.now, code: "INSUFFICIENT_RESOURCES", message });
-                    state.commandResults.push({
-                        index: commandIndex,
-                        type: tradeCmd.type,
-                        requestedAt,
-                        status: "failed",
-                        message,
-                    });
+                    pushTradeFailure("INSUFFICIENT_RESOURCES", message);
                     return;
                 }
                 const earnedGold = (amount * sellPrice) / 100;
@@ -696,15 +729,7 @@ function executeCommand(
             if (buyResource === "gold") {
                 const sellPrice = sellPricePer100Gold(state, game, sellResource);
                 if (sellPrice === undefined) {
-                    const message = `Market does not support selling '${sellResource}'.`;
-                    state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
-                    state.commandResults.push({
-                        index: commandIndex,
-                        type: tradeCmd.type,
-                        requestedAt,
-                        status: "failed",
-                        message,
-                    });
+                    pushTradeFailure("INVALID_ASSIGNMENT", `Market does not support selling '${sellResource}'.`);
                     return;
                 }
                 const sellBalance = state.resources[sellResource] ?? 0;
@@ -712,14 +737,7 @@ function executeCommand(
                     const message =
                         `Insufficient ${sellResource} for trade: need ${amount.toFixed(2)}, have ${sellBalance.toFixed(2)} ` +
                         `(debt-floor=${options.debtFloor}).`;
-                    state.violations.push({ time: state.now, code: "INSUFFICIENT_RESOURCES", message });
-                    state.commandResults.push({
-                        index: commandIndex,
-                        type: tradeCmd.type,
-                        requestedAt,
-                        status: "failed",
-                        message,
-                    });
+                    pushTradeFailure("INSUFFICIENT_RESOURCES", message);
                     return;
                 }
                 const earnedGold = (amount * sellPrice) / 100;
@@ -732,15 +750,7 @@ function executeCommand(
 
             const buyPrice = buyPricePer100Gold(state, game, buyResource);
             if (buyPrice === undefined) {
-                const message = `Market does not support buying '${buyResource}'.`;
-                state.violations.push({ time: state.now, code: "INVALID_ASSIGNMENT", message });
-                state.commandResults.push({
-                    index: commandIndex,
-                    type: tradeCmd.type,
-                    requestedAt,
-                    status: "failed",
-                    message,
-                });
+                pushTradeFailure("INVALID_ASSIGNMENT", `Market does not support buying '${buyResource}'.`);
                 return;
             }
             const goldCost = (amount * buyPrice) / 100;
@@ -749,14 +759,7 @@ function executeCommand(
                 const message =
                     `Insufficient gold for trade: need ${goldCost.toFixed(2)}, have ${goldBalance.toFixed(2)} ` +
                     `(debt-floor=${options.debtFloor}).`;
-                state.violations.push({ time: state.now, code: "INSUFFICIENT_RESOURCES", message });
-                state.commandResults.push({
-                    index: commandIndex,
-                    type: tradeCmd.type,
-                    requestedAt,
-                    status: "failed",
-                    message,
-                });
+                pushTradeFailure("INSUFFICIENT_RESOURCES", message);
                 return;
             }
             state.resources.gold = goldBalance - goldCost;
@@ -767,28 +770,6 @@ function executeCommand(
         onTrigger: () => {
             const onTriggerCmd = cmd as Extract<BuildOrderCommand, { type: "onTrigger" }>;
             const triggerMode = onTriggerCmd.triggerMode ?? "once";
-            if (
-                !triggerContext &&
-                triggerMode === "once" &&
-                (onTriggerCmd.trigger.kind === "clicked" || onTriggerCmd.trigger.kind === "completed")
-            ) {
-                const times =
-                    onTriggerCmd.trigger.kind === "clicked"
-                        ? (state.actionClickTimes[onTriggerCmd.trigger.actionId] ?? [])
-                        : (state.actionCompletionTimes[onTriggerCmd.trigger.actionId] ?? []);
-                const priorMatches = times.filter((time) => time < state.now - EPS).length;
-                if (priorMatches > 0) {
-                    state.violations.push({
-                        time: state.now,
-                        code: "AMBIGUOUS_TRIGGER",
-                        message:
-                            `One-shot trigger '${onTriggerCmd.trigger.kind} ${onTriggerCmd.trigger.actionId}' was registered ` +
-                            `after ${priorMatches} prior match(es). It will fire on the next match only. ` +
-                            `Use 'at <time>' or chain conditions like ` +
-                            `'after completed advance_feudal_age after completed ${onTriggerCmd.trigger.actionId} ...'.`,
-                    });
-                }
-            }
             state.triggerRules.push({
                 trigger: onTriggerCmd.trigger,
                 mode: triggerMode,
@@ -915,6 +896,7 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         actionCompletionTimes: {},
         nodeDepletionTimes: {},
         marketRates: { ...(game.market?.baseExchangeRateByResource ?? {}) },
+        commandSourceLines: [...(buildOrder.commandSourceLines ?? [])],
         humanDelays: Object.fromEntries(
             Object.entries(buildOrder.humanDelays ?? {}).map(([actionId, buckets]) => [
                 actionId,

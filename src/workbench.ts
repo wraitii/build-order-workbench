@@ -2,6 +2,7 @@ import { createActionDslLines, createCivDslByName, createDslValidationSymbols, c
 import { runSimulation } from "./sim";
 import { EntityTimeline, GameData, ScoreCriterion, ScoreResult, SimulationResult } from "./types";
 import { createDslSelectorAliases } from "./node_selectors";
+import { formatMMSS } from "./time_format";
 
 interface BuildOrderPreset {
     id: string;
@@ -26,12 +27,6 @@ declare global {
 
 function round2(n: number): number {
     return Math.round(n * 100) / 100;
-}
-
-function formatMSS(s: number): string {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
 function escapeHtml(str: string): string {
@@ -292,7 +287,7 @@ function renderScores(): void {
             const label = escapeHtml(scoreCriterionLabel(s.criterion));
             const val =
                 s.value !== null
-                    ? `<span class="score-val">${formatMSS(s.value)}</span>`
+                    ? `<span class="score-val">${formatMMSS(s.value)}</span>`
                     : `<span class="muted">—</span>`;
             return `<tr><td>${label}</td><td>${val}</td></tr>`;
         })
@@ -313,7 +308,7 @@ function renderHealth(): void {
             const icon = iconImg(resourceIconUrl(res), res);
             const debtHtml =
                 debt < -0.01
-                    ? `<div class="health-chip-debt">peak debt: ${round2(debt)} (${formatMSS(debtTime)})</div>`
+                    ? `<div class="health-chip-debt">peak debt: ${round2(debt)} (${formatMMSS(debtTime)})</div>`
                     : "";
             return `<div class="health-chip">
   <div class="health-chip-label">${icon}${escapeHtml(res)}</div>
@@ -347,7 +342,7 @@ function renderTables(): void {
             : violations
                   .map(
                       (v) =>
-                          `<tr><td>${Number(v.time).toFixed(2)}</td><td>${escapeHtml(v.code)}</td><td>${escapeHtml(v.message)}</td></tr>`,
+                          `<tr><td>${formatMMSS(Number(v.time))}</td><td>${escapeHtml(v.code)}</td><td>${escapeHtml(v.message)}</td></tr>`,
                   )
                   .join("");
 
@@ -403,7 +398,7 @@ function resourceGraph(resource: string, mTime: number, step: number): string {
     const xStepCount = mTime > 600 ? 4 : 3;
     const xTicks = Array.from({ length: xStepCount + 1 }, (_, i) => {
         const t = (i / xStepCount) * mTime;
-        return `<text x="${round2(toX(t))}" y="${vh - 2}" font-size="8" text-anchor="middle" fill="currentColor" opacity="0.5">${formatMSS(t)}</text>`;
+        return `<text x="${round2(toX(t))}" y="${vh - 2}" font-size="8" text-anchor="middle" fill="currentColor" opacity="0.5">${formatMMSS(t)}</text>`;
     }).join("");
 
     const zeroLine =
@@ -423,7 +418,7 @@ function resourceGraph(resource: string, mTime: number, step: number): string {
 }
 
 function renderScrub(t: number): void {
-    readout.textContent = `${formatMSS(t)} / ${formatMSS(maxTime())}`;
+    readout.textContent = `${formatMMSS(t)} / ${formatMMSS(maxTime())}`;
 
     const res = resourcesAt(t);
     const gathered = gatherableResources();
@@ -501,7 +496,7 @@ function buildTimeline(t: number, center = false): void {
     for (let x = 0; x <= mTime + 0.0001; x += tickEvery) {
         const left = round2(x * scale);
         axisTicks.push(`<div class='timeline-tick' style='left:${left}px'></div>`);
-        axisTicks.push(`<div class='timeline-tick-label' style='left:${left}px'>${formatMSS(x)}</div>`);
+        axisTicks.push(`<div class='timeline-tick-label' style='left:${left}px'>${formatMMSS(x)}</div>`);
     }
 
     const cursorLeft = round2(t * scale);
@@ -516,7 +511,7 @@ function buildTimeline(t: number, center = false): void {
                 const segIcon = w >= 20 ? iconImg(segmentIconUrl(seg.kind, seg.detail), "", "seg-icon") : "";
                 const label = w >= 52 ? escapeHtml(detailLabel) : "";
                 const title = escapeHtml(
-                    `${entry.entityId} | ${seg.kind} ${detailLabel} | ${formatMSS(seg.start)}-${formatMSS(seg.end)}`,
+                    `${entry.entityId} | ${seg.kind} ${detailLabel} | ${formatMMSS(seg.start)}-${formatMMSS(seg.end)}`,
                 );
                 return `<div class='timeline-seg' title='${title}' style='left:${left}px;width:${w}px;background:${color}'>${segIcon}${label}</div>`;
             });

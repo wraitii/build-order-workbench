@@ -275,6 +275,42 @@ after completed build_farm assign to created
         expect(cmd.command.resourceNodeSelectors).toEqual(["id:created"]);
     });
 
+    test("parses after completed trigger with x-count by lowering to chained triggers", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 120
+after completed build_farm x2 assign to created
+`);
+        const cmd = build.commands[0];
+        expect(cmd?.type).toBe("onTrigger");
+        if (!cmd || cmd.type !== "onTrigger") return;
+        expect(cmd.trigger.kind).toBe("completed");
+        if (cmd.trigger.kind !== "completed") return;
+        expect(cmd.trigger.actionId).toBe("build_farm");
+        expect(cmd.command.type).toBe("onTrigger");
+        if (cmd.command.type !== "onTrigger") return;
+        expect(cmd.command.trigger.kind).toBe("completed");
+        if (cmd.command.trigger.kind !== "completed") return;
+        expect(cmd.command.trigger.actionId).toBe("build_farm");
+    });
+
+    test("rejects after every trigger count suffix", () => {
+        expect(() =>
+            parseBuildOrderDsl(`
+evaluation 120
+after every completed build_farm x2 assign to created
+`),
+        ).toThrow("'after every ...' does not support count suffixes like 'x2'");
+    });
+
+    test("rejects explicit assign event form", () => {
+        expect(() =>
+            parseBuildOrderDsl(`
+evaluation 120
+after completed build_farm assign event to created
+`),
+        ).toThrow();
+    });
+
     test("parses after every completed trigger", () => {
         const build = parseBuildOrderDsl(`
 evaluation 120
@@ -515,6 +551,36 @@ assign villager 1 to mystery_woods
         ).toThrow("Line 3: unknown resource 'mystery_woods'");
     });
 
+    test("reports unknown queue using actor type with line context when symbols are provided", () => {
+        expect(() =>
+            parseBuildOrderDsl(
+                `
+evaluation 60
+queue build_house_plain using mystery_worker
+`,
+                {
+                    selectorAliases: createDslSelectorAliases(TEST_GAME.resources),
+                    symbols: createDslValidationSymbols(TEST_GAME),
+                },
+            ),
+        ).toThrow("Line 3: unknown actor type 'mystery_worker'");
+    });
+
+    test("reports unknown queue using actor id type with line context when symbols are provided", () => {
+        expect(() =>
+            parseBuildOrderDsl(
+                `
+evaluation 60
+queue build_house_plain using mystery_worker 1
+`,
+                {
+                    selectorAliases: createDslSelectorAliases(TEST_GAME.resources),
+                    symbols: createDslValidationSymbols(TEST_GAME),
+                },
+            ),
+        ).toThrow("Line 3: unknown actor type 'mystery_worker'");
+    });
+
     test("parses sell command and lowers in 100-resource lots", () => {
         const build = parseBuildOrderDsl(`
 evaluation 60
@@ -549,7 +615,7 @@ start with town_center,villager
         const result = runSimulation(TEST_GAME, build, {
             strict: false,
             evaluationTime: build.evaluationTime,
-            debtFloor: -30,
+            debtFloor: 0,
         });
 
         expect(result.entitiesByType).toEqual({
@@ -637,7 +703,7 @@ queue build_archery_range using villager 2
                 (v.message.includes("'build_stable'") || v.message.includes("'build_archery_range'")),
         );
         expect(stalls.length).toBe(2);
-        expect(stalls.every((v) => v.message.includes("barracks_built short"))).toBe(true);
+        expect(stalls.every((v) => v.message.includes("missing 1 barracks_built"))).toBe(true);
     });
 
     test("prereq hidden resources ignore negative debt floor", () => {
@@ -664,7 +730,7 @@ queue build_stable using villager 1
             (v) => v.code === "RESOURCE_STALL" && v.message.includes("'build_stable'"),
         );
         expect(stall).toBeDefined();
-        expect(stall?.message.includes("barracks_built short")).toBe(true);
+        expect(stall?.message.includes("missing 1 barracks_built")).toBe(true);
     });
 
     test("stable and archery range unlock after barracks completes", () => {
@@ -705,7 +771,7 @@ at 0 queue lure_boar x3 using villager 1
         const result = runSimulation(TEST_GAME, build, {
             strict: false,
             evaluationTime: build.evaluationTime,
-            debtFloor: -30,
+            debtFloor: 0,
         });
 
         expect(result.completedActions).toBe(2);
@@ -781,7 +847,7 @@ assign villager 1 to forest
         const result = runSimulation(TEST_GAME, build, {
             strict: false,
             evaluationTime: build.evaluationTime,
-            debtFloor: -30,
+            debtFloor: 0,
         });
 
         expect(result.resourcesAtEvaluation.wood).toBeCloseTo(210, 6);
@@ -1004,7 +1070,7 @@ at 0 queue build_house_aoe2 using villager x2 from forest
         const result = runSimulation(TEST_GAME, build, {
             strict: false,
             evaluationTime: build.evaluationTime,
-            debtFloor: -30,
+            debtFloor: 0,
         });
 
         expect(result.completedActions).toBe(1);
@@ -1024,7 +1090,7 @@ at 0 queue lure_boar using villager 1
         const result = runSimulation(TEST_GAME, build, {
             strict: false,
             evaluationTime: build.evaluationTime,
-            debtFloor: -30,
+            debtFloor: 0,
         });
 
         const villager2 = result.entityTimelines["villager-2"];
@@ -1046,7 +1112,7 @@ at 0 queue lure_boar x2 using villager 1
         const result = runSimulation(TEST_GAME, build, {
             strict: false,
             evaluationTime: build.evaluationTime,
-            debtFloor: -30,
+            debtFloor: 0,
         });
 
         expect(result.scores[0]?.value).toBe(0);
@@ -1298,6 +1364,29 @@ after completed lure_boar queue lure_boar
         expect(v2LureActions).toBe(2);
     });
 
+    test("after completed x2 waits for second matching completion", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager,villager
+at 0 queue build_farm using villager 1
+at 2 queue build_farm using villager 2
+after completed build_farm x2 assign to created
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const villager1 = result.entityTimelines["villager-1"];
+        const villager2 = result.entityTimelines["villager-2"];
+        const v1FarmGather = villager1?.segments.some((s) => s.kind === "gather" && s.detail === "food:farm_patch");
+        const v2FarmGather = villager2?.segments.some((s) => s.kind === "gather" && s.detail === "food:farm_patch");
+        expect(v1FarmGather).toBe(false);
+        expect(v2FarmGather).toBe(true);
+    });
+
     test("then queue with explicit actor keeps chained action on that actor", () => {
         const build = parseBuildOrderDsl(`
 evaluation 40
@@ -1369,6 +1458,50 @@ at 0 queue build_house_plain using villager 5 then assign to forest
 
         const invalidAssignments = result.violations.filter((v) => v.code === "INVALID_ASSIGNMENT");
         expect(invalidAssignments.length).toBe(0);
+    });
+
+    test("then assign-to for deferred specific actor does not warn ambiguous after prior completions", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 220
+start with town_center,villager,villager,villager
+starting-resource food 1000
+starting-resource wood 1000
+auto-queue train_villager using town_center
+at 0 queue build_house_plain using villager 1
+at 0 queue build_house_plain using villager 2
+at 0 queue build_house_plain using villager 5 then assign to forest
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const ambiguousWarnings = result.violations.filter((v) => v.code === "AMBIGUOUS_TRIGGER");
+        expect(ambiguousWarnings.length).toBe(0);
+    });
+
+    test("deferred specific-actor queue does not emit ambiguous warning", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 220
+start with town_center,villager,villager,villager
+starting-resource food 1000
+starting-resource wood 1000
+auto-queue train_villager using town_center
+at 0 queue build_house_plain using villager 1
+at 0 queue build_house_plain using villager 2
+at 0 queue build_house_plain using villager 5 then queue build_house_plain
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const ambiguousWarnings = result.violations.filter((v) => v.code === "AMBIGUOUS_TRIGGER");
+        expect(ambiguousWarnings.length).toBe(0);
     });
 
     test("after villager N queue reuses that villager when compatible", () => {
@@ -1561,7 +1694,7 @@ after depleted sheep assign to forest
         expect(invalidAssignments[0]?.message).toContain("no actors in trigger context");
     });
 
-    test("after completed assign all from selector warns when selector matches no actors", () => {
+    test("after completed assign all from selector warns with NO_UNIT_AVAILABLE when selector matches no actors", () => {
         const build = parseBuildOrderDsl(`
 evaluation 5
 start with villager
@@ -1576,9 +1709,9 @@ after completed lure_boar assign villager all from forest to sheep
             debtFloor: -30,
         });
 
-        const invalidAssignments = result.violations.filter((v) => v.code === "INVALID_ASSIGNMENT");
-        expect(invalidAssignments.length).toBe(1);
-        expect(invalidAssignments[0]?.message).toContain("selector matched no");
+        const noUnitAvailable = result.violations.filter((v) => v.code === "NO_UNIT_AVAILABLE");
+        expect(noUnitAvailable.length).toBe(1);
+        expect(noUnitAvailable[0]?.message).toContain("none were available");
     });
 
     test("after every completed assign all from selector is a no-op when selector matches no actors", () => {
@@ -1598,6 +1731,77 @@ after every completed lure_boar assign villager all from forest to sheep
 
         const invalidAssignments = result.violations.filter((v) => v.code === "INVALID_ASSIGNMENT");
         expect(invalidAssignments.length).toBe(0);
+    });
+
+    test("assign to missing resource emits NO_RESOURCE with readable target", () => {
+        const noSheepGame: GameData = {
+            ...TEST_GAME,
+            startingResourceNodes: [],
+        };
+        const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager
+assign villager 1 to sheep
+`);
+
+        const result = runSimulation(noSheepGame, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const noResource = result.violations.filter((v) => v.code === "NO_RESOURCE");
+        expect(noResource.length).toBe(1);
+        expect(noResource[0]?.message).toContain("Could not find any 'sheep' to gather from.");
+    });
+
+    test("after completed assign to created warns when trigger creates no resource nodes", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 100
+start with town_center,villager
+at 0 auto-queue train_villager using town_center
+after completed train_villager assign to created
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const noResource = result.violations.filter((v) => v.code === "NO_RESOURCE");
+        expect(noResource.length).toBeGreaterThan(0);
+        expect(noResource.some((v) => v.message.includes("'created' only targets resource nodes created by the triggering action."))).toBe(true);
+    });
+
+    test("assign to full resource emits RESOURCE_FULL with readable target", () => {
+        const oneSlotSheepGame: GameData = {
+            ...TEST_GAME,
+            resourceNodePrototypes: {
+                ...TEST_GAME.resourceNodePrototypes,
+                sheep: {
+                    ...TEST_GAME.resourceNodePrototypes.sheep,
+                    maxWorkers: 1,
+                },
+            },
+            startingResourceNodes: [{ prototypeId: "sheep", count: 1 }],
+        };
+        const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager,villager
+assign villager 1 to sheep
+assign villager 2 to sheep
+`);
+
+        const result = runSimulation(oneSlotSheepGame, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const resourceFull = result.violations.filter((v) => v.code === "RESOURCE_FULL");
+        expect(resourceFull.length).toBe(1);
+        expect(resourceFull[0]?.message).toContain("All 'sheep' gathering spots are full right now.");
     });
 
     test("resource-waiting queue command does not pause unrelated auto-queue", () => {
@@ -1780,6 +1984,72 @@ at 0 queue expensive_build using villager from idle
         expect(noActors?.message.includes("short")).toBe(false);
     });
 
+    test("partially completed queue warning includes remaining iterations at sim end", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 1
+start with villager
+starting-resource wood 80
+at 0 queue expensive_build x2 using villager 1
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: 0,
+        });
+
+        const resourceStall = result.violations.find((v) => v.code === "RESOURCE_STALL");
+        expect(resourceStall).toBeDefined();
+        expect(resourceStall?.message.includes("'expensive_build'")).toBe(true);
+        expect(resourceStall?.message.includes("before sim ended")).toBe(true);
+        expect(resourceStall?.message.includes("First blocked at")).toBe(true);
+        expect(resourceStall?.message.includes("insufficient resources")).toBe(true);
+    });
+
+    test("warns when one-shot queue action fires over 30s after first valid firing time", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 50
+start with villager
+starting-resource wood 0
+at 0 queue build_house_plain using villager 1
+at 31 grant wood 25
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: 0,
+        });
+
+        const delayed = result.violations.find((v) => v.code === "DELAYED_ACTION");
+        expect(delayed).toBeDefined();
+        expect(delayed?.message.includes("build_house_plain")).toBe(true);
+        expect(delayed?.message.includes("00:31")).toBe(true);
+        expect(delayed?.message.includes("First blocked at 00:00")).toBe(true);
+        expect(delayed?.message.includes("insufficient resources")).toBe(true);
+        expect(delayed?.message.includes("missing 25 wood")).toBe(true);
+    });
+
+    test("does not warn delayed action for after every queue trigger", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 50
+start with villager
+starting-resource wood 0
+at 0 queue lure_boar using villager 1
+after every completed lure_boar queue build_house_plain using villager 1
+at 35 grant wood 25
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: 0,
+        });
+
+        const delayed = result.violations.find((v) => v.code === "DELAYED_ACTION");
+        expect(delayed).toBeUndefined();
+    });
+
     test("warns when a command spend crosses a resource below zero", () => {
         const build = parseBuildOrderDsl(`
 evaluation 5
@@ -1800,7 +2070,7 @@ at 0 queue build_house_plain using villager 1
         expect(debtWarning?.message.includes("wood")).toBe(true);
     });
 
-    test("warns when one-shot trigger registration happens after prior matches", () => {
+    test("does not warn on one-shot trigger registration after prior matches", () => {
         const build = parseBuildOrderDsl(`
 evaluation 20
 start with villager
@@ -1815,9 +2085,8 @@ at 12 queue build_farm using villager 1
             debtFloor: -30,
         });
 
-        const warning = result.violations.find((v) => v.code === "AMBIGUOUS_TRIGGER");
-        expect(warning).toBeDefined();
-        expect(warning?.message.includes("build_farm")).toBe(true);
+        const warnings = result.violations.filter((v) => v.code === "AMBIGUOUS_TRIGGER");
+        expect(warnings.length).toBe(0);
     });
 
     test("population cap blocks extra training without allowing debt", () => {
@@ -1835,9 +2104,28 @@ at 0 queue train_villager x2 using town_center
 
         expect(result.entitiesByType.villager).toBe(5);
         const popStall = result.violations.find(
-            (v) => v.code === "HOUSED" && v.message.includes("population capacity"),
+            (v) => v.code === "HOUSED" && v.message.includes("Population was full") && v.message.includes("train_villager"),
         );
         expect(popStall).toBeDefined();
+    });
+
+    test("queue does not warn when pop-cap stall resolves quickly", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 70
+start with town_center,villager,villager,villager,villager,villager
+at 0 queue train_villager using town_center
+at 0 queue build_house_plain using villager 1
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        expect(result.entitiesByType.villager).toBe(6);
+        const housed = result.violations.find((v) => v.code === "HOUSED" && v.message.includes("train_villager"));
+        expect(housed).toBeUndefined();
     });
 
     test("auto-queue retries after house completion unlocks population", () => {
@@ -1859,6 +2147,10 @@ at 0 queue build_house_plain using villager 1
         const trainStarts =
             tc?.segments.filter((s) => s.kind === "action" && s.detail === "train_villager").map((s) => s.start) ?? [];
         expect(trainStarts).toContain(34);
+        const housed = result.violations.find(
+            (v) => v.code === "HOUSED" && v.message.includes("auto-queue 'train_villager' is waiting"),
+        );
+        expect(housed).toBeDefined();
     });
 
     test("human-delay in DSL adds idle gap between auto-queued villager trains", () => {

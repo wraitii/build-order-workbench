@@ -42,7 +42,6 @@ assign villager 15 to berries
 assign villager 16 to berries
 
 at 6:00 queue lure_deer x3
-after every completed lure_deer assign villager x3 from sheep to deer
 
 queue build_farm using villager 17
 queue build_farm using villager 18

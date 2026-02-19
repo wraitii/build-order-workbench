@@ -77,7 +77,6 @@ after clicked advance_feudal_age queue build_mining_camp using villager x2 from 
 # Second wave: complete the shift once Feudal is in
 after completed advance_feudal_age assign villager x3 from food idle straggler_trees to forest
 after completed advance_feudal_age assign villager x2 to gold
-after completed advance_feudal_age assign villager x2 from food to straggler_trees
 
 # Second dock + house from food villager
 after clicked advance_feudal_age queue build_dock using villager from sheep boar deer shore_fish

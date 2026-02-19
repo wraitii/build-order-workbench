@@ -150,7 +150,8 @@ Whenever a command needs to know *which* villager or *which* resource, you use a
 
 `sheep` · `boar` · `berries` · `forest` · `gold_mine` · `straggler_trees` · `farms` · `idle` · `created`
 
-`idle` matches villagers doing nothing. `created` matches the most recently created villager.
+`idle` matches villagers doing nothing.
+`created` is only meaningful in trigger-context assign lines like `after completed build_farm assign to created` and matches resource nodes created by the triggering action (for farms, the new farm patch).
 
 ---
 

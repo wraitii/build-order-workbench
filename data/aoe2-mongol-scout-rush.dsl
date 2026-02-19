@@ -40,7 +40,6 @@ queue build_mill using villager 13 then assign to berries
 assign villager 14 to berries
 
 at 4:00 queue lure_deer x2
-after completed lure_deer assign villager x3 from boar sheep to deer
 
 assign villager 15 to boar deer sheep
 assign villager 16 to berries
