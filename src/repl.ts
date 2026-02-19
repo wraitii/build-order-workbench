@@ -1,6 +1,6 @@
 import { watch } from "node:fs";
 import { runSimulation } from "./sim";
-import { toEventLogLines, toTextReport } from "./report";
+import { toActivityLogLines, toEventLogLines, toResourceLogLines, toTextReport } from "./report";
 import { GameData } from "./types";
 import { createActionDslLines, createCivDslByName, createDslValidationSymbols, createRulesetDslByName, createSettingDslByName, parseBuildOrderDsl } from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
@@ -13,6 +13,9 @@ interface Args {
     debtFloor?: number;
     at?: number;
     eventLog: boolean;
+    resourceLog: boolean;
+    activityLog: boolean;
+    activityLogAt?: number;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -21,6 +24,8 @@ function parseArgs(argv: string[]): Args {
         build: "data/aoe2-scout-build-order.dsl",
         strict: false,
         eventLog: false,
+        resourceLog: false,
+        activityLog: false,
     };
 
     for (let i = 0; i < argv.length; i += 1) {
@@ -43,10 +48,29 @@ function parseArgs(argv: string[]): Args {
             i += 1;
         } else if (cur === "--event-log") {
             args.eventLog = true;
+        } else if (cur === "--resource-log") {
+            args.resourceLog = true;
+        } else if (cur === "--activity-log") {
+            args.activityLog = true;
+        } else if (cur === "--activity-log-at" && next) {
+            args.activityLogAt = parseCliTime(next, "--activity-log-at");
+            i += 1;
         }
     }
 
     return args;
+}
+
+function parseCliTime(raw: string, flagName: string): number {
+    if (/^\d+(?:\.\d+)?$/.test(raw)) return Number(raw);
+    const match = raw.match(/^(\d+):(\d{1,2})$/);
+    if (match) {
+        const minutes = Number(match[1]);
+        const seconds = Number(match[2]);
+        if (seconds >= 60) throw new Error(`Invalid ${flagName} value '${raw}': seconds must be < 60.`);
+        return minutes * 60 + seconds;
+    }
+    throw new Error(`Invalid ${flagName} value '${raw}': expected seconds or mm:ss.`);
 }
 
 async function loadGame(path: string): Promise<GameData> {
@@ -82,6 +106,14 @@ async function runOnce(args: Args): Promise<void> {
     if (args.eventLog) {
         console.log("eventLog:");
         for (const line of toEventLogLines(result)) console.log(line);
+    }
+    if (args.resourceLog) {
+        console.log("resourceLog:");
+        for (const line of toResourceLogLines(result, 30)) console.log(line);
+    }
+    if (args.activityLog) {
+        console.log("activityLog:");
+        for (const line of toActivityLogLines(result, 30, args.activityLogAt)) console.log(line);
     }
 }
 

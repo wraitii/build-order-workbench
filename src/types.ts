@@ -233,6 +233,7 @@ export type BuildOrderCommand = TriggerExecutableCommand | OnTriggerCommand;
 
 export interface BuildOrderInput {
     evaluationTime: number;
+    stopAfter?: StopAfterCondition;
     debtFloor?: number;
     startingResources?: ResourceMap;
     startingEntities?: Record<string, number>;
@@ -252,6 +253,11 @@ export interface ScoreCriterion {
     method: "time";
     condition: TriggerCondition;
     count?: number; // which occurrence to measure (1 = first, 3 = 3rd, etc.)
+}
+
+export interface StopAfterCondition {
+    condition: TriggerCondition;
+    count?: number;
 }
 
 export interface ScoreResult {

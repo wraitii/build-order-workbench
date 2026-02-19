@@ -1,5 +1,5 @@
 import { runSimulation } from "./sim";
-import { BuildOrderPreset, toEventLogLines, toGameObjectsHtml, toHtmlReport, toTextReport } from "./report";
+import { BuildOrderPreset, toActivityLogLines, toEventLogLines, toGameObjectsHtml, toHtmlReport, toResourceLogLines, toTextReport } from "./report";
 import { GameData } from "./types";
 import { createActionDslLines, createCivDslByName, createDslValidationSymbols, createRulesetDslByName, createSettingDslByName, parseBuildOrderDsl } from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
@@ -14,6 +14,9 @@ interface Args {
     debtFloor?: number;
     at?: number;
     eventLog?: string | true;
+    resourceLog?: string | true;
+    activityLog?: string | true;
+    activityLogAt?: number;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -51,10 +54,39 @@ function parseArgs(argv: string[]): Args {
             } else {
                 args.eventLog = true;
             }
+        } else if (cur === "--resource-log") {
+            if (next && !next.startsWith("--")) {
+                args.resourceLog = next;
+                i += 1;
+            } else {
+                args.resourceLog = true;
+            }
+        } else if (cur === "--activity-log") {
+            if (next && !next.startsWith("--")) {
+                args.activityLog = next;
+                i += 1;
+            } else {
+                args.activityLog = true;
+            }
+        } else if (cur === "--activity-log-at" && next) {
+            args.activityLogAt = parseCliTime(next, "--activity-log-at");
+            i += 1;
         }
     }
 
     return args;
+}
+
+function parseCliTime(raw: string, flagName: string): number {
+    if (/^\d+(?:\.\d+)?$/.test(raw)) return Number(raw);
+    const match = raw.match(/^(\d+):(\d{1,2})$/);
+    if (match) {
+        const minutes = Number(match[1]);
+        const seconds = Number(match[2]);
+        if (seconds >= 60) throw new Error(`Invalid ${flagName} value '${raw}': seconds must be < 60.`);
+        return minutes * 60 + seconds;
+    }
+    throw new Error(`Invalid ${flagName} value '${raw}': expected seconds or mm:ss.`);
 }
 
 async function loadJson<T>(path: string): Promise<T> {
@@ -102,6 +134,28 @@ async function main(): Promise<void> {
             console.log(`wrote event log: ${args.eventLog}`);
         } else {
             console.log("eventLog:");
+            for (const line of lines) console.log(line);
+        }
+    }
+    if (args.resourceLog) {
+        const lines = toResourceLogLines(result, 30);
+        if (typeof args.resourceLog === "string") {
+            const body = lines.length > 0 ? `${lines.join("\n")}\n` : "";
+            await Bun.write(args.resourceLog, body);
+            console.log(`wrote resource log: ${args.resourceLog}`);
+        } else {
+            console.log("resourceLog:");
+            for (const line of lines) console.log(line);
+        }
+    }
+    if (args.activityLog) {
+        const lines = toActivityLogLines(result, 30, args.activityLogAt);
+        if (typeof args.activityLog === "string") {
+            const body = lines.length > 0 ? `${lines.join("\n")}\n` : "";
+            await Bun.write(args.activityLog, body);
+            console.log(`wrote activity log: ${args.activityLog}`);
+        } else {
+            console.log("activityLog:");
             for (const line of lines) console.log(line);
         }
     }

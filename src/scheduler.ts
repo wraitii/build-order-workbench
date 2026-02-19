@@ -642,10 +642,14 @@ export function finalizeQueueRulesAtEvaluation(
         const code = reason === "NO_ACTORS" ? "NO_ACTORS" : reason === "POP_CAP" ? "HOUSED" : "RESOURCE_STALL";
         const contextParts: string[] = [];
         if (action) {
-            const actorHint = describeActorAvailabilityAtEvaluation(state, action, rule, evaluationTime);
-            if (actorHint) contextParts.push(actorHint);
-            const resourceHint = describeResourceShortfallAtEvaluation(state, game, options, action);
-            if (resourceHint) contextParts.push(resourceHint);
+            if (reason === "NO_ACTORS") {
+                const actorHint = describeActorAvailabilityAtEvaluation(state, action, rule, evaluationTime);
+                if (actorHint) contextParts.push(actorHint);
+            }
+            if (reason === "INSUFFICIENT_RESOURCES") {
+                const resourceHint = describeResourceShortfallAtEvaluation(state, game, options, action);
+                if (resourceHint) contextParts.push(resourceHint);
+            }
         }
         const context = contextParts.length > 0 ? ` ${contextParts.join(" ")}` : "";
         const message =
@@ -879,6 +883,7 @@ export function assignGather(
     state: SimState,
     cmd: Extract<BuildOrderCommand, { type: "assignGather" }>,
     commandIndex: number,
+    options?: { allowEmptySelectorMatch?: boolean },
 ): void {
     const requestedAt = state.now;
     let requestedCount: number;
@@ -895,6 +900,15 @@ export function assignGather(
         requestedCount = pickEligibleActorIds(state, allRequest).length;
     } else {
         requestedCount = cmd.actorSelectors?.length ?? cmd.count ?? 0;
+    }
+    if (
+        requestedCount === 0 &&
+        !options?.allowEmptySelectorMatch &&
+        (cmd.actorResourceNodeIds?.length ?? 0) + (cmd.actorResourceNodeSelectors?.length ?? 0) > 0
+    ) {
+        const msg = `assignGather selector matched no '${cmd.actorType}' actors.`;
+        pushInvalidAssignment(state, commandIndex, cmd.type, requestedAt, msg);
+        return;
     }
     const assignRequest: Parameters<typeof pickEligibleActorIds>[1] = {
         actorTypes: [cmd.actorType],

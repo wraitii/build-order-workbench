@@ -40,6 +40,7 @@ function buildSystemPrompt(): string {
         "Actions: " + Object.keys(g.actions).join(", "),
         "\nDSL syntax:",
         "  evaluation <MM:SS>",
+        "  stop after clicked|completed|depleted|exhausted <target> [x<n>]",
         "  start with <entity>[x<n>], ...",
         "  auto-queue <action> using <entity>[, <entity>]",
         "  queue <action> [x<n>] using <entity>[, ...]",

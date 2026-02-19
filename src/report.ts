@@ -1,4 +1,5 @@
 import { GameData, SimulationResult } from "./types";
+import { compareEntityIdNatural, EPS } from "./sim_shared";
 import { readdir } from "fs/promises";
 
 export interface BuildOrderPreset {
@@ -131,7 +132,9 @@ export function toTextReport(result: SimulationResult): string {
     lines.push(`avgFloat: ${formatMap(stripInternalResources(result.avgFloat))}`);
     lines.push(`entities: ${formatIntMap(result.entitiesByType)}`);
     lines.push(`tcIdleTime: ${formatMSS(result.tcIdleTime)} (${result.tcIdleTime.toFixed(2)}s)`);
-    lines.push(`totalVillagerIdleTime: ${formatMSS(result.totalVillagerIdleTime)} (${result.totalVillagerIdleTime.toFixed(2)}s)`);
+    lines.push(
+        `totalVillagerIdleTime: ${formatMSS(result.totalVillagerIdleTime)} (${result.totalVillagerIdleTime.toFixed(2)}s)`,
+    );
     lines.push(`maxDebt: ${result.maxDebt.toFixed(2)}`);
     lines.push(`completedActions: ${result.completedActions}`);
     if (result.scores.length > 0) {
@@ -148,10 +151,10 @@ export function toTextReport(result: SimulationResult): string {
         });
         lines.push(`scores:\n${scoreLines.join("\n")}`);
     }
-    lines.push(`violations: ${result.violations.length}`);
+    lines.push(`warnings: ${result.violations.length}`);
 
     if (result.violations.length > 0) {
-        lines.push("violationDetails:");
+        lines.push("warningDetails:");
         for (const v of result.violations) {
             lines.push(`  - t=${v.time.toFixed(2)} [${v.code}] ${v.message}`);
         }
@@ -162,6 +165,83 @@ export function toTextReport(result: SimulationResult): string {
 
 export function toEventLogLines(result: SimulationResult): string[] {
     return result.eventLogs.map((entry) => `${formatMMSS(entry.time)} [${entry.entityId}] switched to ${entry.to}`);
+}
+
+function resourcesAtTime(result: SimulationResult, t: number): Record<string, number> {
+    if (!result.resourceTimeline || result.resourceTimeline.length === 0) return { ...result.initialResources };
+
+    for (const seg of result.resourceTimeline) {
+        if (t >= seg.start && t <= seg.end) {
+            const dt = t - seg.start;
+            const out = { ...seg.startResources };
+            const gatherRates = (seg.gatherRates ?? {}) as Record<string, number>;
+            for (const [k, rate] of Object.entries(gatherRates)) out[k] = (out[k] ?? 0) + rate * dt;
+            return out;
+        }
+    }
+
+    const firstSeg = result.resourceTimeline[0];
+    if (firstSeg && t <= firstSeg.start) return { ...result.initialResources };
+    return { ...result.resourcesAtEvaluation };
+}
+
+export function toResourceLogLines(result: SimulationResult, intervalSeconds = 30): string[] {
+    const endTime = result.resourceTimeline[result.resourceTimeline.length - 1]?.end ?? 0;
+    const safeInterval = Number.isFinite(intervalSeconds) && intervalSeconds > 0 ? intervalSeconds : 30;
+
+    const times: number[] = [];
+    for (let t = 0; t <= endTime + 1e-9; t += safeInterval) {
+        times.push(t);
+    }
+    const last = times[times.length - 1];
+    if (last === undefined || Math.abs(last - endTime) > 1e-9) {
+        times.push(endTime);
+    }
+
+    return times.map((time) => `${formatMMSS(time)} ${formatIntMap(resourcesAtTime(result, time))}`);
+}
+
+function activityAtTime(result: SimulationResult, entityId: string, t: number): string | null {
+    const timeline = result.entityTimelines[entityId];
+    if (!timeline) return null;
+    for (let i = timeline.segments.length - 1; i >= 0; i -= 1) {
+        const seg = timeline.segments[i];
+        if (!seg) continue;
+        if (t + EPS < seg.start) continue;
+        if (t > seg.end + EPS) continue;
+        if (seg.kind === "idle") return "idle";
+        return `${seg.kind}:${seg.detail}`;
+    }
+    return null;
+}
+
+export function toActivityLogLines(result: SimulationResult, intervalSeconds = 30, atTime?: number): string[] {
+    const endTime = result.resourceTimeline[result.resourceTimeline.length - 1]?.end ?? 0;
+    const entityIds = Object.keys(result.entityTimelines).sort(compareEntityIdNatural);
+    const times: number[] = [];
+
+    if (atTime !== undefined) {
+        times.push(Math.max(0, Math.min(endTime, atTime)));
+    } else {
+        const safeInterval = Number.isFinite(intervalSeconds) && intervalSeconds > 0 ? intervalSeconds : 30;
+        for (let t = 0; t <= endTime + EPS; t += safeInterval) {
+            times.push(t);
+        }
+        const last = times[times.length - 1];
+        if (last === undefined || Math.abs(last - endTime) > EPS) {
+            times.push(endTime);
+        }
+    }
+
+    return times.map((time) => {
+        const entries: string[] = [];
+        for (const entityId of entityIds) {
+            const activity = activityAtTime(result, entityId, time);
+            if (activity === null) continue;
+            entries.push(`${entityId}: ${activity}`);
+        }
+        return `${formatMMSS(time)} ${entries.join(", ")}`;
+    });
 }
 
 async function getBgDataUri(): Promise<string> {
@@ -261,10 +341,7 @@ export async function toHtmlReport(
     return html;
 }
 
-export async function toGameObjectsHtml(
-    game: GameData,
-    timelineHref: string,
-): Promise<string> {
+export async function toGameObjectsHtml(game: GameData, timelineHref: string): Promise<string> {
     const [gameObjectsBundle, bgDataUri, faviconDataUri, iconDataUris, htmlTemplate, css] = await Promise.all([
         getGameObjectsBundle(),
         getBgDataUri(),

@@ -1,10 +1,19 @@
 import { parseDslSelectors } from "./node_selectors";
 import { AstCommandCondition, AstCommandLine, AstDslLine, AstPreambleLine } from "./dsl_ast";
-import { BuildOrderCommand, HumanDelayBucket, ResourceMap, ScoreCriterion, TriggerCondition, TriggerMode } from "./types";
+import {
+    BuildOrderCommand,
+    HumanDelayBucket,
+    ResourceMap,
+    ScoreCriterion,
+    StopAfterCondition,
+    TriggerCondition,
+    TriggerMode,
+} from "./types";
 
 export interface DslLoweringState {
     commands: BuildOrderCommand[];
     evaluationTime?: number;
+    stopAfter?: StopAfterCondition;
     debtFloor?: number;
     startingResources?: Record<string, number>;
     startingEntities?: Record<string, number>;
@@ -634,6 +643,12 @@ function applyPreambleLine(
     }
     if (preamble.type === "debtFloor") {
         state.debtFloor = parseNumber(preamble.valueToken, lineNo);
+        return;
+    }
+    if (preamble.type === "stopAfter") {
+        const condition = parseTriggerCondition(preamble.condKind, preamble.condTarget, lineNo, selectorAliases, symbols);
+        const count = preamble.countToken !== undefined ? parseNumber(preamble.countToken, lineNo) : undefined;
+        state.stopAfter = { condition, ...(count !== undefined ? { count } : {}) };
         return;
     }
     if (preamble.type === "civ") {

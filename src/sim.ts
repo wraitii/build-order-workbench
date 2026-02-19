@@ -22,6 +22,7 @@ import {
     SimulationResult,
     ScoreCriterion,
     ScoreResult,
+    StopAfterCondition,
 } from "./types";
 import { matchesNodeSelector } from "./node_selectors";
 import {
@@ -316,18 +317,21 @@ function advanceWithAutomation(
     game: GameData,
     options: SimOptions,
     pendingDeferred: PendingDeferredCommand[],
+    shouldStopNow?: () => boolean,
 ): void {
     targetTime = toTick(targetTime);
     const debug = isSimDebugEnabled();
 
     let guard = 0;
     while (state.now + EPS < targetTime) {
+        if (shouldStopNow?.()) break;
         guard += 1;
         if (guard > 1_000_000) {
             throw new Error(`advanceWithAutomation loop guard tripped (now=${state.now}, target=${targetTime}).`);
         }
         wakeAutomation(state);
         processAutomation(state, game, options);
+        if (shouldStopNow?.()) break;
 
         const nextAuto = nextAutomationTime(state);
         const nextEvent = findNextEventTime(state.events, state.now) ?? Number.POSITIVE_INFINITY;
@@ -369,6 +373,7 @@ function advanceWithAutomation(
                 onAutomationWake: () => wakeAutomation(state),
                 executeCommand,
             });
+            if (shouldStopNow?.()) break;
             continue;
         }
 
@@ -388,6 +393,7 @@ function advanceWithAutomation(
             onAutomationWake: () => wakeAutomation(state),
             executeCommand,
         });
+        if (shouldStopNow?.()) break;
     }
 }
 
@@ -524,7 +530,9 @@ function executeCommand(
             registerQueueAction(state, queueCmd, commandIndex);
         },
         assignGather: () => {
-            assignGather(state, cmd as Extract<BuildOrderCommand, { type: "assignGather" }>, commandIndex);
+            assignGather(state, cmd as Extract<BuildOrderCommand, { type: "assignGather" }>, commandIndex, {
+                allowEmptySelectorMatch: triggerContext?.triggerMode === "every",
+            });
         },
         assignEventGather: () => {
             const assignEventCmd = cmd as Extract<BuildOrderCommand, { type: "assignEventGather" }>;
@@ -831,44 +839,42 @@ function processReadyDeferredCommands(
     } while (changed);
 }
 
-function computeScores(state: SimState, criteria: ScoreCriterion[]): ScoreResult[] {
-    return criteria.map((criterion) => {
-        const count = criterion.count ?? 1;
-        const cond = criterion.condition;
-        let value: number | null = null;
+function resolveConditionTime(state: SimState, condition: StopAfterCondition): number | null {
+    const count = condition.count ?? 1;
+    const cond = condition.condition;
+    if (cond.kind === "clicked" || cond.kind === "completed") {
+        const times = cond.kind === "clicked" ? state.actionClickTimes[cond.actionId] ?? [] : state.actionCompletionTimes[cond.actionId] ?? [];
+        return times[count - 1] ?? null;
+    }
 
-        if (cond.kind === "clicked" || cond.kind === "completed") {
-            const times =
-                cond.kind === "clicked"
-                    ? (state.actionClickTimes[cond.actionId] ?? [])
-                    : (state.actionCompletionTimes[cond.actionId] ?? []);
-            value = times[count - 1] ?? null;
-        } else {
-            const selector = cond.resourceNodeSelector;
-            const matchingNodes = state.resourceNodes.filter((n) => matchesNodeSelector(n, selector));
-            const depletionTimes = matchingNodes
-                .map((n) => state.nodeDepletionTimes[n.id])
-                .filter((t): t is number => t !== undefined)
-                .sort((a, b) => a - b);
-
-            if (cond.kind === "exhausted") {
-                const allDepleted =
-                    matchingNodes.length > 0 &&
-                    matchingNodes.every((n) => state.nodeDepletionTimes[n.id] !== undefined);
-                if (allDepleted && depletionTimes.length > 0) {
-                    value = depletionTimes[depletionTimes.length - 1] ?? null;
-                }
-            } else {
-                value = depletionTimes[count - 1] ?? null;
-            }
+    const selector = cond.resourceNodeSelector;
+    const matchingNodes = state.resourceNodes.filter((n) => matchesNodeSelector(n, selector));
+    const depletionTimes = matchingNodes
+        .map((n) => state.nodeDepletionTimes[n.id])
+        .filter((t): t is number => t !== undefined)
+        .sort((a, b) => a - b);
+    if (cond.kind === "exhausted") {
+        const allDepleted = matchingNodes.length > 0 && matchingNodes.every((n) => state.nodeDepletionTimes[n.id] !== undefined);
+        if (allDepleted && depletionTimes.length > 0) {
+            return depletionTimes[depletionTimes.length - 1] ?? null;
         }
+        return null;
+    }
+    return depletionTimes[count - 1] ?? null;
+}
 
-        return { criterion, value };
-    });
+function computeScores(state: SimState, criteria: ScoreCriterion[]): ScoreResult[] {
+    return criteria.map((criterion) => ({
+        criterion,
+        value: resolveConditionTime(state, {
+            condition: criterion.condition,
+            ...(criterion.count !== undefined ? { count: criterion.count } : {}),
+        }),
+    }));
 }
 
 export function runSimulation(game: GameData, buildOrder: BuildOrderInput, options: SimOptions): SimulationResult {
-    const evaluationTime = toTick(options.evaluationTime);
+    const requestedEvaluationTime = toTick(options.evaluationTime);
     const initialResources = cloneResources(game.startingResources ?? {});
     for (const [resource, amount] of Object.entries(buildOrder.startingResources ?? {})) {
         initialResources[resource] = amount;
@@ -958,6 +964,22 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
             return a.originalIndex - b.originalIndex;
         });
     const pendingDeferred: PendingDeferredCommand[] = [];
+    let effectiveEvaluationTime = requestedEvaluationTime;
+    let stopAfterReached = false;
+    const refreshStopAfterEvaluationTime = (): void => {
+        if (!buildOrder.stopAfter) return;
+        const stopAt = resolveConditionTime(state, buildOrder.stopAfter);
+        if (stopAt === null) return;
+        const stopAtTick = toTick(stopAt);
+        effectiveEvaluationTime = Math.min(effectiveEvaluationTime, stopAtTick);
+        if (state.now + EPS >= stopAtTick) {
+            stopAfterReached = true;
+        }
+    };
+    const shouldStopNow = (): boolean => {
+        refreshStopAfterEvaluationTime();
+        return stopAfterReached;
+    };
     type MainPhase = "command" | "evaluation";
     const mainPriority: Record<MainPhase, number> = { command: 10, evaluation: 100 };
     const queue = new EventQueue<MainPhase, { index: number; cmd: BuildOrderCommand } | {}>(mainPriority);
@@ -965,20 +987,26 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         const commandTime = toTick(item.cmd.at ?? 0);
         queue.push(commandTime, "command", { index, cmd: item.cmd });
     }
-    queue.push(evaluationTime, "evaluation", {});
+    queue.push(requestedEvaluationTime, "evaluation", {});
 
     while (!queue.isEmpty()) {
+        if (shouldStopNow()) break;
         const event = queue.pop();
         if (!event) break;
-        const targetTime = toTick(event.time);
+        const targetTime = toTick(Math.min(event.time, effectiveEvaluationTime));
 
         if (state.now + EPS < targetTime) {
-            advanceWithAutomation(state, targetTime, game, options, pendingDeferred);
+            advanceWithAutomation(state, targetTime, game, options, pendingDeferred, shouldStopNow);
+        }
+        if (shouldStopNow()) {
+            processReadyDeferredCommands(state, game, options, pendingDeferred);
+            break;
         }
 
         processReadyDeferredCommands(state, game, options, pendingDeferred);
+        if (shouldStopNow()) break;
 
-        if (event.phase === "evaluation") {
+        if (event.phase === "evaluation" || event.time > effectiveEvaluationTime + EPS) {
             break;
         }
 
@@ -993,21 +1021,23 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         wakeAutomation(state);
         processAutomation(state, game, options);
         processReadyDeferredCommands(state, game, options, pendingDeferred);
+        if (shouldStopNow()) break;
     }
 
-    if (state.now + EPS < evaluationTime) {
-        advanceWithAutomation(state, evaluationTime, game, options, pendingDeferred);
+    if (state.now + EPS < effectiveEvaluationTime) {
+        advanceWithAutomation(state, effectiveEvaluationTime, game, options, pendingDeferred, shouldStopNow);
     }
+    refreshStopAfterEvaluationTime();
     processReadyDeferredCommands(state, game, options, pendingDeferred);
-    finalizeQueueRulesAtEvaluation(state, game, options, evaluationTime);
+    finalizeQueueRulesAtEvaluation(state, game, options, effectiveEvaluationTime);
 
     for (const [entityId, current] of Object.entries(state.currentActivities)) {
-        if (current.start < evaluationTime) {
-            state.entityTimelines[entityId]?.segments.push({ ...current, end: evaluationTime });
+        if (current.start < effectiveEvaluationTime) {
+            state.entityTimelines[entityId]?.segments.push({ ...current, end: effectiveEvaluationTime });
         }
     }
 
-    const health = computeHealthMetrics(state.resourceTimeline, options.evaluationTime, game.resources);
+    const health = computeHealthMetrics(state.resourceTimeline, effectiveEvaluationTime, game.resources);
     const idleTimeMetrics = computeIdleTimeMetrics(state.entityTimelines);
 
     return {

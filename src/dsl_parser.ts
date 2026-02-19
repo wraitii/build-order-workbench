@@ -312,6 +312,41 @@ export function parseDslAstLine(line: string, lineNo: number): AstDslLine {
         return { type: "preamble", preamble: { type: "evaluation", timeToken } };
     }
 
+    if (op === "stop" && tokens[1] === "after") {
+        const condKind = tokens[2];
+        const condTarget = tokens[3];
+        if (!condKind || !condTarget) {
+            throw new Error(
+                `Line ${lineNo}: expected 'stop after <clicked|completed|depleted|exhausted> <target> [x<count>]'.`,
+            );
+        }
+        if (condKind !== "clicked" && condKind !== "completed" && condKind !== "depleted" && condKind !== "exhausted") {
+            throw new Error(
+                `Line ${lineNo}: unknown trigger '${condKind}'. Use 'clicked', 'completed', 'depleted', or 'exhausted'.`,
+            );
+        }
+        let countToken: string | undefined;
+        const maybeCount = tokens[4];
+        if (maybeCount) {
+            if (maybeCount === "x" && tokens[5]) {
+                countToken = tokens[5];
+            } else if (maybeCount.startsWith("x")) {
+                countToken = maybeCount.slice(1);
+            } else {
+                throw new Error(`Line ${lineNo}: unexpected token '${maybeCount}' after stop target.`);
+            }
+        }
+        return {
+            type: "preamble",
+            preamble: {
+                type: "stopAfter",
+                condKind,
+                condTarget,
+                ...(countToken !== undefined ? { countToken } : {}),
+            },
+        };
+    }
+
     if (op === "debt-floor") {
         const valueToken = tokens[1];
         if (!valueToken) throw new Error(`Line ${lineNo}: missing debt floor value.`);

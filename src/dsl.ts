@@ -202,6 +202,7 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
         evaluationTime: state.evaluationTime,
         commands: state.commands,
     };
+    if (state.stopAfter !== undefined) out.stopAfter = state.stopAfter;
     if (state.debtFloor !== undefined) out.debtFloor = state.debtFloor;
     if (state.startingResources !== undefined) out.startingResources = state.startingResources;
     if (state.startingEntities !== undefined) out.startingEntities = state.startingEntities;

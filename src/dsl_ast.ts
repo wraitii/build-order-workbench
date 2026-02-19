@@ -30,6 +30,7 @@ export interface AstCommandLine {
 
 export type AstPreambleLine =
     | { type: "evaluation"; timeToken: string }
+    | { type: "stopAfter"; condKind: AstTriggerKind; condTarget: string; countToken?: string }
     | { type: "debtFloor"; valueToken: string }
     | { type: "civ"; civName: string }
     | { type: "ruleset"; rulesetName: string }

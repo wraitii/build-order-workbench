@@ -3,7 +3,7 @@ import { createActionDslLines, createDslValidationSymbols, parseBuildOrderDsl } 
 import { runSimulation } from "../src/sim";
 import { GameData } from "../src/types";
 import { createDslSelectorAliases } from "../src/node_selectors";
-import { toEventLogLines } from "../src/report";
+import { toActivityLogLines, toEventLogLines, toResourceLogLines } from "../src/report";
 
 const TEST_GAME: GameData = {
     resources: ["food", "wood", "gold", "stone", "pop"],
@@ -365,6 +365,16 @@ after clicked build_farm assign villager 1 to sheep
         expect(cmd.trigger.kind).toBe("clicked");
         if (cmd.trigger.kind !== "clicked") return;
         expect(cmd.trigger.actionId).toBe("build_farm");
+    });
+
+    test("parses stop-after preamble", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 120
+stop after clicked build_farm
+`);
+        expect(build.stopAfter?.condition.kind).toBe("clicked");
+        if (!build.stopAfter || build.stopAfter.condition.kind !== "clicked") return;
+        expect(build.stopAfter.condition.actionId).toBe("build_farm");
     });
 
     test("parses after exhausted trigger", () => {
@@ -958,6 +968,28 @@ at 0 queue lure_boar x2 using villager 1
         expect(result.scores[1]?.value).toBe(1);
     });
 
+    test("stop after clicked ends simulation at trigger time", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 10
+start with villager
+stop after clicked lure_boar
+at 0 queue lure_boar using villager 1
+at 0 queue build_farm using villager 1
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        expect(result.entitiesByType.villager).toBe(1);
+        expect(result.completedActions).toBe(0);
+        expect(result.commandResults).toHaveLength(1);
+        expect(result.commandResults[0]?.type).toBe("queueAction");
+        expect(result.commandResults[0]?.startedAt).toBe(0);
+    });
+
     test("sheep decay starts on first gather assignment", () => {
         const decayGame: GameData = {
             ...TEST_GAME,
@@ -1442,6 +1474,45 @@ after depleted sheep assign to forest
         expect(invalidAssignments[0]?.message).toContain("no actors in trigger context");
     });
 
+    test("after completed assign all from selector warns when selector matches no actors", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager
+assign villager 1 to sheep
+at 0 queue lure_boar using villager 1
+after completed lure_boar assign villager all from forest to sheep
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const invalidAssignments = result.violations.filter((v) => v.code === "INVALID_ASSIGNMENT");
+        expect(invalidAssignments.length).toBe(1);
+        expect(invalidAssignments[0]?.message).toContain("selector matched no");
+    });
+
+    test("after every completed assign all from selector is a no-op when selector matches no actors", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager
+assign villager 1 to sheep
+at 0 queue lure_boar x2 using villager 1
+after every completed lure_boar assign villager all from forest to sheep
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const invalidAssignments = result.violations.filter((v) => v.code === "INVALID_ASSIGNMENT");
+        expect(invalidAssignments.length).toBe(0);
+    });
+
     test("resource-waiting queue command does not pause unrelated auto-queue", () => {
         const build = parseBuildOrderDsl(`
 evaluation 120
@@ -1600,6 +1671,28 @@ at 0 after villager 5 queue build_house_plain x2 using villager 1
         expect(trainStarts).toContain(70);
     });
 
+    test("NO_ACTORS stall warning does not include resource short details", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 1
+start with villager
+starting-resource wood 0
+assign villager 1 to sheep
+at 0 queue expensive_build using villager from idle
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const noActors = result.violations.find(
+            (v) => v.code === "NO_ACTORS" && v.message.includes("'expensive_build'"),
+        );
+        expect(noActors).toBeDefined();
+        expect(noActors?.message.includes("short")).toBe(false);
+    });
+
     test("warns when a command spend crosses a resource below zero", () => {
         const build = parseBuildOrderDsl(`
 evaluation 5
@@ -1715,5 +1808,62 @@ at 0 assign villager 1 to sheep
 
         const lines = toEventLogLines(result);
         expect(lines).toContain("00:00 [villager-1] switched to gather:food:sheep");
+    });
+
+    test("resource log samples every 30s and includes final timestamp", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 65
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const lines = toResourceLogLines(result, 30);
+        expect(lines).toHaveLength(4);
+        expect(lines[0]).toBe("00:00 food: 200, wood: 200, gold: 100, stone: 200, pop: 12");
+        expect(lines[1]?.startsWith("00:30 ")).toBe(true);
+        expect(lines[2]?.startsWith("01:00 ")).toBe(true);
+        expect(lines[3]?.startsWith("01:05 ")).toBe(true);
+    });
+
+    test("activity log can snapshot one timestamp and includes current action for each existing entity", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 5
+at 0 assign villager 1 to sheep
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const lines = toActivityLogLines(result, 30, 0);
+        expect(lines).toHaveLength(1);
+        expect(lines[0]?.startsWith("00:00 ")).toBe(true);
+        expect(lines[0]).toContain("villager-1: gather:food:sheep");
+        expect(lines[0]).toContain("town_center-1: idle");
+    });
+
+    test("activity log samples every 30s and includes final timestamp", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 65
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const lines = toActivityLogLines(result, 30);
+        expect(lines).toHaveLength(4);
+        expect(lines[0]?.startsWith("00:00 ")).toBe(true);
+        expect(lines[1]?.startsWith("00:30 ")).toBe(true);
+        expect(lines[2]?.startsWith("01:00 ")).toBe(true);
+        expect(lines[3]?.startsWith("01:05 ")).toBe(true);
     });
 });

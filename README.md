@@ -48,6 +48,7 @@ These go at the top before any commands, and configure the simulation:
 | Line | What it does |
 | --- | --- |
 | `evaluation <time>` | **Required.** How long to simulate, e.g. `evaluation 15:00`. |
+| `stop after <clicked\|completed\|depleted\|exhausted> <target> [xN]` | Optional early-stop trigger; sim ends at the earlier of this trigger time and `evaluation`. |
 | `ruleset aoe2` | Use standard AoE2 game rules. |
 | `setting arabia` | Start with the standard Arabia setup — 6 sheep, 2 boar, berries, etc. |
 | `debt-floor <amount>` | Allow resources to go this many below zero before triggering a warning (default: 0). |
@@ -161,6 +162,7 @@ Whenever a command needs to know *which* villager or *which* resource, you use a
 ```
 # Preamble (before any commands)
 evaluation <time>                                     # required: simulation length
+stop after <clicked|completed|depleted|exhausted> <target> [xN]  # optional early stop condition
 debt-floor <value>                                    # min resource deficit allowed (default 0)
 starting-resource <resource> <amount>                 # override a starting resource
 ruleset <name>                                        # currently: aoe2
@@ -217,6 +219,22 @@ Optional event transition log (`MM:SS [entity] switched to X`):
 ```bash
 bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --event-log
 bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --event-log out/events.log
+```
+
+Optional resource snapshot log every 30s (`MM:SS food: ..., wood: ...`):
+
+```bash
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --resource-log
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --resource-log out/resources.log
+```
+
+Optional entity activity snapshot log (`MM:SS villager-1: gather:sheep, ...`):
+
+```bash
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log out/activities.log
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log --activity-log-at 9:30
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log --activity-log-at 570
 ```
 
 Game data is a plain JSON file (`data/aoe2-game.json`) — adaptable to other RTS titles.
