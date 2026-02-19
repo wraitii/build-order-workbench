@@ -201,6 +201,52 @@ function activateDecayOnFirstGather(node: ResourceNodeInstance): void {
     activateNodeDecay(node);
 }
 
+function resolveConsumableNodes(state: SimState, prototypeId: string, count: number): ResourceNodeInstance[] | undefined {
+    const available = [...state.resourceNodes]
+        .filter(
+            (node) =>
+                node.prototypeId === prototypeId &&
+                !node.depleted &&
+                (node.remainingStock === undefined || node.remainingStock > EPS),
+        )
+        .sort((a, b) => compareEntityIdNatural(a.id, b.id));
+    if (available.length < count) return undefined;
+    return available.slice(0, count);
+}
+
+function consumeResourceNodes(
+    state: SimState,
+    specs: Array<{ prototypeId: string; count?: number }>,
+): boolean {
+    if (specs.length === 0) return true;
+
+    const requiredByPrototype: Record<string, number> = {};
+    for (const spec of specs) {
+        const count = Math.max(1, spec.count ?? 1);
+        requiredByPrototype[spec.prototypeId] = (requiredByPrototype[spec.prototypeId] ?? 0) + count;
+    }
+
+    const picked: ResourceNodeInstance[] = [];
+    for (const [prototypeId, count] of Object.entries(requiredByPrototype)) {
+        const nodes = resolveConsumableNodes(state, prototypeId, count);
+        if (!nodes) return false;
+        picked.push(...nodes);
+    }
+
+    for (const node of picked) {
+        node.remainingStock = 0;
+        node.depleted = true;
+        for (const ent of state.entities) {
+            if (ent.resourceNodeId !== node.id) continue;
+            delete ent.resourceNodeId;
+            if (ent.busyUntil <= state.now + EPS) {
+                switchEntityActivity(state, ent.id, "idle", "idle");
+            }
+        }
+    }
+    return true;
+}
+
 export function assignEntityToGatherTargets(
     state: SimState,
     entityId: string,
@@ -240,7 +286,7 @@ export function tryScheduleActionNow(
     extraResourceFloorOverrides?: Record<string, number>,
 ):
     | { status: "scheduled"; completionTime: number; actionId: string; actors: string[]; startedAt: number }
-    | { status: "blocked"; reason: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP" }
+    | { status: "blocked"; reason: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP" | "NO_RESOURCE_NODES" }
     | { status: "invalid"; message: string } {
     const action = game.actions[cmd.actionId];
     if (!action) {
@@ -269,6 +315,10 @@ export function tryScheduleActionNow(
     const actorIds = pickEligibleActorIds(state, actorRequest);
     if (actorIds.length < actorCount) {
         return { status: "blocked", reason: "NO_ACTORS" };
+    }
+
+    if (!consumeResourceNodes(state, action.consumesResourceNodes ?? [])) {
+        return { status: "blocked", reason: "NO_RESOURCE_NODES" };
     }
 
     const costs = effectiveCosts(action, state.activeModifiers);
@@ -402,7 +452,7 @@ function computeBlockedNextAttempt(
         QueueRule | AutoQueueRule,
         "actionId" | "actorSelectors" | "actorResourceNodeIds" | "actorResourceNodeSelectors"
     >,
-    reason: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP",
+    reason: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP" | "NO_RESOURCE_NODES",
     extraResourceFloorOverrides?: Record<string, number>,
 ): number {
     const action = game.actions[rule.actionId];
@@ -426,6 +476,12 @@ function computeBlockedNextAttempt(
     }
 
     if (reason === "POP_CAP") {
+        const nextEventTime =
+            state.events.filter((e) => e.time > state.now + EPS).sort((a, b) => a.time - b.time)[0]?.time ?? Infinity;
+        return Number.isFinite(nextEventTime) ? toFutureTick(nextEventTime) : Number.POSITIVE_INFINITY;
+    }
+
+    if (reason === "NO_RESOURCE_NODES") {
         const nextEventTime =
             state.events.filter((e) => e.time > state.now + EPS).sort((a, b) => a.time - b.time)[0]?.time ?? Infinity;
         return Number.isFinite(nextEventTime) ? toFutureTick(nextEventTime) : Number.POSITIVE_INFINITY;
@@ -649,6 +705,9 @@ export function finalizeQueueRulesAtEvaluation(
             if (reason === "INSUFFICIENT_RESOURCES") {
                 const resourceHint = describeResourceShortfallAtEvaluation(state, game, options, action);
                 if (resourceHint) contextParts.push(resourceHint);
+            }
+            if (reason === "NO_RESOURCE_NODES") {
+                contextParts.push("Required map resource nodes were unavailable.");
             }
         }
         const context = contextParts.length > 0 ? ` ${contextParts.join(" ")}` : "";

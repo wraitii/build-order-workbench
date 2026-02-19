@@ -51,6 +51,14 @@ const TEST_GAME: GameData = {
             stock: 3,
             tags: ["food", "boar"],
         },
+        wild_boar: {
+            id: "wild_boar",
+            name: "Wild Boar",
+            produces: "food",
+            rateByEntityType: {},
+            stock: 1,
+            tags: ["boar_animal"],
+        },
         farm_patch: {
             id: "farm_patch",
             name: "Farm Patch",
@@ -63,6 +71,7 @@ const TEST_GAME: GameData = {
     },
     startingResourceNodes: [
         { prototypeId: "sheep", count: 1 },
+        { prototypeId: "wild_boar", count: 2 },
         { prototypeId: "forest", count: 1 },
         { prototypeId: "straggler_trees", count: 1 },
     ],
@@ -111,6 +120,7 @@ const TEST_GAME: GameData = {
             name: "Lure Boar",
             actorTypes: ["villager"],
             duration: 1,
+            consumesResourceNodes: [{ prototypeId: "wild_boar", count: 1 }],
             createsResourceNodes: [{ prototypeId: "boar", count: 1 }],
         },
         build_farm: {
@@ -682,6 +692,81 @@ queue build_archery_range using villager 1
         expect(result.entitiesByType.barracks).toBe(1);
         expect(result.entitiesByType.stable).toBe(1);
         expect(result.entitiesByType.archery_range).toBe(1);
+    });
+});
+
+describe("action resource-node consumption", () => {
+    test("lure_boar consumes wild_boar nodes and stalls when exhausted", () => {
+        const build = parseBuildOrderDsl(`
+evaluation 5
+start with villager
+at 0 queue lure_boar x3 using villager 1
+`);
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        expect(result.completedActions).toBe(2);
+        const stall = result.violations.find(
+            (v) => v.code === "RESOURCE_STALL" && v.message.includes("'lure_boar'"),
+        );
+        expect(stall).toBeDefined();
+        expect(stall?.message.includes("Required map resource nodes were unavailable.")).toBe(true);
+    });
+
+    test("find_sheep consumes two neutral sheep per run", () => {
+        const game: GameData = {
+            ...TEST_GAME,
+            entities: {
+                ...TEST_GAME.entities,
+                scout: { id: "scout", name: "Scout", kind: "unit" },
+            },
+            resourceNodePrototypes: {
+                ...TEST_GAME.resourceNodePrototypes,
+                neutral_sheep: {
+                    id: "neutral_sheep",
+                    name: "Neutral Sheep",
+                    produces: "food",
+                    rateByEntityType: {},
+                    stock: 1,
+                    tags: ["herdable", "neutral_herdable"],
+                },
+            },
+            startingResourceNodes: [{ prototypeId: "neutral_sheep", count: 8 }],
+            actions: {
+                ...TEST_GAME.actions,
+                find_sheep: {
+                    id: "find_sheep",
+                    name: "Find Sheep",
+                    actorTypes: ["scout"],
+                    taskType: "lure",
+                    duration: 45,
+                    consumesResourceNodes: [{ prototypeId: "neutral_sheep", count: 2 }],
+                    createsResourceNodes: [{ prototypeId: "sheep", count: 2 }],
+                },
+            },
+        };
+        const build = parseBuildOrderDsl(`
+evaluation 240
+start with scout
+at 0 queue find_sheep x5 using scout 1
+`);
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const completedFindSheep = result.commandResults.filter(
+            (entry) => entry.type === "queueAction" && entry.status === "scheduled",
+        ).length;
+        expect(completedFindSheep).toBe(4);
+        const stall = result.violations.find(
+            (v) => v.code === "RESOURCE_STALL" && v.message.includes("'find_sheep'"),
+        );
+        expect(stall).toBeDefined();
     });
 });
 
@@ -1327,7 +1412,9 @@ after every completed lure_boar queue lure_boar
         const villager2 = result.entityTimelines["villager-2"];
         const v2LureActions =
             villager2?.segments.filter((s) => s.kind === "action" && s.detail === "lure_boar").length ?? 0;
-        expect(v2LureActions).toBeGreaterThan(2);
+        expect(v2LureActions).toBe(2);
+        const stall = result.violations.find((v) => v.code === "RESOURCE_STALL" && v.message.includes("'lure_boar'"));
+        expect(stall).toBeDefined();
     });
 
     test("deferred setup runs before same-timestamp automation", () => {

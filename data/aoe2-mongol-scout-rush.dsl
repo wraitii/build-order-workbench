@@ -15,6 +15,7 @@ score time completed train_scout_cavalry x3
 
 # Open: two houses + constant villager production
 auto-queue train_villager using town_center
+queue find_sheep x3
 queue build_house using villager x2
 queue build_house
 assign villager all to sheep

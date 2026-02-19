@@ -42,6 +42,7 @@ export interface ActionDef {
     costs?: ResourceMap;
     creates?: Record<string, number>;
     createsResourceNodes?: ResourceNodeCreateSpec[];
+    consumesResourceNodes?: ResourceNodeCreateSpec[];
     resourceDeltaOnComplete?: ResourceMap;
     dslLines?: string[];
 }

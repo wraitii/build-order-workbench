@@ -73,7 +73,7 @@ export interface QueueRule {
     actorResourceNodeSelectors?: string[];
     nextAttemptAt: number;
     delayUntil?: number;
-    lastBlockedReason?: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP";
+    lastBlockedReason?: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP" | "NO_RESOURCE_NODES";
 }
 
 export interface TriggerRule {
