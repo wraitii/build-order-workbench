@@ -1,7 +1,7 @@
 # AoE2 water opening -> Feudal fire galleys
 # Based on a 21-pop feudal water build outline.
 # Not super optimised.
-evaluation 15:00
+evaluation 17:30
 debt-floor 0
 ruleset aoe2
 setting arabia
@@ -104,9 +104,15 @@ queue build_mill using villager 24 then assign to berries
 # Move 2 from stragglers to berries/remaining food
 after villager 24 assign villager x2 from straggler_trees to berries
 
+at 14:00 queue build_house x2 using villager from straggler_trees wood shore_fish
+
 # 25 berries
 assign villager 25 to berries
-assign villager 26 to gold
+assign villager 26 to forest
 assign villager 27 to forest
 
-at 14:00 queue advance_castle_age
+after villager 27 spawn-assign villager to forest
+
+at 15:00 queue build_blacksmith
+at 15:00 queue build_market using villager x2
+at 16:00 queue advance_castle_age
