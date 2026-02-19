@@ -157,8 +157,8 @@ function resourceIconUrl(resource: string): string {
 
 function segmentIconUrl(kind: string, detail: string): string {
     if (kind === "gather") {
-        const [resource = ""] = detail.split(":");
-        return resourceIconUrl(resource);
+        const [resource = "", nodeId = ""] = detail.split(":");
+        return iconUrl(`u_${nodeId}`) || resourceIconUrl(resource);
     }
     if (kind === "action") {
         const action = GAME.actions[detail];

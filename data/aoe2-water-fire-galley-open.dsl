@@ -1,6 +1,7 @@
-# AoE2 water opening -> Feudal fire galleys (first pass)
+# AoE2 water opening -> Feudal fire galleys
 # Based on a 21-pop feudal water build outline.
-evaluation 14:00
+# Not super optimised.
+evaluation 15:00
 debt-floor 0
 ruleset aoe2
 setting arabia
@@ -8,7 +9,9 @@ setting normal_efficiency
 
 # Scoring goals
 score time clicked advance_feudal_age
+score time clicked advance_castle_age
 score time completed train_fire_galley x2
+score time completed train_galley x5
 
 # Keep TC running
 auto-queue train_villager using town_center
@@ -70,9 +73,9 @@ after clicked advance_feudal_age assign villager x2 from sheep boar deer shore_f
 after clicked advance_feudal_age queue build_lumber_camp using villager x2 from sheep boar deer shore_fish then assign to forest
 after clicked advance_feudal_age queue build_mining_camp using villager x2 from sheep boar deer shore_fish then assign to gold
 # Second wave: complete the shift once Feudal is in
-after completed advance_feudal_age assign villager x3 from sheep boar deer shore_fish idle to forest
-after completed advance_feudal_age assign villager x2 from sheep boar deer shore_fish idle to gold
-after completed advance_feudal_age assign villager x2 from sheep boar deer shore_fish idle to straggler_trees
+after completed advance_feudal_age assign villager x3 from food idle straggler_trees to forest
+after completed advance_feudal_age assign villager x2 to gold
+after completed advance_feudal_age assign villager x2 from food to straggler_trees
 
 # Second dock + house from food villager
 after clicked advance_feudal_age queue build_dock using villager from sheep boar deer shore_fish
@@ -80,18 +83,19 @@ at 10:00 queue build_house using villager from straggler_trees wood shore_fish
 
 # Feudal hits: eco tech + fire galleys
 after completed advance_feudal_age queue research_double_bit_axe
-after completed advance_feudal_age queue train_fire_galley x2 using dock
+after completed advance_feudal_age queue train_fire_galley using dock
+after completed advance_feudal_age queue train_fire_galley using dock
 
-# Add third dock from the 2nd-dock builder flow
-after completed advance_feudal_age queue build_dock using villager from straggler_trees wood
+# Add third dock
+at 11:00 queue build_dock using villager from straggler_trees wood
 at 11:30 queue build_house x3 using villager from straggler_trees wood shore_fish
 
 at 10:00 queue build_farm x2 using villager from wood then assign to farm
 at 12:00 queue build_farm x2 using villager from wood then assign to farm
 at 12:00 auto-queue train_galley
 
-# 22-23 gold
-assign villager 22 to gold
+# 22 wood-23 gold
+assign villager 22 to forest
 assign villager 23 to gold
 
 # 24 mill then berries
@@ -103,6 +107,6 @@ after villager 24 assign villager x2 from straggler_trees to berries
 # 25 berries
 assign villager 25 to berries
 assign villager 26 to gold
-assign villager 27 to gold
+assign villager 27 to forest
 
-after villager 27 queue advance_castle_age
+at 14:00 queue advance_castle_age

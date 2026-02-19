@@ -139,6 +139,16 @@
       "kind": "unit",
       "actions": ["lure_deer", "lure_boar"]
     },
+    "eagle_scout": {
+      "name": "Eagle Scout",
+      "kind": "unit",
+      "actions": ["lure_deer", "lure_boar"]
+    },
+    "champi_scout": {
+      "name": "Champi Scout",
+      "kind": "unit",
+      "actions": ["lure_deer", "lure_boar"]
+    },
     "house": {
       "name": "House",
       "kind": "building"
@@ -233,10 +243,6 @@
     },
     "hulk": {
       "name": "Hulk",
-      "kind": "unit"
-    },
-    "champi_scout": {
-      "name": "Champi Scout",
       "kind": "unit"
     },
     "archery_range": {
