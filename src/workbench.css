@@ -194,6 +194,18 @@ tr:last-child td {
 .btn:active {
   background: var(--accent-dim);
 }
+.btn-utility {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+  text-decoration: none;
+  color: var(--muted);
+}
+.btn-utility:hover {
+  color: var(--accent);
+}
 .dsl-controls {
   display: flex;
   gap: 8px;
@@ -537,6 +549,9 @@ tr:last-child td {
   .tl-scale {
     display: none;
   }
+  .btn-utility {
+    display: none !important;
+  }
   .ai-trigger {
     display: none !important;
   }
@@ -764,6 +779,25 @@ tr:last-child td {
   background: #f7f6f2;
   color: var(--muted);
   cursor: not-allowed;
+}
+.help-pre {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+#helpModal code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-radius: 3px;
+  padding: 1px 4px;
 }
 .ai-output {
   margin: 0;

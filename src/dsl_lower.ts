@@ -8,6 +8,7 @@ export interface DslLoweringState {
     debtFloor?: number;
     startingResources?: Record<string, number>;
     startingEntities?: Record<string, number>;
+    startingResourceNodes?: Array<{ prototypeId: string; count: number }>;
     humanDelays?: Record<string, HumanDelayBucket[]>;
     scores?: ScoreCriterion[];
 }
@@ -601,6 +602,12 @@ function applyPreambleLine(
     if (preamble.type === "civ") {
         throw new Error(`Line ${lineNo}: internal error: unresolved civ directive '${preamble.civName}'.`);
     }
+    if (preamble.type === "ruleset") {
+        throw new Error(`Line ${lineNo}: internal error: unresolved ruleset directive '${preamble.rulesetName}'.`);
+    }
+    if (preamble.type === "setting") {
+        throw new Error(`Line ${lineNo}: internal error: unresolved setting directive '${preamble.settingName}'.`);
+    }
     if (preamble.type === "startingResource") {
         if (symbols?.resources && !symbols.resources.has(preamble.resource)) {
             throw new Error(
@@ -615,9 +622,9 @@ function applyPreambleLine(
         const parsed = parseCommaEntriesFromTokens(preamble.entries, lineNo, "invalid empty item in 'start with' list.");
         if (!state.startingEntities) state.startingEntities = {};
         for (const entry of parsed.entries) {
-            const m = entry.match(/^([^\s,]+)(?:\s+(\d+))?$/);
+            const m = entry.match(/^([^\s,]+)(?:\s+x(\d+))?$/);
             if (!m) {
-                throw new Error(`Line ${lineNo}: invalid start-with item '${entry}'. Use '<entityType>' or '<entityType> <count>'.`);
+                throw new Error(`Line ${lineNo}: invalid start-with item '${entry}'. Use '<entityType>' or '<entityType> x<count>'.`);
             }
             const entityType = m[1];
             if (!entityType) continue;
@@ -629,6 +636,18 @@ function applyPreambleLine(
             const count = m[2] ? parseNumber(m[2], lineNo) : 1;
             state.startingEntities[entityType] = (state.startingEntities[entityType] ?? 0) + count;
         }
+        return;
+    }
+    if (preamble.type === "startNode") {
+        if (symbols?.nodePrototypes && !symbols.nodePrototypes.has(preamble.prototypeId)) {
+            throw new Error(
+                `Line ${lineNo}: unknown resource node prototype '${preamble.prototypeId}'.${suggestionSuffix(preamble.prototypeId, symbols.nodePrototypes)}`,
+            );
+        }
+        const count = preamble.countToken !== undefined ? parseNumber(preamble.countToken, lineNo) : 1;
+        if (!Number.isInteger(count) || count < 1) throw new Error(`Line ${lineNo}: start-node count must be a positive integer.`);
+        if (!state.startingResourceNodes) state.startingResourceNodes = [];
+        state.startingResourceNodes.push({ prototypeId: preamble.prototypeId, count });
         return;
     }
     if (preamble.type === "scoreTime") {

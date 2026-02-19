@@ -6,7 +6,10 @@ import { applyAstDslLine, createDslLoweringState, DslValidationSymbols } from ".
 export interface ParseBuildOrderDslOptions {
     selectorAliases?: Record<string, string>;
     symbols?: DslValidationSymbols;
+    baseDslLines?: string[];
     civDslByName?: Record<string, string[]>;
+    rulesetDslByName?: Record<string, string[]>;
+    settingDslByName?: Record<string, string[]>;
 }
 
 export function createDslValidationSymbols(game: GameData): DslValidationSymbols {
@@ -27,6 +30,31 @@ export function createCivDslByName(game: GameData): Record<string, string[]> {
     const out: Record<string, string[]> = {};
     for (const civ of game.civilizations ?? []) {
         out[civ.name] = [...(civ.dslLines ?? [])];
+    }
+    return out;
+}
+
+export function createRulesetDslByName(game: GameData): Record<string, string[]> {
+    if (!game.ruleset) return {};
+    return { [game.ruleset.name]: [...(game.ruleset.dslLines ?? [])] };
+}
+
+export function createActionDslLines(game: GameData): string[] {
+    const lines: string[] = [];
+    for (const [actionId, action] of Object.entries(game.actions)) {
+        for (const dslLine of action.dslLines ?? []) {
+            const stripped = dslLine.replace(/#.*/, "").trim();
+            if (!stripped) continue;
+            lines.push(`after completed ${actionId} ${stripped}`);
+        }
+    }
+    return lines;
+}
+
+export function createSettingDslByName(game: GameData): Record<string, string[]> {
+    const out: Record<string, string[]> = {};
+    for (const [name, setting] of Object.entries(game.settings ?? {})) {
+        out[name] = [...(setting.dslLines ?? [])];
     }
     return out;
 }
@@ -74,7 +102,24 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
         civLookup.set(name.toLowerCase(), { name, dslLines });
     }
 
+    const rulesetDslByName = options?.rulesetDslByName ?? {};
+    const rulesetLookup = new Map<string, { name: string; dslLines: string[] }>();
+    for (const [name, dslLines] of Object.entries(rulesetDslByName)) {
+        rulesetLookup.set(name.toLowerCase(), { name, dslLines });
+    }
+
+    const settingDslByName = options?.settingDslByName ?? {};
+    const settingLookup = new Map<string, { name: string; dslLines: string[] }>();
+    for (const [name, dslLines] of Object.entries(settingDslByName)) {
+        settingLookup.set(name.toLowerCase(), { name, dslLines });
+    }
+
     const state = createDslLoweringState();
+    for (const baseLine of options?.baseDslLines ?? []) {
+        const line = baseLine.replace(/#.*/, "").trim();
+        if (!line) continue;
+        applyAstDslLine(parseDslAstLine(line, 0), 0, selectorAliases, state, options?.symbols);
+    }
     const lines = input.split(/\r?\n/);
     for (let idx = 0; idx < lines.length; idx += 1) {
         const lineNo = idx + 1;
@@ -104,6 +149,48 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
             }
             continue;
         }
+        if (ast.type === "preamble" && ast.preamble.type === "ruleset") {
+            const key = ast.preamble.rulesetName.toLowerCase();
+            const ruleset = rulesetLookup.get(key);
+            if (!ruleset) {
+                const known = Object.keys(rulesetDslByName);
+                throw new Error(
+                    `Line ${lineNo}: unknown ruleset '${ast.preamble.rulesetName}'.${civSuggestionSuffix(ast.preamble.rulesetName, known)}`,
+                );
+            }
+            for (const ruleLineRaw of ruleset.dslLines) {
+                const ruleLine = ruleLineRaw.replace(/#.*/, "").trim();
+                if (!ruleLine) continue;
+                const ruleAst = parseDslAstLine(ruleLine, lineNo);
+                applyAstDslLine(ruleAst, lineNo, selectorAliases, state, options?.symbols);
+            }
+            continue;
+        }
+        if (ast.type === "preamble" && ast.preamble.type === "setting") {
+            const key = ast.preamble.settingName.toLowerCase();
+            const setting = settingLookup.get(key);
+            if (!setting) {
+                const known = Object.keys(settingDslByName);
+                throw new Error(
+                    `Line ${lineNo}: unknown setting '${ast.preamble.settingName}'.${civSuggestionSuffix(ast.preamble.settingName, known)}`,
+                );
+            }
+            for (const settingLineRaw of setting.dslLines) {
+                const settingLine = settingLineRaw.replace(/#.*/, "").trim();
+                if (!settingLine) continue;
+                const settingAst = parseDslAstLine(settingLine, lineNo);
+                if (
+                    settingAst.type === "preamble" &&
+                    (settingAst.preamble.type === "ruleset" || settingAst.preamble.type === "setting")
+                ) {
+                    throw new Error(
+                        `Line ${lineNo}: setting '${setting.name}' contains a nested ruleset/setting directive, which is not allowed.`,
+                    );
+                }
+                applyAstDslLine(settingAst, lineNo, selectorAliases, state, options?.symbols);
+            }
+            continue;
+        }
         applyAstDslLine(ast, lineNo, selectorAliases, state, options?.symbols);
     }
 
@@ -118,6 +205,7 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
     if (state.debtFloor !== undefined) out.debtFloor = state.debtFloor;
     if (state.startingResources !== undefined) out.startingResources = state.startingResources;
     if (state.startingEntities !== undefined) out.startingEntities = state.startingEntities;
+    if (state.startingResourceNodes !== undefined) out.startingResourceNodes = state.startingResourceNodes;
     if (state.humanDelays !== undefined) out.humanDelays = state.humanDelays;
     if (state.scores !== undefined) out.scores = state.scores;
     return out;

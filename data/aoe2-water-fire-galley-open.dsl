@@ -2,23 +2,13 @@
 # Based on a 21-pop feudal water build outline.
 evaluation 14:00
 debt-floor 0
-start with town_center,villager,villager,villager,scout_cavalry
+ruleset aoe2
+setting arabia
+setting normal_efficiency
 
 # Scoring goals
 score time clicked advance_feudal_age
 score time completed train_fire_galley x2
-
-# General food-source reactions
-after every completed lure_boar assign to boar_lured
-after every completed lure_boar assign villager all from sheep to boar_lured
-after every completed build_farm assign to farm
-after every depleted boar_lured assign to boar_lured deer sheep
-after every depleted deer assign to boar_lured deer sheep
-after every depleted sheep assign to boar_lured deer sheep straggler_trees
-after every exhausted sheep assign to boar_lured deer straggler_trees
-after every depleted shore_fish assign to boar_lured deer sheep berries straggler_trees
-after every depleted deep_fish assign to deep_fish shore_fish
-after every exhausted berries assign to straggler_trees
 
 # Keep TC running
 auto-queue train_villager using town_center
@@ -63,29 +53,29 @@ assign villager 14 to forest
 queue lure_boar using villager 15
 
 # 16-21 to food
-assign villager 16 to boar_lured deer sheep
-assign villager 17 to boar_lured deer sheep
-assign villager 18 to boar_lured deer sheep
-assign villager 19 to boar_lured deer sheep
+assign villager 16 to boar deer sheep
+assign villager 17 to boar deer sheep
+assign villager 18 to boar deer sheep
+assign villager 19 to boar deer sheep
 
 # Need one more house before villager 21 because fishing ships also consume pop
-after villager 18 queue build_house using villager from forest shore_fish sheep boar_lured deer idle
+after villager 18 queue build_house using villager from forest shore_fish sheep boar deer idle
 
 # Up to feudal
 after villager 19 queue research_loom then queue advance_feudal_age
 
 # While going up: eco reshuffle for water pressure (staggered, less aggressive)
 # First wave: only a small pull from food
-after clicked advance_feudal_age assign villager x2 from sheep boar_lured deer shore_fish to forest
-after clicked advance_feudal_age queue build_lumber_camp using villager x2 from sheep boar_lured deer shore_fish then assign to forest
-after clicked advance_feudal_age queue build_mining_camp using villager x2 from sheep boar_lured deer shore_fish then assign to gold
+after clicked advance_feudal_age assign villager x2 from sheep boar deer shore_fish to forest
+after clicked advance_feudal_age queue build_lumber_camp using villager x2 from sheep boar deer shore_fish then assign to forest
+after clicked advance_feudal_age queue build_mining_camp using villager x2 from sheep boar deer shore_fish then assign to gold
 # Second wave: complete the shift once Feudal is in
-after completed advance_feudal_age assign villager x3 from sheep boar_lured deer shore_fish idle to forest
-after completed advance_feudal_age assign villager x2 from sheep boar_lured deer shore_fish idle to gold
-after completed advance_feudal_age assign villager x2 from sheep boar_lured deer shore_fish idle to straggler_trees
+after completed advance_feudal_age assign villager x3 from sheep boar deer shore_fish idle to forest
+after completed advance_feudal_age assign villager x2 from sheep boar deer shore_fish idle to gold
+after completed advance_feudal_age assign villager x2 from sheep boar deer shore_fish idle to straggler_trees
 
 # Second dock + house from food villager
-after clicked advance_feudal_age queue build_dock using villager from sheep boar_lured deer shore_fish
+after clicked advance_feudal_age queue build_dock using villager from sheep boar deer shore_fish
 at 10:00 queue build_house using villager from straggler_trees wood shore_fish
 
 # Feudal hits: eco tech + fire galleys

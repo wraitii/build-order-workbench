@@ -249,14 +249,14 @@ export function parseDslCommandLine(line: string, lineNo: number): AstCommandLin
     const lexResult = commandLexer.tokenize(line);
     if (lexResult.errors.length > 0) {
         const first = lexResult.errors[0];
-        throw new Error(`Line ${lineNo}: ${first?.message ?? "lexer error"}`);
+        throw new Error(`Line ${lineNo}: ${first?.message ?? "lexer error"}\n  source: ${line}`);
     }
 
     parser.input = lexResult.tokens;
     const cst = parser.commandLine();
     if (parser.errors.length > 0) {
         const first = parser.errors[0];
-        throw new Error(`Line ${lineNo}: ${first?.message ?? "parse error"}`);
+        throw new Error(`Line ${lineNo}: ${first?.message ?? "parse error"}\n  source: ${line}`);
     }
 
     const atClause = cst.children.atClause?.[0];
@@ -311,6 +311,30 @@ export function parseDslAstLine(line: string, lineNo: number): AstDslLine {
         const civName = tokens.slice(1).join(" ").trim();
         if (!civName) throw new Error(`Line ${lineNo}: expected 'civ <name>'.`);
         return { type: "preamble", preamble: { type: "civ", civName } };
+    }
+
+    if (op === "ruleset") {
+        const rulesetName = tokens.slice(1).join(" ").trim();
+        if (!rulesetName) throw new Error(`Line ${lineNo}: expected 'ruleset <name>'.`);
+        return { type: "preamble", preamble: { type: "ruleset", rulesetName } };
+    }
+
+    if (op === "setting") {
+        const settingName = tokens.slice(1).join(" ").trim();
+        if (!settingName) throw new Error(`Line ${lineNo}: expected 'setting <name>'.`);
+        return { type: "preamble", preamble: { type: "setting", settingName } };
+    }
+
+    if (op === "start-node") {
+        const prototypeId = tokens[1];
+        const countToken = tokens[2];
+        if (!prototypeId || tokens.length > 3) {
+            throw new Error(`Line ${lineNo}: expected 'start-node <prototypeId> [count]'.`);
+        }
+        return {
+            type: "preamble",
+            preamble: { type: "startNode", prototypeId, ...(countToken !== undefined ? { countToken } : {}) },
+        };
     }
 
     if (op === "starting-resource") {

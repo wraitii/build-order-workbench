@@ -87,13 +87,6 @@ function onEventComplete(
         addResources(state.resources, action.resourceDeltaOnComplete);
     }
 
-    if (action.modifiersOnComplete) {
-        for (const mod of action.modifiersOnComplete) {
-            state.activeModifiers.push(mod);
-            applyStockModifierToExistingNodes(state, mod);
-        }
-    }
-
     if (action.creates) {
         const popResource = game.population?.resource;
         if (popResource) {
@@ -161,17 +154,41 @@ function onEventComplete(
     return { createdNodeIds };
 }
 
-function computeScenarioScore(result: Omit<SimulationResult, "scenarioScore" | "scores">): number {
-    const scheduled = result.commandResults.filter((c) => c.status === "scheduled");
-    const avgDelay = scheduled.reduce((sum, c) => sum + (c.delayedBy ?? 0), 0) / Math.max(1, scheduled.length);
+function computeHealthMetrics(
+    timeline: ResourceTimelineInterval[],
+    evaluationTime: number,
+    resources: string[],
+): { totalGathered: ResourceMap; avgFloat: ResourceMap; peakDebt: ResourceMap; debtDuration: ResourceMap } {
+    const totalGathered: ResourceMap = {};
+    const floatSums: ResourceMap = {};
+    const peakDebt: ResourceMap = {};
+    const debtDuration: ResourceMap = {};
 
-    const warningCodes = new Set(["NEGATIVE_RESOURCE", "AMBIGUOUS_TRIGGER"]);
-    const penalizedViolations = result.violations.filter((v) => !warningCodes.has(v.code));
-    const violationPenalty = penalizedViolations.length * 10;
-    const debtPenalty = Math.max(0, -result.maxDebt) * 0.4;
-    const delayPenalty = avgDelay * 0.5;
+    for (const seg of timeline) {
+        const dt = seg.end - seg.start;
+        if (dt <= 0) continue;
+        const rates = seg.gatherRates as Record<string, number>;
+        for (const [res, rate] of Object.entries(rates)) {
+            if (rate > 0) totalGathered[res] = (totalGathered[res] ?? 0) + rate * dt;
+        }
+        for (const res of resources) {
+            const v0 = seg.startResources[res] ?? 0;
+            const rate = rates[res] ?? 0;
+            floatSums[res] = (floatSums[res] ?? 0) + v0 * dt + 0.5 * rate * dt * dt;
+            if (v0 < 0) {
+                peakDebt[res] = Math.min(peakDebt[res] ?? 0, v0);
+                const ttRepay = rate > 0 ? Math.min(dt, -v0 / rate) : dt;
+                debtDuration[res] = (debtDuration[res] ?? 0) + ttRepay;
+            }
+        }
+    }
 
-    return Math.max(0, Math.min(100, 100 - violationPenalty - debtPenalty - delayPenalty));
+    const avgFloat: ResourceMap = {};
+    for (const res of resources) {
+        avgFloat[res] = evaluationTime > 0 ? (floatSums[res] ?? 0) / evaluationTime : 0;
+    }
+
+    return { totalGathered, avgFloat, peakDebt, debtDuration };
 }
 
 function processAutomation(state: SimState, game: GameData, options: SimOptions): void {
@@ -366,7 +383,7 @@ interface PendingDeferredCommand {
 }
 
 function withImplicitAssignSpawnDefer(state: SimState, cmd: BuildOrderCommand): BuildOrderCommand {
-    if (cmd.type !== "assignGather") return cmd;
+    if (cmd.type !== "assignGather" && cmd.type !== "queueAction") return cmd;
     if (cmd.afterEntityId) return cmd;
     if (!cmd.actorSelectors || cmd.actorSelectors.length !== 1) return cmd;
 
@@ -564,8 +581,7 @@ function executeCommand(
                 command: onTriggerCmd.command,
                 sourceCommandIndex: commandIndex,
             });
-            const requestedAt = onTriggerCmd.at ?? state.now;
-            pushScheduled(onTriggerCmd.type, requestedAt);
+            pushScheduled(onTriggerCmd.type, state.now);
         },
     };
 
@@ -647,7 +663,7 @@ function computeScores(state: SimState, criteria: ScoreCriterion[]): ScoreResult
 
 export function runSimulation(game: GameData, buildOrder: BuildOrderInput, options: SimOptions): SimulationResult {
     const evaluationTime = toTick(options.evaluationTime);
-    const initialResources = cloneResources(game.startingResources);
+    const initialResources = cloneResources(game.startingResources ?? {});
     for (const [resource, amount] of Object.entries(buildOrder.startingResources ?? {})) {
         initialResources[resource] = amount;
     }
@@ -658,7 +674,7 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
               }
               return { entityType, count };
           })
-        : [...game.startingEntities];
+        : [...(game.startingEntities ?? [])];
     const state: SimState = {
         now: 0,
         initialResources,
@@ -715,7 +731,8 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         state.resources[popResource] = availablePop;
     }
 
-    for (const sg of game.startingResourceNodes) {
+    const startingResourceNodes = buildOrder.startingResourceNodes ?? game.startingResourceNodes ?? [];
+    for (const sg of startingResourceNodes) {
         const proto = game.resourceNodePrototypes[sg.prototypeId];
         if (!proto) continue;
         const count = sg.count ?? 1;
@@ -782,23 +799,20 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         }
     }
 
-    const core = {
+    const health = computeHealthMetrics(state.resourceTimeline, options.evaluationTime, game.resources);
+
+    return {
         initialResources: state.initialResources,
         resourcesAtEvaluation: state.resources,
         entitiesByType: countEntitiesByType(state.entities),
+        ...health,
         maxDebt: state.maxDebt,
-        totalDelays: state.commandResults.reduce((sum, c) => sum + (c.delayedBy ?? 0), 0),
         completedActions: state.completedActions,
         violations: state.violations,
         commandResults: state.commandResults,
         resourceTimeline: state.resourceTimeline,
         entityCountTimeline: state.entityCountTimeline,
         entityTimelines: state.entityTimelines,
-    };
-
-    return {
-        ...core,
-        scenarioScore: computeScenarioScore(core),
         scores: computeScores(state, buildOrder.scores ?? []),
     };
 }

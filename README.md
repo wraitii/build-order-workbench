@@ -1,6 +1,6 @@
 # Build Order Workbench
 
-An AoE2 build-order simulator and interactive editor. Write build orders in a plain-text DSL, simulate them, and inspect resource timelines, action scheduling, warnings, and scoring metrics.
+An AoE2 build-order simulator and interactive editor. Write your build order in plain text, run it through the simulator, and see resource timelines, warnings, and how your economy plays out second by second.
 
 **[Try it in the browser →](https://wraitii.github.io/build-order-workbench/)**
 
@@ -13,59 +13,164 @@ No install required. For local development, see [Building locally](#building-loc
 _Write a build order in plain text, run the sim, and immediately see where your economy breaks down._
 
 - **Reactive rules** — express real in-game decisions like "when boar is lured, pull sheep vils to it"; the sim handles the switch automatically.
-- **Live editor** — no install needed; edit your build order and re-run the sim instantly in the browser.
+- **Live editor** — edit your build order and re-run the sim instantly in the browser.
 - **Statistics** — set goals like "Feudal click by 8:30" or "3 scouts by 10:00", see resources over time.
 - **On-device AI assistant** — optional; runs entirely in your browser, can suggest tweaks and answer questions about the build.
 - **Approximations** — walking time, continuous dropoff distance, gather efficiency; timings will run slightly tighter than real play.
 
 ---
 
-## DSL
+## Writing a build order
 
-Build orders are plain-text files (`.dsl` or `.bo`). Comments start with `#`. Times are seconds (`900`) or `M:SS` (`15:00`).
+Build orders are plain-text files (`.dsl` or `.bo`). Each line is a comment, a setup option, or a command. Comments start with `#`. Times are written as seconds (`900`) or `M:SS` (`15:00`).
 
-### Grammar
+See the included examples: [`data/aoe2-scout-build-order.dsl`](data/aoe2-scout-build-order.dsl) · [`data/aoe2-archer-rush-build-order.dsl`](data/aoe2-archer-rush-build-order.dsl)
+
+### A minimal example
+
+```
+evaluation 15:00     # simulate 15 minutes of play
+ruleset aoe2
+setting arabia
+
+auto-queue train_villager using town_center  # keep making villagers non-stop
+assign villager 1 to sheep
+assign villager 2 to sheep
+queue build_house using villager 3 then assign to sheep
+```
+
+---
+
+### Setup lines
+
+These go at the top before any commands, and configure the simulation:
+
+| Line | What it does |
+| --- | --- |
+| `evaluation <time>` | **Required.** How long to simulate, e.g. `evaluation 15:00`. |
+| `ruleset aoe2` | Use standard AoE2 game rules. |
+| `setting arabia` | Start with the standard Arabia setup — 6 sheep, 2 boar, berries, etc. |
+| `debt-floor <amount>` | Allow resources to go this many below zero before triggering a warning (default: 0). |
+| `score time clicked <action>` | Track when you click something, e.g. `score time clicked advance_feudal_age`. |
+| `score time completed <action> [xN]` | Track when something finishes, e.g. `score time completed train_scout_cavalry x3`. |
+
+---
+
+### Commands
+
+Commands tell villagers what to do and when. They can be immediate (happen right away or `at` a specific time) or triggered `after` an in-game event.
+
+#### Assigning villagers to gather resources
+
+```
+assign villager 4 to sheep          # send villager #4 to sheep
+assign villager x3 to forest        # send any 3 villagers to wood
+assign villager all from gold to farm   # move everyone off gold onto farms
+```
+
+#### Queuing actions (build something, research, train units, age up)
+
+```
+queue build_house using villager 3              # villager 3 builds a house
+queue build_lumber_camp using villager 7 then assign to forest  # build, then go chop
+auto-queue train_villager using town_center      # keep training villagers continuously
+queue advance_feudal_age                         # click Feudal Age
+```
+
+The `then` keyword chains a follow-up: `queue build_lumber_camp using villager 7 then assign to forest` means "build the lumber camp, then immediately start chopping wood."
+
+#### Timing a command with `at`
+
+```
+at 4:30 queue lure_deer
+at 11:30 queue build_house using villager from forest
+```
+
+#### Reacting to events with `after`
+
+Instead of hard-coding a time, `after` lets you react to things that happen during the build:
+
+| `after …` | When it triggers |
+| --- | --- |
+| `after villager 18` | When your 18th villager finishes training |
+| `after completed build_barracks` | When a barracks finishes building |
+| `after clicked advance_feudal_age` | The moment you click Feudal Age |
+| `after depleted boar` | When a boar runs out of food |
+| `after exhausted gold_mine` | When the last gold mine on the map is empty |
+| `after every depleted sheep` | Every time a sheep runs out (repeats) |
+
+```
+after villager 18 queue advance_feudal_age                # click up at 18 pop
+after completed advance_feudal_age queue build_stable     # stable as soon as feudal hits
+after depleted boar assign villager x3 from boar to sheep # move vils off empty boar
+```
+
+You can chain multiple `after` conditions on one line:
+
+```
+after completed advance_feudal_age after completed build_stable queue train_scout_cavalry x3
+```
+
+#### Spawning and auto-assigning
+
+```
+spawn-assign villager to straggler_trees     # new villager starts on straggler trees
+auto-queue build_farm using villager from straggler_trees idle  # keep placing farms automatically
+stop-auto-queue build_farm                   # stop the auto-farm
+```
+
+---
+
+### Specifying villagers and resources
+
+Whenever a command needs to know *which* villager or *which* resource, you use a selector.
+
+**Villager selectors:**
+
+| Selector | Meaning |
+| --- | --- |
+| `villager` | Any one available villager |
+| `villager 3` | The specific 3rd villager to be created |
+| `villager x3` | Any 3 villagers |
+| `villager from sheep` | A villager currently gathering sheep |
+| `villager from sheep boar` | A villager on sheep or boar (checked in order) |
+
+**Resource / node selectors** (used in `to`, `from`, `using`):
+
+`sheep` · `boar` · `berries` · `forest` · `gold_mine` · `straggler_trees` · `farms` · `idle` · `created`
+
+`idle` matches villagers doing nothing. `created` matches the most recently created villager.
+
+---
+
+### Full reference
+
+<details>
+<summary>Compact syntax reference (for experienced users)</summary>
 
 ```
 # Preamble (before any commands)
-evaluation <time>                                    # required: simulation length
-debt-floor <value>                                   # min resource deficit allowed (default 0)
-starting-resource <resource> <amount>                # override a starting resource
-start with <entityType>[, <entityType> <count>, ...]  # replace default starting entities
-human-delay <actionId> <chance> <minSec> <maxSec>   # reaction-time variance bucket (repeatable)
-score time <clicked|completed|depleted|exhausted> <target> [x<N>]  # scoring goal
+evaluation <time>                                     # required: simulation length
+debt-floor <value>                                    # min resource deficit allowed (default 0)
+starting-resource <resource> <amount>                 # override a starting resource
+ruleset <name>                                        # currently: aoe2
+setting <name>                                        # currently: arabia
+human-delay <actionId> <chance> <minSec> <maxSec>    # reaction-time variance bucket (repeatable)
+score time <clicked|completed|depleted|exhausted> <target> [xN]  # scoring goal
 
 # Commands — bare (time 0), timed, or deferred
 [at <time>] [after [every] <condition>] <directive>
 [at <time>] [after [every] <condition>] queue <actionId> ... then <directive>
 
 # Directives
-queue <actionId> [x<N>] [using <selector>[, ...]] [from <selectors...>]
-assign <actorType> <x<N>|idNum|all> [from <selectors...>] to <selectors...>
+queue <actionId> [xN] [using <selector>[, ...]] [from <selectors...>]
+assign <actorType> <xN|idNum|all> [from <selectors...>] to <selectors...>
 auto-queue <actionId> [using <actorType>] [from <selectors...>]
 stop-auto-queue <actionId> [using <actorType>]
 spawn-assign <entityType> to <selector>
-
-# Actor selectors: villager  |  villager 3  |  villager-3  (comma-separated for multiple)
-# Node selectors:  sheep  boar_lured  berries  forest  gold_mine  straggler_trees  farms  idle  created
 ```
 
-### `after` conditions
-
-`after` defers a command or registers a trigger rule:
-
-| Condition                    | Behaviour                                                                  |
-| ---------------------------- | -------------------------------------------------------------------------- |
-| `after <entityType> <N>`     | One-shot: fires when entity N exists.                                      |
-| `after clicked <actionId>`   | One-shot: fires on the next matching action click.                         |
-| `after completed <actionId>` | One-shot: fires on the next matching action completion.                    |
-| `after depleted <selector>`  | One-shot: fires on the next matching depletion event.                      |
-| `after exhausted <selector>` | One-shot: fires on the next matching exhaustion event.                     |
-| `after every <trigger...>`   | Repeating: same trigger forms as above, but fires on every matching event. |
-
-Examples: [`data/aoe2-scout-build-order.dsl`](data/aoe2-scout-build-order.dsl) · [`data/aoe2-archer-rush-build-order.dsl`](data/aoe2-archer-rush-build-order.dsl)
-
-You can also chain conditions to avoid hard-coded timing, e.g. `after completed advance_feudal_age after completed build_house assign to forest`.
+</details>
 
 ---
 
@@ -80,7 +185,7 @@ bun install
 bun run build
 ```
 
-This generates `out/aoe2-scout-report.html` — a single self-contained HTML file. Open it in a browser to edit DSL and re-run the simulation interactively.
+This generates `out/aoe2-scout-report.html` — a single self-contained HTML file. Open it in a browser to edit build orders and re-run the simulation interactively.
 
 | Command              | Description                                                                |
 | -------------------- | -------------------------------------------------------------------------- |

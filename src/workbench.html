@@ -13,15 +13,16 @@
       <h1 style="margin:0 0 4px">Build Order Workbench</h1>
       <p style="margin:8px 0 0;font-size:13px;color:var(--muted);line-height:1.6">
         Write a build order in the editor below using a custom scripting language, hit Run, and get a live simulation with a timeline, resource tracking, and scoring. Good for stress-testing timing assumptions without launching a game.
-        <br>Data sourced from <a href="https://www.aoe2database.com" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">aoe2database.com</a>.
+        <br>Data sourced from <a href="https://www.aoe2database.com" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">aoe2database.com</a> & <a href="https://www.youtube.com/c/SpiritOfTheLaw" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Spirit of the Law</a>.
       </p>
     </section>
 
     <section class="card">
       <div class="editor-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px">
-        <div style="display:flex;align-items:baseline;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
           <h2 style="margin:0">Build Order Editor</h2>
-          <button onclick="document.getElementById('helpModal').classList.remove('ai-hidden')" style="border:none;background:none;padding:0;cursor:pointer;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.3px">? help</button>
+          <button class="btn btn-utility" onclick="document.getElementById('helpModal').classList.remove('ai-hidden')">Help</button>
+          <a class="btn btn-utility" href="__GAME_OBJECTS_HREF__">Item Reference</a>
         </div>
         <div class="editor-header-end" style="display:flex;align-items:center;gap:8px">
           <select id="buildPresetSelect" class="dsl-select"></select>
@@ -85,58 +86,112 @@
   <div id="helpModal" class="ai-modal-backdrop ai-hidden" onclick="if(event.target===this)this.classList.add('ai-hidden')">
     <div class="ai-modal" style="max-width:700px">
       <div class="ai-modal-header">
-        <span style="font-weight:600;font-size:15px">DSL Reference</span>
+        <span style="font-weight:600;font-size:15px">Build Order Reference</span>
         <button onclick="document.getElementById('helpModal').classList.add('ai-hidden')" class="btn" style="padding:4px 10px;line-height:1;font-size:16px">&#x2715;</button>
       </div>
-      <div class="ai-modal-body" style="font-size:13px;line-height:1.6;gap:14px">
+      <div class="ai-modal-body" style="font-size:13px;line-height:1.6;gap:16px">
 
         <div>
-          <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Header &mdash; declare before commands</div>
-          <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">evaluation &lt;MM:SS&gt;                    # required &mdash; how long to simulate
-debt-floor &lt;N&gt;                         # allow debt down to N (default -30)
-start with &lt;entity&gt;[, &lt;entity&gt;...]    # starting units/buildings
-starting-resource &lt;resource&gt; &lt;amount&gt;  # override a starting resource</pre>
+          <div style="font-weight:600;margin-bottom:6px">A minimal build order</div>
+          <pre class="help-pre">evaluation 15:00      # required &mdash; how long to simulate
+ruleset aoe2          # standard AoE2 rules
+setting arabia        # standard Arabia start (6 sheep, 2 boar, berries&hellip;)
+
+auto-queue train_villager using town_center  # keep training villagers non-stop
+assign villager 1 to sheep
+assign villager 2 to sheep
+queue build_house using villager 3 then assign to sheep  # build, then gather</pre>
+          <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">Need valid action/entity names? <a href="__GAME_OBJECTS_HREF__" target="_blank" rel="noopener" style="color:var(--accent)">Browse all actions, entities &amp; resources &rarr;</a></p>
         </div>
 
         <div>
-          <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Commands</div>
-          <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">queue &lt;action&gt; [xN] [using &lt;actor&gt;[, ...]] [from &lt;node&gt;...]
-queue &lt;action&gt; ... then &lt;command&gt;                # lower to chained completed-trigger command
-auto-queue &lt;action&gt; [using &lt;actorType&gt;] [from &lt;node&gt;...]
+          <div style="font-weight:600;margin-bottom:8px">Setup lines &mdash; go before any commands</div>
+          <table>
+            <tbody>
+              <tr><td><code>evaluation &lt;MM:SS&gt;</code></td><td><strong>Required.</strong> How long to simulate, e.g. <code>evaluation 15:00</code>.</td></tr>
+              <tr><td><code>ruleset aoe2</code></td><td>Use standard AoE2 rules.</td></tr>
+              <tr><td><code>setting arabia</code></td><td>Standard Arabia start &mdash; 6 sheep, 2 boar, berries, etc.</td></tr>
+              <tr><td><code>debt-floor &lt;N&gt;</code></td><td>Allow resources to go this far negative (default &minus;30).</td></tr>
+              <tr><td><code>score time clicked|completed &lt;action&gt; [xN]</code></td><td>Track a timing goal, e.g. Feudal click or 3rd scout.</td></tr>
+              <tr><td><code>starting-resource &lt;res&gt; &lt;amount&gt;</code></td><td>Override a starting resource amount.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div style="font-weight:600;margin-bottom:6px">Sending villagers to gather</div>
+          <pre class="help-pre">assign villager 4 to sheep              # send villager #4 to sheep
+assign villager x3 to forest            # send any 3 villagers to wood
+assign villager all from gold to farm   # move everyone off gold onto farms</pre>
+        </div>
+
+        <div>
+          <div style="font-weight:600;margin-bottom:6px">Queuing actions &mdash; build, research, train, age up</div>
+          <pre class="help-pre">queue build_house using villager 3
+queue build_lumber_camp using villager 7 then assign to forest  # build, then chop
+auto-queue train_villager using town_center   # keep repeating continuously
+stop-auto-queue build_farm                    # cancel an auto-queue
+queue advance_feudal_age</pre>
+          <p style="margin:6px 0 0;color:var(--muted)"><code>then</code> chains a follow-up: the second command runs as soon as the first finishes.</p>
+        </div>
+
+        <div>
+          <div style="font-weight:600;margin-bottom:6px">Timing and triggers</div>
+          <p style="margin:0 0 8px;color:var(--muted)">Use <code>at</code> to schedule at a fixed time, or <code>after</code> to react to in-game events:</p>
+          <pre class="help-pre">at 4:30 queue lure_deer
+after villager 18 queue advance_feudal_age             # click up at 18 pop
+after completed advance_feudal_age queue build_stable  # stable as soon as feudal hits
+after depleted boar assign villager x3 from boar to sheep
+after every depleted sheep assign villager from sheep to boar deer  # repeats each time</pre>
+          <table style="margin-top:8px">
+            <tbody>
+              <tr><td><code>after &lt;entity&gt; &lt;N&gt;</code></td><td>When your Nth entity is created</td></tr>
+              <tr><td><code>after completed|clicked &lt;action&gt;</code></td><td>When action finishes or is clicked <em>(once)</em></td></tr>
+              <tr><td><code>after depleted|exhausted &lt;node&gt;</code></td><td>When a resource node runs out <em>(once)</em></td></tr>
+              <tr><td><code>after every &hellip;</code></td><td>Same triggers, but fires <em>every</em> time, not just the first</td></tr>
+              <tr><td><code>after &hellip; after &hellip;</code></td><td>Chain conditions &mdash; both must happen before the command runs</td></tr>
+              <tr><td><code>on &hellip;</code></td><td>Alias for <code>after every</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div style="font-weight:600;margin-bottom:6px">Picking villagers and resources</div>
+          <p style="margin:0 0 6px;color:var(--muted)">Selectors appear in <code>using</code>, <code>from</code>, and <code>to</code> clauses:</p>
+          <table>
+            <thead><tr><th>Villager selector</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>villager</code></td><td>Any one available villager</td></tr>
+              <tr><td><code>villager 3</code></td><td>The specific 3rd villager created</td></tr>
+              <tr><td><code>villager x3</code></td><td>Any 3 villagers</td></tr>
+              <tr><td><code>villager all</code></td><td>Every villager of that type</td></tr>
+              <tr><td><code>villager from sheep</code></td><td>A villager currently gathering sheep</td></tr>
+            </tbody>
+          </table>
+          <p style="margin:8px 0 0;color:var(--muted)"><strong>Resource nodes:</strong> <code>sheep</code> &middot; <code>boar</code> &middot; <code>berries</code> &middot; <code>forest</code> &middot; <code>gold_mine</code> &middot; <code>straggler_trees</code> &middot; <code>farms</code> &middot; <code>idle</code> &middot; <code>created</code></p>
+        </div>
+
+        <details style="border:1px solid var(--line);border-radius:8px;padding:10px 12px">
+          <summary style="font-weight:600;cursor:pointer;user-select:none;color:var(--ink)">Full syntax reference</summary>
+          <pre class="help-pre" style="margin-top:10px;border:none;padding:0"># Preamble
+evaluation &lt;MM:SS&gt;
+ruleset &lt;name&gt; | setting &lt;name&gt;
+debt-floor &lt;N&gt; | starting-resource &lt;resource&gt; &lt;amount&gt;
+human-delay &lt;action&gt; &lt;chance&gt; &lt;minSec&gt; &lt;maxSec&gt;
+score time completed|clicked &lt;action&gt; [xN]
+
+# Commands
+[at &lt;MM:SS&gt;] [after [every] &lt;condition&gt;] &lt;directive&gt;
+[at &lt;MM:SS&gt;] [after [every] &lt;condition&gt;] queue &lt;action&gt; &hellip; then &lt;directive&gt;
+
+# Directives
+queue &lt;action&gt; [xN] [using &lt;selector&gt;[, &hellip;]] [from &lt;node&gt;&hellip;]
+assign &lt;actorType&gt; &lt;N | xN | all&gt; [from &lt;node&gt;&hellip;] to &lt;node&gt;&hellip;
+auto-queue &lt;action&gt; [using &lt;actorType&gt;] [from &lt;node&gt;&hellip;]
 stop-auto-queue &lt;action&gt; [using &lt;actorType&gt;]
-assign &lt;actorType&gt; &lt;N | xN | all&gt; [from &lt;node&gt;...] to &lt;node&gt;...
-spawn-assign &lt;entityType&gt; to &lt;node&gt;   # auto-assign new entities on spawn</pre>
-        </div>
+spawn-assign &lt;entityType&gt; to &lt;node&gt;</pre>
+        </details>
 
-        <div>
-          <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Timing &amp; conditions &mdash; prefix any command</div>
-          <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">at &lt;MM:SS&gt; &lt;command&gt;
-after &lt;entityType&gt; &lt;N&gt; &lt;command&gt;               # after Nth entity is ready
-after completed|clicked &lt;action&gt; &lt;command&gt;      # fires once
-after depleted|exhausted &lt;node&gt; &lt;command&gt;       # fires once when node empties
-after every completed|clicked &lt;action&gt; &lt;command&gt;# fires every matching event
-after every depleted|exhausted &lt;node&gt; &lt;command&gt; # fires every matching event
-after completed &lt;a&gt; after completed &lt;b&gt; &lt;command&gt; # chain conditions; no fixed time needed
-on completed|clicked &lt;action&gt; &lt;command&gt;         # fires every time
-on depleted|exhausted &lt;node&gt; &lt;command&gt;          # fires every time</pre>
-        </div>
-
-        <div>
-          <div style="font-weight:600;margin-bottom:6px;color:var(--ink)">Scoring &amp; misc</div>
-          <pre style="margin:0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;white-space:pre;overflow-x:auto">score time completed|clicked &lt;action&gt; [xN]       # lower time = better score
-human-delay &lt;action&gt; &lt;chance&gt; &lt;minSec&gt; &lt;maxSec&gt; # simulate reaction time
-# anything after a hash is a comment</pre>
-        </div>
-
-        <div>
-          <div style="font-weight:600;margin-bottom:4px;color:var(--ink)">Tips</div>
-          <ul style="margin:0;padding-left:18px;color:var(--muted)">
-            <li><strong>Actor selectors</strong> &mdash; <code>villager</code> (any idle one), <code>villager 3</code> / <code>villager-3</code> (the 3rd villager specifically), <code>villager x2</code> (two of them), <code>villager all</code> (everyone of that type)</li>
-            <li><strong>Filtering actors by where they are</strong> &mdash; append <code>from &lt;node&gt;...</code> to restrict to actors currently on those nodes. E.g. <code>assign villager x3 from sheep boar_lured to forest</code> pulls 3 villagers who are on sheep <em>or</em> boar_lured and sends them to wood. <code>idle</code> matches anyone not currently gathering.</li>
-            <li><strong>Node selectors</strong> &mdash; resource names (<code>food</code>, <code>wood</code>, <code>gold</code>&hellip;) match any node of that type; node ids (<code>sheep</code>, <code>forest</code>, <code>boar_lured</code>&hellip;) match a specific node prototype</li>
-            <li>Cmd/Ctrl+Enter runs the simulation from the editor</li>
-          </ul>
-        </div>
 
       </div>
     </div>

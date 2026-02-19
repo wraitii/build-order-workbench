@@ -2,23 +2,13 @@
 # Lure deer for 25+2
 evaluation 13:00
 debt-floor 0
-start with town_center,villager,villager,villager,scout_cavalry
+ruleset aoe2
+setting arabia
+setting normal_efficiency
 
 # Scoring goals
 score time clicked advance_feudal_age
 score time clicked advance_castle_age
-
-# General AoE2 Rules (keep these high-level reactions together)
-# (you probably want to keep these just to make writing the build order easier)
-after every completed lure_boar assign to boar_lured
-after every completed lure_boar assign villager all from sheep to boar_lured
-after every depleted boar_lured assign to boar_lured deer sheep
-after every depleted deer assign to boar_lured deer sheep
-after every depleted sheep assign to boar_lured deer sheep straggler_trees
-after every exhausted sheep assign to boar_lured deer straggler_trees
-after every exhausted berries assign to straggler_trees
-after every depleted straggler_trees assign to straggler_trees
-after every completed build_farm assign to created
 
 # Open: two houses + constant villager production
 auto-queue train_villager using town_center
@@ -43,9 +33,9 @@ assign villager 11 to forest
 
 # 2 houses then berries
 queue build_house x2 using villager 12 then assign to berries
-assign villager 13 to boar_lured sheep deer
+assign villager 13 to boar sheep deer
 queue build_mill using villager 14 then assign to berries
-after villager 14 queue lure_boar using villager from boar_lured
+after villager 14 queue lure_boar using villager from boar
 assign villager 15 to berries
 assign villager 16 to berries
 

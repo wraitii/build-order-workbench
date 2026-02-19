@@ -1,7 +1,7 @@
 import { runSimulation } from "./sim";
-import { BuildOrderPreset, toHtmlReport, toTextReport } from "./report";
+import { BuildOrderPreset, toGameObjectsHtml, toHtmlReport, toTextReport } from "./report";
 import { GameData } from "./types";
-import { createCivDslByName, createDslValidationSymbols, parseBuildOrderDsl } from "./dsl";
+import { createActionDslLines, createCivDslByName, createDslValidationSymbols, createRulesetDslByName, createSettingDslByName, parseBuildOrderDsl } from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
 import { normalizeGame } from "./sim_shared";
 import { readdir } from "node:fs/promises";
@@ -53,6 +53,13 @@ async function loadJson<T>(path: string): Promise<T> {
     return Bun.file(path).json() as Promise<T>;
 }
 
+function deriveGameObjectsReportPath(reportPath: string): string {
+    if (reportPath.toLowerCase().endsWith(".html")) {
+        return reportPath.replace(/\.html$/i, "-game-objects.html");
+    }
+    return `${reportPath}-game-objects.html`;
+}
+
 async function main(): Promise<void> {
     const args = parseArgs(Bun.argv.slice(2));
 
@@ -62,7 +69,10 @@ async function main(): Promise<void> {
     const build = parseBuildOrderDsl(buildDsl, {
         selectorAliases: createDslSelectorAliases(game.resources),
         symbols: createDslValidationSymbols(game),
+        baseDslLines: createActionDslLines(game),
         civDslByName: createCivDslByName(game),
+        rulesetDslByName: createRulesetDslByName(game),
+        settingDslByName: createSettingDslByName(game),
     });
 
     const evaluationTime = args.at ?? build.evaluationTime;
@@ -94,8 +104,12 @@ async function main(): Promise<void> {
             presets.push({ id: base, label, dsl });
         }
 
-        await Bun.write(args.report, await toHtmlReport(result, game, buildDsl, presets));
+        const gameObjectsReport = deriveGameObjectsReportPath(args.report);
+
+        await Bun.write(args.report, await toHtmlReport(result, game, buildDsl, presets, gameObjectsReport.split("/").pop() ?? gameObjectsReport));
+        await Bun.write(gameObjectsReport, await toGameObjectsHtml(game, args.report.split("/").pop() ?? args.report));
         console.log(`wrote html report: ${args.report}`);
+        console.log(`wrote game objects report: ${gameObjectsReport}`);
     }
 }
 

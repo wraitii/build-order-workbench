@@ -1,29 +1,105 @@
 {
   "resources": ["food", "wood", "gold", "stone", "pop"],
-  "startingResources": {
-    "food": 200,
-    "wood": 200,
-    "gold": 100,
-    "stone": 200
+  "ruleset": {
+    "name": "aoe2",
+    "dslLines": [
+      "# Some common 'rules' that simulate unit AI and make writing build orders more convenient",
+      "after every completed lure_boar assign to boar",
+      "after every completed lure_boar assign villager all from sheep to boar",
+      "after every depleted boar assign to boar deer sheep",
+      "after every depleted deer assign to boar deer sheep",
+      "after every depleted sheep assign to boar deer sheep straggler_trees",
+      "after every exhausted sheep assign to boar deer straggler_trees",
+      "after every exhausted berries assign to straggler_trees",
+      "after every depleted straggler_trees assign to straggler_trees",
+      "after every completed build_farm assign to created",
+      "after every depleted shore_fish assign to boar deer sheep berries straggler_trees",
+      "after every depleted deep_fish assign to deep_fish shore_fish"
+    ]
   },
-  "startingEntities": [
-    {
-      "entityType": "town_center",
-      "count": 1
+  "settings": {
+    "arabia": {
+      "dslLines": [
+        "start with town_center, villager x3, scout_cavalry",
+        "starting-resource food 200",
+        "starting-resource wood 200",
+        "starting-resource gold 100",
+        "starting-resource stone 200",
+        "start-node sheep 8",
+        "start-node wild_boar 2",
+        "start-node wild_deer 3",
+        "start-node berries 1",
+        "start-node shore_fish 4",
+        "start-node deep_fish 6",
+        "start-node forest 1",
+        "start-node straggler_trees 5",
+        "start-node gold_mine 1",
+        "start-node stone_mine 1"
+      ]
     },
-    {
-      "entityType": "villager",
-      "count": 3
+    "normal_efficiency": {
+      "dslLines": [
+        "# to account for walking and various inefficiencies",
+        "# sourced by vibes & SOTL. Stragglers estimated using his lumber camp vid",
+        "modifier gather.rate.node.sheep mul 0.97",
+        "modifier gather.rate.node.boar mul 0.95",
+        "modifier gather.rate.node.deer mul 0.95",
+        "modifier gather.rate.node.berries mul 0.96",
+        "modifier gather.rate.node.shore_fish mul 0.95",
+        "modifier gather.rate.node.deep_fish mul 0.9",
+        "modifier gather.rate.node.forest mul 0.91",
+        "modifier gather.rate.node.straggler_trees mul 0.75"
+      ]
     },
-    {
-      "entityType": "scout_cavalry",
-      "count": 1
-    },
-    {
-      "entityType": "house",
-      "count": 2
+    "conservative_efficiency": {
+      "dslLines": [
+        "# More conservative settings for resource efficiency, can be good if you're more of a beginner",
+        "modifier gather.rate.node.sheep mul 0.92",
+        "modifier gather.rate.node.boar mul 0.90",
+        "modifier gather.rate.node.deer mul 0.90",
+        "modifier gather.rate.node.berries mul 0.91",
+        "modifier gather.rate.node.shore_fish mul 0.90",
+        "modifier gather.rate.node.deep_fish mul 0.85",
+        "modifier gather.rate.node.forest mul 0.86",
+        "modifier gather.rate.node.straggler_trees mul 0.70"
+      ]
     }
-  ],
+  },
+  "taskEfficiency": {
+    "default": 1.4,
+    "byTaskType": {
+      "build": 1.1,
+      "train": 1,
+      "research": 1,
+      "lure": 1.1111111111,
+      "build_palisade_walk": 1.8
+    }
+  },
+  "population": {
+    "resource": "pop",
+    "providedByEntityType": {
+      "town_center": 5,
+      "house": 5
+    },
+    "consumedByEntityType": {
+      "villager": 1,
+      "scout_cavalry": 1,
+      "eagle_scout": 1,
+      "champi_scout": 1,
+      "archer": 1,
+      "skirmisher": 1,
+      "militia": 1,
+      "fishing_ship": 1,
+      "transport_ship": 1,
+      "trade_cog": 1,
+      "galley": 1,
+      "fire_galley": 1,
+      "demolition_raft": 1,
+      "hulk": 1,
+      "spearman": 1
+    },
+    "floor": 0
+  },
   "entities": {
     "villager": {
       "name": "Villager",
@@ -32,17 +108,19 @@
         "lure_boar",
         "build_house",
         "build_lumber_camp",
+        "build_mining_camp",
+        "build_farm",
         "build_mill",
+        "build_folwark",
+        "build_settlement",
         "build_barracks",
         "build_stable",
-        "build_farm",
         "build_archery_range",
         "build_dock",
         "build_market",
         "build_blacksmith",
         "build_watch_tower",
-        "build_palisade_wall",
-        "build_mining_camp"
+        "build_palisade_wall"
       ]
     },
     "town_center": {
@@ -59,7 +137,7 @@
     "scout_cavalry": {
       "name": "Scout Cavalry",
       "kind": "unit",
-      "actions": ["lure_deer"]
+      "actions": ["lure_deer", "lure_boar"]
     },
     "house": {
       "name": "House",
@@ -70,15 +148,43 @@
       "kind": "building",
       "actions": ["research_double_bit_axe"]
     },
+    "mining_camp": {
+      "name": "Mining Camp",
+      "kind": "building",
+      "actions": ["research_gold_mining", "research_stone_mining"]
+    },
     "mill": {
       "name": "Mill",
       "kind": "building",
       "actions": ["research_horse_collar"]
     },
+    "folwark": {
+      "name": "Folwark",
+      "kind": "building",
+      "actions": ["research_horse_collar"]
+    },
+    "settlement": {
+      "name": "Settlement",
+      "kind": "building",
+      "actions": [
+        "research_double_bit_axe",
+        "research_horse_collar",
+        "research_gold_mining",
+        "research_stone_mining"
+      ]
+    },
     "barracks": {
       "name": "Barracks",
       "kind": "building",
-      "actions": ["train_militia", "research_man_at_arms", "train_spearman"]
+      "actions": [
+        "train_militia",
+        "research_man_at_arms",
+        "train_spearman",
+        "train_champi_scout",
+        "research_champi_warrior",
+        "research_eagle_warrior",
+        "train_eagle_scout"
+      ]
     },
     "stable": {
       "name": "Stable",
@@ -125,6 +231,14 @@
       "name": "Demolition Raft",
       "kind": "unit"
     },
+    "hulk": {
+      "name": "Hulk",
+      "kind": "unit"
+    },
+    "champi_scout": {
+      "name": "Champi Scout",
+      "kind": "unit"
+    },
     "archery_range": {
       "name": "Archery Range",
       "kind": "building",
@@ -139,7 +253,9 @@
         "train_trade_cog",
         "train_galley",
         "train_fire_galley",
-        "train_demolition_raft"
+        "train_demolition_raft",
+        "train_hulk",
+        "research_fishing_lines"
       ]
     },
     "market": {
@@ -168,10 +284,6 @@
     "palisade_wall": {
       "name": "Palisade Wall",
       "kind": "building"
-    },
-    "mining_camp": {
-      "name": "Mining Camp",
-      "kind": "building"
     }
   },
   "resourceNodePrototypes": {
@@ -187,8 +299,8 @@
       "decayStart": "on_first_gather",
       "tags": ["food", "herdable"]
     },
-    "boar": {
-      "name": "Boar",
+    "wild_boar": {
+      "name": "Wild Boar",
       "produces": "food",
       "rateByEntityType": {},
       "stock": 1,
@@ -213,8 +325,8 @@
       "decayStart": "on_spawn",
       "tags": ["food", "huntables", "deer"]
     },
-    "boar_lured": {
-      "name": "Lured Boar",
+    "boar": {
+      "name": "Boar",
       "produces": "food",
       "rateByEntityType": {
         "villager": 0.41
@@ -223,7 +335,7 @@
       "stock": 340,
       "decayRatePerSecond": 0.4,
       "decayStart": "on_spawn",
-      "tags": ["food", "huntables", "boar_lured"]
+      "tags": ["food", "huntables", "boar"]
     },
     "berries": {
       "name": "Berries",
@@ -298,122 +410,6 @@
       "tags": ["food", "farm"]
     }
   },
-  "startingResourceNodes": [
-    {
-      "prototypeId": "sheep",
-      "count": 8
-    },
-    {
-      "prototypeId": "boar",
-      "count": 2
-    },
-    {
-      "prototypeId": "wild_deer",
-      "count": 3
-    },
-    {
-      "prototypeId": "berries",
-      "count": 1
-    },
-    {
-      "prototypeId": "shore_fish",
-      "count": 4
-    },
-    {
-      "prototypeId": "deep_fish",
-      "count": 6
-    },
-    {
-      "prototypeId": "forest",
-      "count": 1
-    },
-    {
-      "prototypeId": "straggler_trees",
-      "count": 5
-    },
-    {
-      "prototypeId": "gold_mine",
-      "count": 1
-    },
-    {
-      "prototypeId": "stone_mine",
-      "count": 1
-    }
-  ],
-  "startingModifiers": [
-    {
-      "selector": "gather.rate.node.sheep",
-      "op": "mul",
-      "value": 0.97
-    },
-    {
-      "selector": "gather.rate.node.boar_lured",
-      "op": "mul",
-      "value": 0.97
-    },
-    {
-      "selector": "gather.rate.node.deer",
-      "op": "mul",
-      "value": 0.97
-    },
-    {
-      "selector": "gather.rate.node.berries",
-      "op": "mul",
-      "value": 0.93
-    },
-    {
-      "selector": "gather.rate.node.shore_fish",
-      "op": "mul",
-      "value": 0.95
-    },
-    {
-      "selector": "gather.rate.node.deep_fish",
-      "op": "mul",
-      "value": 0.9
-    },
-    {
-      "selector": "gather.rate.node.forest",
-      "op": "mul",
-      "value": 0.93
-    },
-    {
-      "selector": "gather.rate.node.straggler_trees",
-      "op": "mul",
-      "value": 0.75
-    }
-  ],
-  "taskEfficiency": {
-    "default": 1.4,
-    "byTaskType": {
-      "build": 1.1,
-      "train": 1,
-      "research": 1,
-      "lure": 1.1111111111,
-      "build_palisade_walk": 2.4
-    }
-  },
-  "population": {
-    "resource": "pop",
-    "providedByEntityType": {
-      "town_center": 5,
-      "house": 5
-    },
-    "consumedByEntityType": {
-      "villager": 1,
-      "scout_cavalry": 1,
-      "archer": 1,
-      "skirmisher": 1,
-      "militia": 1,
-      "fishing_ship": 1,
-      "transport_ship": 1,
-      "trade_cog": 1,
-      "galley": 1,
-      "fire_galley": 1,
-      "demolition_raft": 1,
-      "spearman": 1
-    },
-    "floor": 0
-  },
   "actions": {
     "train_villager": {
       "name": "Train Villager",
@@ -441,7 +437,8 @@
       "duration": 130,
       "costs": {
         "food": 500
-      }
+      },
+      "dslLines": ["modifier action.duration.train_eagle_scout add -15"]
     },
     "advance_castle_age": {
       "name": "Advance to Castle Age",
@@ -488,12 +485,24 @@
         "mill": 1
       }
     },
+    "build_folwark": {
+      "name": "Build Folwark",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 40,
+      "costs": {
+        "wood": 100
+      },
+      "creates": {
+        "folwark": 1
+      }
+    },
     "lure_boar": {
       "name": "Lure Boar",
       "duration": 30,
       "createsResourceNodes": [
         {
-          "prototypeId": "boar_lured",
+          "prototypeId": "boar",
           "count": 1
         }
       ]
@@ -559,13 +568,27 @@
         "food": 100,
         "wood": 50
       },
-      "modifiersOnComplete": [
-        {
-          "selector": "gather.rate.tag.woodcutting",
-          "op": "mul",
-          "value": 1.2
-        }
-      ]
+      "dslLines": ["modifier gather.rate.tag.woodcutting mul 1.2"]
+    },
+    "research_gold_mining": {
+      "name": "Research Gold Mining",
+      "taskType": "research",
+      "duration": 30,
+      "costs": {
+        "food": 100,
+        "wood": 75
+      },
+      "dslLines": ["modifier gather.rate.tag.gold mul 1.15"]
+    },
+    "research_stone_mining": {
+      "name": "Research Stone Mining",
+      "taskType": "research",
+      "duration": 30,
+      "costs": {
+        "food": 100,
+        "wood": 75
+      },
+      "dslLines": ["modifier gather.rate.tag.stone mul 1.15"]
     },
     "research_horse_collar": {
       "name": "Research Horse Collar",
@@ -575,13 +598,7 @@
         "food": 75,
         "wood": 75
       },
-      "modifiersOnComplete": [
-        {
-          "selector": "gather.stock.tag.farm",
-          "op": "mul",
-          "value": 1.4285714286
-        }
-      ]
+      "dslLines": ["modifier gather.stock.tag.farm mul 1.4285714286"]
     },
     "train_scout_cavalry": {
       "name": "Train Scout Cavalry",
@@ -593,6 +610,41 @@
       },
       "creates": {
         "scout_cavalry": 1
+      }
+    },
+    "train_eagle_scout": {
+      "name": "Train Eagle Scout",
+      "taskType": "train",
+      "duration": 50,
+      "costs": {
+        "food": 20,
+        "gold": 50,
+        "pop": 1
+      },
+      "creates": {
+        "eagle_scout": 1
+      }
+    },
+    "train_champi_scout": {
+      "name": "Train Champi Scout",
+      "taskType": "train",
+      "duration": 30,
+      "costs": {
+        "food": 45,
+        "gold": 25,
+        "pop": 1
+      },
+      "creates": {
+        "champi_scout": 1
+      }
+    },
+    "research_champi_warrior": {
+      "name": "Research Champi Warrior",
+      "taskType": "research",
+      "duration": 40,
+      "costs": {
+        "food": 100,
+        "gold": 60
       }
     },
     "build_archery_range": {
@@ -771,6 +823,29 @@
         "demolition_raft": 1
       }
     },
+    "train_hulk": {
+      "name": "Train Hulk",
+      "taskType": "train",
+      "duration": 42,
+      "costs": {
+        "wood": 75,
+        "gold": 35,
+        "pop": 1
+      },
+      "creates": {
+        "hulk": 1
+      }
+    },
+    "research_fishing_lines": {
+      "name": "Research Fishing Lines",
+      "taskType": "research",
+      "duration": 20,
+      "costs": {
+        "food": 50,
+        "wood": 100
+      },
+      "dslLines": ["modifier gather.rate.node.deep_fish mul 1.1"]
+    },
     "research_man_at_arms": {
       "name": "Research Man-at-Arms",
       "taskType": "research",
@@ -778,14 +853,16 @@
       "costs": {
         "food": 100,
         "gold": 40
-      },
-      "modifiersOnComplete": [
-        {
-          "selector": "combat.enable.unit.man_at_arms",
-          "op": "set",
-          "value": 1
-        }
-      ]
+      }
+    },
+    "research_eagle_warrior": {
+      "name": "Research Eagle Warrior",
+      "taskType": "research",
+      "duration": 50,
+      "costs": {
+        "food": 200,
+        "gold": 200
+      }
     },
     "research_wheelbarrow": {
       "name": "Research Wheelbarrow",
@@ -795,22 +872,10 @@
         "food": 175,
         "wood": 50
       },
-      "modifiersOnComplete": [
-        {
-          "selector": "gather.rate.entity.villager",
-          "op": "mul",
-          "value": 1.1
-        },
-        {
-          "selector": "carry.capacity.entity.villager",
-          "op": "mul",
-          "value": 1.25
-        },
-        {
-          "selector": "move.speed.entity.villager",
-          "op": "mul",
-          "value": 1.1
-        }
+      "dslLines": [
+        "# Slight general boost, specific farm boost per SOTL",
+        "modifier gather.rate.entity.villager mul 1.02",
+        "modifier gather.rate.tag.farm mul 1.1"
       ]
     },
     "research_fletching": {
@@ -820,24 +885,7 @@
       "costs": {
         "food": 100,
         "gold": 50
-      },
-      "modifiersOnComplete": [
-        {
-          "selector": "combat.attack.class.archer",
-          "op": "add",
-          "value": 1
-        },
-        {
-          "selector": "combat.range.class.archer",
-          "op": "add",
-          "value": 1
-        },
-        {
-          "selector": "combat.los.class.archer",
-          "op": "add",
-          "value": 1
-        }
-      ]
+      }
     },
     "research_forging": {
       "name": "Research Forging",
@@ -845,19 +893,7 @@
       "duration": 50,
       "costs": {
         "food": 150
-      },
-      "modifiersOnComplete": [
-        {
-          "selector": "combat.attack.class.infantry",
-          "op": "add",
-          "value": 1
-        },
-        {
-          "selector": "combat.attack.class.cavalry",
-          "op": "add",
-          "value": 1
-        }
-      ]
+      }
     },
     "research_scale_mail_armor": {
       "name": "Research Scale Mail Armor",
@@ -865,19 +901,7 @@
       "duration": 40,
       "costs": {
         "food": 100
-      },
-      "modifiersOnComplete": [
-        {
-          "selector": "combat.melee_armor.class.infantry",
-          "op": "add",
-          "value": 1
-        },
-        {
-          "selector": "combat.pierce_armor.class.infantry",
-          "op": "add",
-          "value": 1
-        }
-      ]
+      }
     },
     "research_scale_barding_armor": {
       "name": "Research Scale Barding Armor",
@@ -885,19 +909,7 @@
       "duration": 45,
       "costs": {
         "food": 150
-      },
-      "modifiersOnComplete": [
-        {
-          "selector": "combat.melee_armor.class.cavalry",
-          "op": "add",
-          "value": 1
-        },
-        {
-          "selector": "combat.pierce_armor.class.cavalry",
-          "op": "add",
-          "value": 1
-        }
-      ]
+      }
     },
     "research_padded_archer_armor": {
       "name": "Research Padded Archer Armor",
@@ -905,19 +917,7 @@
       "duration": 40,
       "costs": {
         "food": 100
-      },
-      "modifiersOnComplete": [
-        {
-          "selector": "combat.melee_armor.class.archer",
-          "op": "add",
-          "value": 1
-        },
-        {
-          "selector": "combat.pierce_armor.class.archer",
-          "op": "add",
-          "value": 1
-        }
-      ]
+      }
     },
     "train_spearman": {
       "name": "Train Spearman",
@@ -1352,7 +1352,7 @@
       "dslLines": [
         "modifier gather.secondary.gold.node.sheep add 0.1515",
         "modifier gather.secondary.gold.node.deer add 0.122",
-        "modifier gather.secondary.gold.node.boar_lured add 0.122"
+        "modifier gather.secondary.gold.node.boar add 0.122"
       ]
     },
     {

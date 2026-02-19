@@ -1,26 +1,16 @@
 # AoE2 feudal archer rush (goal: 5 archers)
-# This build floats a bit of food/gold, arguably.
-evaluation 18:00
+# No deer lure, straight archer on a single range. Not horrible.
+evaluation 17:00
 debt-floor 0
-start with town_center,villager,villager,villager,scout_cavalry
+ruleset aoe2
+setting arabia
+setting normal_efficiency
 
 # Scoring goals
 score time clicked advance_feudal_age
 score time clicked advance_castle_age
 score time completed train_archer x4
 score time completed train_archer x8
-
-# General AoE2 Rules (keep these high-level reactions together)
-# (you probably want to keep these just to make writing the build order easier)
-after every completed lure_boar assign to boar_lured
-after every completed lure_boar assign villager all from sheep to boar_lured
-after every depleted boar_lured assign to boar_lured deer sheep
-after every depleted deer assign to boar_lured deer sheep
-after every depleted sheep assign to boar_lured deer sheep straggler_trees
-after every exhausted sheep assign to boar_lured deer straggler_trees
-after every exhausted berries assign to straggler_trees
-after every depleted straggler_trees assign to straggler_trees
-after every completed build_farm assign to created
 
 # Open: two houses + constant villager production
 auto-queue train_villager using town_center
@@ -65,25 +55,33 @@ after villager 19 queue research_loom
 after villager 19 queue advance_feudal_age
 
 # On loom: gold
-after completed research_loom queue build_mining_camp using villager from sheep boar_lured then assign to gold
+after completed research_loom queue build_mining_camp using villager from sheep boar then assign to gold
 after completed research_loom assign villager 15 to gold_mine
 after completed research_loom assign villager 14 to gold_mine
 
-after completed build_mining_camp queue build_barracks using villager from sheep boar_lured
+after completed build_mining_camp queue build_barracks using villager from sheep boar
 
 # We need more on wood after feudal (empirically 5 seems best with the current setup)
-after completed advance_feudal_age assign villager x5 from sheep boar_lured idle to forest
+after completed advance_feudal_age assign villager x4 from sheep boar idle to forest
 
 # Feudal power spike
-after completed advance_feudal_age queue build_archery_range using villager, villager
+after completed advance_feudal_age queue build_archery_range using villager x2 from wood
 after completed build_archery_range queue train_archer x8
+# Double bit-axe, horse collar
+after completed advance_feudal_age queue research_double_bit_axe
+after completed advance_feudal_age queue research_horse_collar
 
-# Keep pop smooth
-at 10:00 queue build_house x2 using villager from straggler_trees idle
-at 12:00 queue build_house x2 using villager from straggler_trees idle
+# Blacksmith + fletching
+at 11:00 queue build_blacksmith using villager from wood
+after completed build_blacksmith queue research_fletching
 
 # Farm transition: new vills auto-build farms from straggler trees / idle.
 after completed build_archery_range auto-queue build_farm using villager from straggler_trees idle
 after villager 21 spawn-assign villager to straggler_trees
 
-at 14:00 queue research_wheelbarrow then queue advance_castle_age
+
+# Keep pop smooth
+at 10:00 queue build_house x2 using villager from straggler_trees idle
+at 12:00 queue build_house x2 using villager from straggler_trees idle
+
+at 14:30 queue research_wheelbarrow then queue advance_castle_age

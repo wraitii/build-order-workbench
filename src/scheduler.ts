@@ -448,7 +448,7 @@ export function registerQueueAction(
     cmd: Extract<BuildOrderCommand, { type: "queueAction" }>,
     commandIndex: number,
 ): void {
-    const requestedAt = cmd.at ?? state.now;
+    const requestedAt = state.now;
     const iterations = Math.max(1, cmd.count ?? 1);
     const rule: QueueRule = {
         commandIndex,
@@ -519,6 +519,10 @@ export function processQueueRules(
                         result.completionTime + sampleHumanDelaySeconds(state, rule.actionId),
                     );
                     rule.nextAttemptAt = rule.delayUntil;
+                    // Reset requestedAt so delayedBy for the next iteration only
+                    // measures genuine blocking time (resource/actor shortage), not
+                    // natural sequential wait from the previous iteration.
+                    rule.requestedAt = rule.delayUntil;
                 }
                 continue;
             }
@@ -652,7 +656,7 @@ export function registerAutoQueue(
     cmd: Extract<BuildOrderCommand, { type: "autoQueue" }>,
     commandIndex: number,
 ): void {
-    const requestedAt = cmd.at ?? state.now;
+    const requestedAt = state.now;
     const rule: AutoQueueRule = {
         actionId: cmd.actionId,
         nextAttemptAt: state.now,
@@ -683,7 +687,7 @@ export function stopAutoQueue(
     cmd: Extract<BuildOrderCommand, { type: "stopAutoQueue" }>,
     commandIndex: number,
 ): void {
-    const requestedAt = cmd.at ?? state.now;
+    const requestedAt = state.now;
     state.autoQueueRules = state.autoQueueRules.filter((rule) => {
         if (rule.actionId !== cmd.actionId) return true;
         if (
@@ -850,7 +854,7 @@ export function setSpawnGatherRule(
     cmd: Extract<BuildOrderCommand, { type: "setSpawnGather" }>,
     commandIndex: number,
 ): void {
-    const requestedAt = cmd.at ?? state.now;
+    const requestedAt = state.now;
     const rule: { resourceNodeIds?: string[]; resourceNodeSelectors?: string[] } = {};
     if (cmd.resourceNodeIds !== undefined) rule.resourceNodeIds = cmd.resourceNodeIds;
     if (cmd.resourceNodeSelectors !== undefined) rule.resourceNodeSelectors = cmd.resourceNodeSelectors;
@@ -863,7 +867,7 @@ export function assignGather(
     cmd: Extract<BuildOrderCommand, { type: "assignGather" }>,
     commandIndex: number,
 ): void {
-    const requestedAt = cmd.at ?? state.now;
+    const requestedAt = state.now;
     let requestedCount: number;
     if (cmd.all) {
         const allRequest: Parameters<typeof pickEligibleActorIds>[1] = {

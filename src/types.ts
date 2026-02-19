@@ -43,7 +43,7 @@ export interface ActionDef {
     creates?: Record<string, number>;
     createsResourceNodes?: ResourceNodeCreateSpec[];
     resourceDeltaOnComplete?: ResourceMap;
-    modifiersOnComplete?: NumericModifier[];
+    dslLines?: string[];
 }
 
 export interface TaskEfficiencyConfig {
@@ -73,18 +73,29 @@ export interface CivilizationDef {
     dslLines: string[];
 }
 
+export interface RulesetDef {
+    name: string;
+    dslLines: string[];
+}
+
+export interface SettingDef {
+    dslLines: string[];
+}
+
 export interface GameData {
     resources: string[];
-    startingResources: ResourceMap;
-    startingEntities: StartingEntity[];
+    startingResources?: ResourceMap;
+    startingEntities?: StartingEntity[];
     entities: Record<string, EntityDef>;
     resourceNodePrototypes: Record<string, ResourceNodeDef>;
-    startingResourceNodes: StartingResourceNode[];
+    startingResourceNodes?: StartingResourceNode[];
     startingModifiers?: NumericModifier[];
     taskEfficiency?: TaskEfficiencyConfig;
     population?: PopulationConfig;
     actions: Record<string, ActionDef>;
     civilizations?: CivilizationDef[];
+    ruleset?: RulesetDef;
+    settings?: Record<string, SettingDef>;
 }
 
 export interface QueueActionCommand {
@@ -206,6 +217,7 @@ export interface BuildOrderInput {
     debtFloor?: number;
     startingResources?: ResourceMap;
     startingEntities?: Record<string, number>;
+    startingResourceNodes?: Array<{ prototypeId: string; count: number }>;
     humanDelays?: Record<string, HumanDelayBucket[]>;
     scores?: ScoreCriterion[];
     commands: BuildOrderCommand[];
@@ -290,9 +302,11 @@ export interface SimulationResult {
     initialResources: ResourceMap;
     resourcesAtEvaluation: ResourceMap;
     entitiesByType: Record<string, number>;
-    scenarioScore: number;
+    totalGathered: ResourceMap;
+    avgFloat: ResourceMap;
+    peakDebt: ResourceMap;
+    debtDuration: ResourceMap;
     maxDebt: number;
-    totalDelays: number;
     completedActions: number;
     violations: Violation[];
     commandResults: CommandResult[];

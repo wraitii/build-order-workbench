@@ -1,24 +1,14 @@
 # AoE2 scout rush at 19 pop.
 evaluation 16:00
 debt-floor 0
-start with town_center,villager,villager,villager,scout_cavalry
+ruleset aoe2
+setting arabia
+setting normal_efficiency
 
 # Scoring goals
 score time clicked advance_feudal_age
 score time clicked advance_castle_age
 score time completed train_scout_cavalry x3
-
-# General AoE2 Rules (keep these high-level reactions together)
-# (you probably want to keep these just to make writing the build order easier)
-after every completed lure_boar assign to boar_lured
-after every completed lure_boar assign villager all from sheep to boar_lured
-after every depleted boar_lured assign to boar_lured deer sheep
-after every depleted deer assign to boar_lured deer sheep
-after every depleted sheep assign to boar_lured deer sheep straggler_trees
-after every exhausted sheep assign to boar_lured deer straggler_trees
-after every exhausted berries assign to straggler_trees
-after every depleted straggler_trees assign to straggler_trees
-after every completed build_farm assign to created
 
 # Open: two houses + constant villager production
 auto-queue train_villager using town_center
@@ -46,21 +36,21 @@ assign villager 11 assign to berries
 queue build_mill using villager 12 then assign to berries
 assign villager 13 to berries
 at 4:30 queue lure_deer
-after completed lure_deer assign villager x3 from boar_lured sheep to deer
+after completed lure_deer assign villager x3 from boar sheep to deer
 at 6:00 queue lure_deer
 # Second boar interrupts
 queue lure_boar using villager 14
-assign villager 15 to boar_lured deer sheep
-assign villager 16 to boar_lured deer sheep
+assign villager 15 to boar deer sheep
+assign villager 16 to boar deer sheep
 assign villager 17 to berries
-assign villager 18 to boar_lured deer sheep
+assign villager 18 to boar deer sheep
 
 # Click up at 19 pop
 after villager 18 queue research_loom then queue advance_feudal_age
 
 # Prep for feudal - house & barracks
-after clicked advance_feudal_age queue build_house using villager from sheep boar_lured deer then queue build_barracks
-after clicked advance_feudal_age assign villager x5 from sheep boar_lured deer idle to forest
+after clicked advance_feudal_age queue build_house using villager from sheep boar deer then queue build_barracks
+after clicked advance_feudal_age assign villager x5 from sheep boar deer idle to forest
 after completed build_barracks assign to forest
 
 # Feudal done - stable, double bit axe, shift a few bills to wood

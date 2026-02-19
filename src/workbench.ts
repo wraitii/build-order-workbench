@@ -1,4 +1,4 @@
-import { createCivDslByName, createDslValidationSymbols, parseBuildOrderDsl } from "./dsl";
+import { createActionDslLines, createCivDslByName, createDslValidationSymbols, createRulesetDslByName, createSettingDslByName, parseBuildOrderDsl } from "./dsl";
 import { runSimulation } from "./sim";
 import { EntityTimeline, GameData, ScoreCriterion, ScoreResult, SimulationResult } from "./types";
 import { createDslSelectorAliases } from "./node_selectors";
@@ -140,40 +140,11 @@ window.__WORKBENCH_BOOTSTRAP__ = BOOTSTRAP;
 const GAME = BOOTSTRAP.game;
 let sim = BOOTSTRAP.initialResult;
 
-// Explicit slug overrides — add entries when the auto-generated name doesn't match aoe2database.com.
-// Entity overrides: key = entity id, value = icon slug (without extension)
-const ENTITY_ICON_SLUGS: Record<string, string> = {
-    villager: "u_male_villager",
-};
-
-// Resource-node overrides: key = node prototype id, value = icon slug
-const NODE_ICON_SLUGS: Record<string, string> = {
-    sheep: "u_sheep",
-    boar: "u_boar",
-    boar_lured: "u_boar",
-    wild_deer: "u_deer",
-    deer: "u_deer",
-    berries: "u_bush",
-};
-
-// Action overrides: key = action id, value = icon slug
-const ACTION_ICON_SLUGS: Record<string, string> = {
-    lure_boar: "u_boar",
-    lure_deer: "u_deer",
-};
-
-// Resource overrides: key = resource id, value = icon slug
-const RESOURCE_ICON_SLUGS: Record<string, string> = {
-    pop: "b_town_center",
-};
-
 function iconUrl(slug: string): string {
     return BOOTSTRAP.iconDataUris?.[slug] ?? "";
 }
 
 function entityIconUrl(entityType: string): string {
-    const slug = ENTITY_ICON_SLUGS[entityType];
-    if (slug) return iconUrl(slug);
     const def = GAME.entities[entityType];
     if (!def) return "";
     const prefix = def.kind === "unit" ? "u" : "b";
@@ -181,19 +152,15 @@ function entityIconUrl(entityType: string): string {
 }
 
 function resourceIconUrl(resource: string): string {
-    const slug = RESOURCE_ICON_SLUGS[resource];
-    return iconUrl(slug ?? `r_${resource}`);
+    return iconUrl(`r_${resource}`);
 }
 
 function segmentIconUrl(kind: string, detail: string): string {
     if (kind === "gather") {
-        const [resource = "", nodeId] = detail.split(":");
-        const nodeSlug = nodeId && NODE_ICON_SLUGS[nodeId];
-        return nodeSlug ? iconUrl(nodeSlug) : resourceIconUrl(resource);
+        const [resource = ""] = detail.split(":");
+        return resourceIconUrl(resource);
     }
     if (kind === "action") {
-        const actionSlug = ACTION_ICON_SLUGS[detail];
-        if (actionSlug) return iconUrl(actionSlug);
         const action = GAME.actions[detail];
         if (action?.creates) {
             const entityType = Object.keys(action.creates)[0];
@@ -207,6 +174,11 @@ function segmentIconUrl(kind: string, detail: string): string {
         return iconUrl(`t_${techSlug}`);
     }
     return "";
+}
+
+function segmentLabel(kind: string, detail: string): string {
+    if (kind === "action") return GAME.actions[detail]?.name ?? detail;
+    return detail;
 }
 
 function iconImg(url: string, title = "", cssClass = "db-icon"): string {
@@ -312,40 +284,16 @@ function renderScores(): void {
 }
 
 function renderHealth(): void {
-    const timeline = sim.resourceTimeline ?? [];
     const resources: string[] = GAME.resources;
     const mTime = maxTime();
     const step = 5;
 
-    const totalGathered: Record<string, number> = {};
-    const negativeResDuration: Record<string, number> = {};
-    const negativeResMax: Record<string, number> = {};
-
-    for (const seg of timeline) {
-        const dt = seg.end - seg.start;
-        const gatherRates = (seg.gatherRates ?? {}) as Record<string, number>;
-        for (const [res, rate] of Object.entries(gatherRates)) {
-            if (rate > 0) totalGathered[res] = (totalGathered[res] ?? 0) + rate * dt;
-        }
-        for (const res of resources) {
-            const startVal = seg.startResources[res] ?? 0;
-            if (startVal < 0) {
-                negativeResMax[res] = Math.min(negativeResMax[res] ?? 0, startVal);
-                const rate = gatherRates[res] ?? 0;
-                const debtDuration = rate > 0 ? Math.min(dt, -startVal / rate) : dt;
-                negativeResDuration[res] = (negativeResDuration[res] ?? 0) + debtDuration;
-            }
-        }
-    }
-
-    const avgs = timeWeightedAverages(mTime);
-
     const chipsHtml = resources
         .map((res: string) => {
-            const gathered = totalGathered[res] ?? 0;
-            const debt = negativeResMax[res] ?? 0;
-            const debtTime = negativeResDuration[res] ?? 0;
-            const avg = avgs[res] ?? 0;
+            const gathered = sim.totalGathered[res] ?? 0;
+            const debt = sim.peakDebt[res] ?? 0;
+            const debtTime = sim.debtDuration[res] ?? 0;
+            const avg = sim.avgFloat[res] ?? 0;
             const icon = iconImg(resourceIconUrl(res), res);
             const debtHtml =
                 debt < -0.01
@@ -401,25 +349,6 @@ function gatherableResources(): string[] {
     return GAME.resources.filter((r: string) => seen.has(r));
 }
 
-function timeWeightedAverages(mTime: number): Record<string, number> {
-    if (mTime <= 0) return {};
-    const sums: Record<string, number> = {};
-    for (const seg of sim.resourceTimeline ?? []) {
-        const dt = seg.end - seg.start;
-        if (dt <= 0) continue;
-        const rates = (seg.gatherRates ?? {}) as Record<string, number>;
-        for (const res of GAME.resources as string[]) {
-            const v0 = seg.startResources[res] ?? 0;
-            const rate = rates[res] ?? 0;
-            sums[res] = (sums[res] ?? 0) + v0 * dt + 0.5 * rate * dt * dt;
-        }
-    }
-    const result: Record<string, number> = {};
-    for (const res of GAME.resources as string[]) {
-        result[res] = (sums[res] ?? 0) / mTime;
-    }
-    return result;
-}
 
 function resourceGraph(resource: string, mTime: number, step: number): string {
     if (mTime <= 0) return "";
@@ -567,10 +496,11 @@ function buildTimeline(t: number, center = false): void {
                 const left = round2(seg.start * scale);
                 const w = Math.max(1, round2((seg.end - seg.start) * scale));
                 const color = colorForSegment(seg.kind, seg.detail);
+                const detailLabel = segmentLabel(seg.kind, seg.detail);
                 const segIcon = w >= 20 ? iconImg(segmentIconUrl(seg.kind, seg.detail), "", "seg-icon") : "";
-                const label = w >= 52 ? escapeHtml(seg.detail) : "";
+                const label = w >= 52 ? escapeHtml(detailLabel) : "";
                 const title = escapeHtml(
-                    `${entry.entityId} | ${seg.kind} ${seg.detail} | ${formatMSS(seg.start)}-${formatMSS(seg.end)}`,
+                    `${entry.entityId} | ${seg.kind} ${detailLabel} | ${formatMSS(seg.start)}-${formatMSS(seg.end)}`,
                 );
                 return `<div class='timeline-seg' title='${title}' style='left:${left}px;width:${w}px;background:${color}'>${segIcon}${label}</div>`;
             });
@@ -628,7 +558,10 @@ function runFromDsl(): void {
         const build = parseBuildOrderDsl(dslInput.value, {
             selectorAliases: createDslSelectorAliases(GAME.resources),
             symbols: createDslValidationSymbols(GAME),
+            baseDslLines: createActionDslLines(GAME),
             civDslByName: createCivDslByName(GAME),
+            rulesetDslByName: createRulesetDslByName(GAME),
+            settingDslByName: createSettingDslByName(GAME),
         });
         sim = runSimulation(GAME, build, {
             strict: false,

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Game Objects</title>
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <link rel="stylesheet" href="./workbench.css" />
+  <style>
+    .game_objects td {
+      border: none;
+    }
+    .game_objects tr {
+      border-bottom: none;
+      border-top: 1px solid var(--line);
+    }
+  </style>
+</head>
+<body>
+  <main class="game_objects">
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <h1 style="margin:0 0 6px">Game Objects</h1>
+          <p style="margin:0;color:var(--muted)">Reference of entities, actions, resources, nodes, and civilizations.</p>
+        </div>
+        <a id="timelineLink" class="btn" href="#">Open DSL / Timeline Page</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Actions</h2>
+      <table>
+        <thead><tr><th>Icon</th><th>ID</th><th>Name</th><th>Actors</th><th>Duration</th><th>Costs</th></tr></thead>
+        <tbody id="actionsBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Units</h2>
+      <table>
+        <thead><tr><th>Icon</th><th>ID</th><th>Name</th><th>Actions</th></tr></thead>
+        <tbody id="unitsBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Buildings</h2>
+      <table>
+        <thead><tr><th>Icon</th><th>ID</th><th>Name</th><th>Actions</th></tr></thead>
+        <tbody id="buildingsBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Resource Nodes</h2>
+      <table>
+        <thead><tr><th>Icon</th><th>ID</th><th>Name</th><th>Produces</th><th>Max Workers</th><th>Tags</th></tr></thead>
+        <tbody id="nodesBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Resources</h2>
+      <table>
+        <thead><tr><th>Icon</th><th>ID</th></tr></thead>
+        <tbody id="resourcesBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Civilizations</h2>
+      <table>
+        <thead><tr><th>Name</th><th>DSL Lines</th></tr></thead>
+        <tbody id="civsBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Ruleset</h2>
+      <table>
+        <thead><tr><th>Name</th><th>DSL Lines</th></tr></thead>
+        <tbody id="rulesetBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Settings</h2>
+      <table>
+        <thead><tr><th>Name</th><th>DSL Lines</th></tr></thead>
+        <tbody id="settingsBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script id="__bootstrap__" type="application/json">null</script>
+  <script src="./game_objects.ts"></script>
+</body>
+</html>
