@@ -241,6 +241,25 @@ function computeHealthMetrics(
     return { totalGathered, avgFloat, peakDebt, debtDuration };
 }
 
+function computeIdleTimeMetrics(
+    entityTimelines: SimulationResult["entityTimelines"],
+): { tcIdleTime: number; totalVillagerIdleTime: number } {
+    let tcIdleTime = 0;
+    let totalVillagerIdleTime = 0;
+
+    for (const timeline of Object.values(entityTimelines)) {
+        const idleSeconds = timeline.segments.reduce((sum, segment) => {
+            if (segment.kind !== "idle") return sum;
+            return sum + Math.max(0, segment.end - segment.start);
+        }, 0);
+
+        if (timeline.entityType === "town_center") tcIdleTime += idleSeconds;
+        if (timeline.entityType === "villager") totalVillagerIdleTime += idleSeconds;
+    }
+
+    return { tcIdleTime, totalVillagerIdleTime };
+}
+
 function processAutomation(state: SimState, game: GameData, options: SimOptions): void {
     let guard = 0;
     while (true) {
@@ -989,11 +1008,13 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
     }
 
     const health = computeHealthMetrics(state.resourceTimeline, options.evaluationTime, game.resources);
+    const idleTimeMetrics = computeIdleTimeMetrics(state.entityTimelines);
 
     return {
         initialResources: state.initialResources,
         resourcesAtEvaluation: state.resources,
         entitiesByType: countEntitiesByType(state.entities),
+        ...idleTimeMetrics,
         ...health,
         maxDebt: state.maxDebt,
         completedActions: state.completedActions,

@@ -49,6 +49,22 @@ function mapToString(obj: Record<string, number>): string {
         .join(", ");
 }
 
+const INTERNAL_RESOURCES = new Set([
+    "feudal",
+    "dark_age_buildings",
+    "feudal_age_buildings",
+    "mill_built",
+    "barracks_built",
+]);
+
+function isInternalResource(resource: string): boolean {
+    return INTERNAL_RESOURCES.has(resource);
+}
+
+function visibleResources(): string[] {
+    return (GAME.resources ?? []).filter((r: string) => !isInternalResource(r));
+}
+
 // ── URL sharing ───────────────────────────────────────────────────────────────
 
 function uint8ToBase64url(bytes: Uint8Array): string {
@@ -284,7 +300,7 @@ function renderScores(): void {
 }
 
 function renderHealth(): void {
-    const resources: string[] = GAME.resources;
+    const resources: string[] = visibleResources();
     const mTime = maxTime();
     const step = 5;
 
@@ -346,7 +362,7 @@ function gatherableResources(): string[] {
         for (const k of Object.keys(seg.gatherRates ?? {})) seen.add(k);
     }
     // Preserve GAME.resources ordering, skip anything with no gather rate (e.g. pop).
-    return GAME.resources.filter((r: string) => seen.has(r));
+    return visibleResources().filter((r: string) => seen.has(r));
 }
 
 
@@ -412,7 +428,7 @@ function renderScrub(t: number): void {
     const res = resourcesAt(t);
     const gathered = gatherableResources();
 
-    stats.innerHTML = (GAME.resources as string[])
+    stats.innerHTML = visibleResources()
         .map(
             (k: string) =>
                 `<span class='res-stat'>${iconImg(resourceIconUrl(k), k)}<span>${Math.floor(Number(res[k] ?? 0))}</span></span>`,

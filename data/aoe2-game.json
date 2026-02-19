@@ -1,5 +1,16 @@
 {
-  "resources": ["food", "wood", "gold", "stone", "pop"],
+  "resources": [
+    "food",
+    "wood",
+    "gold",
+    "stone",
+    "pop",
+    "feudal",
+    "dark_age_buildings",
+    "feudal_age_buildings",
+    "mill_built",
+    "barracks_built"
+  ],
   "ruleset": {
     "name": "aoe2",
     "dslLines": [
@@ -453,9 +464,13 @@
       "taskType": "research",
       "duration": 130,
       "costs": {
-        "food": 500
+        "food": 500,
+        "dark_age_buildings": 2
       },
-      "dslLines": ["modifier action.duration.train_eagle_scout add -15"]
+      "dslLines": [
+        "grant feudal 1000",
+        "modifier action.duration.train_eagle_scout add -15"
+      ]
     },
     "advance_castle_age": {
       "name": "Advance to Castle Age",
@@ -463,7 +478,9 @@
       "duration": 160,
       "costs": {
         "food": 800,
-        "gold": 200
+        "gold": 200,
+        "feudal": 1,
+        "feudal_age_buildings": 2
       }
     },
     "build_house": {
@@ -488,7 +505,8 @@
       },
       "creates": {
         "lumber_camp": 1
-      }
+      },
+      "dslLines": ["grant dark_age_buildings 1"]
     },
     "build_mill": {
       "name": "Build Mill",
@@ -500,7 +518,8 @@
       },
       "creates": {
         "mill": 1
-      }
+      },
+      "dslLines": ["grant dark_age_buildings 1", "grant mill_built 1000"]
     },
     "build_folwark": {
       "name": "Build Folwark",
@@ -512,7 +531,8 @@
       },
       "creates": {
         "folwark": 1
-      }
+      },
+      "dslLines": ["grant dark_age_buildings 1", "grant mill_built 1000"]
     },
     "lure_boar": {
       "name": "Lure Boar",
@@ -545,7 +565,8 @@
       },
       "creates": {
         "barracks": 1
-      }
+      },
+      "dslLines": ["grant dark_age_buildings 1", "grant barracks_built 1000"]
     },
     "build_stable": {
       "name": "Build Stable",
@@ -553,11 +574,14 @@
       "many_workers": "aoe2",
       "duration": 50,
       "costs": {
-        "wood": 175
+        "wood": 175,
+        "feudal": 1,
+        "barracks_built": 1
       },
       "creates": {
         "stable": 1
-      }
+      },
+      "dslLines": ["grant feudal_age_buildings 1"]
     },
     "build_farm": {
       "name": "Build Farm",
@@ -565,7 +589,8 @@
       "many_workers": "aoe2",
       "duration": 15,
       "costs": {
-        "wood": 60
+        "wood": 60,
+        "mill_built": 1
       },
       "creates": {
         "farm": 1
@@ -670,11 +695,14 @@
       "many_workers": "aoe2",
       "duration": 50,
       "costs": {
-        "wood": 175
+        "wood": 175,
+        "feudal": 1,
+        "barracks_built": 1
       },
       "creates": {
         "archery_range": 1
-      }
+      },
+      "dslLines": ["grant feudal_age_buildings 1"]
     },
     "build_dock": {
       "name": "Build Dock",
@@ -686,7 +714,8 @@
       },
       "creates": {
         "dock": 1
-      }
+      },
+      "dslLines": ["grant dark_age_buildings 1"]
     },
     "build_market": {
       "name": "Build Market",
@@ -694,11 +723,14 @@
       "many_workers": "aoe2",
       "duration": 60,
       "costs": {
-        "wood": 175
+        "wood": 175,
+        "feudal": 1,
+        "mill_built": 1
       },
       "creates": {
         "market": 1
-      }
+      },
+      "dslLines": ["grant feudal_age_buildings 1"]
     },
     "build_blacksmith": {
       "name": "Build Blacksmith",
@@ -706,11 +738,13 @@
       "many_workers": "aoe2",
       "duration": 40,
       "costs": {
-        "wood": 150
+        "wood": 150,
+        "feudal": 1
       },
       "creates": {
         "blacksmith": 1
-      }
+      },
+      "dslLines": ["grant feudal_age_buildings 1"]
     },
     "build_watch_tower": {
       "name": "Build Watch Tower",

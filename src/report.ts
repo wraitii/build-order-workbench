@@ -31,6 +31,18 @@ function formatMap(map: Record<string, number>): string {
         .join(", ");
 }
 
+const INTERNAL_REPORT_RESOURCES = new Set([
+    "feudal",
+    "dark_age_buildings",
+    "feudal_age_buildings",
+    "mill_built",
+    "barracks_built",
+]);
+
+function stripInternalResources(map: Record<string, number>): Record<string, number> {
+    return Object.fromEntries(Object.entries(map).filter(([k]) => !INTERNAL_REPORT_RESOURCES.has(k)));
+}
+
 function formatIntMap(map: Record<string, number>): string {
     return Object.entries(map)
         .map(([k, v]) => `${k}: ${Math.round(v)}`)
@@ -114,10 +126,12 @@ async function getGameObjectsBundle(): Promise<string> {
 
 export function toTextReport(result: SimulationResult): string {
     const lines: string[] = [];
-    lines.push(`resources: ${formatMap(result.resourcesAtEvaluation)}`);
-    lines.push(`gathered: ${formatMap(result.totalGathered)}`);
-    lines.push(`avgFloat: ${formatMap(result.avgFloat)}`);
+    lines.push(`resources: ${formatMap(stripInternalResources(result.resourcesAtEvaluation))}`);
+    lines.push(`gathered: ${formatMap(stripInternalResources(result.totalGathered))}`);
+    lines.push(`avgFloat: ${formatMap(stripInternalResources(result.avgFloat))}`);
     lines.push(`entities: ${formatIntMap(result.entitiesByType)}`);
+    lines.push(`tcIdleTime: ${formatMSS(result.tcIdleTime)} (${result.tcIdleTime.toFixed(2)}s)`);
+    lines.push(`totalVillagerIdleTime: ${formatMSS(result.totalVillagerIdleTime)} (${result.totalVillagerIdleTime.toFixed(2)}s)`);
     lines.push(`maxDebt: ${result.maxDebt.toFixed(2)}`);
     lines.push(`completedActions: ${result.completedActions}`);
     if (result.scores.length > 0) {

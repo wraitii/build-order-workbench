@@ -25,6 +25,13 @@ const bootstrapEl = mustElement<HTMLScriptElement>("__bootstrap__");
 if (!bootstrapEl.textContent) throw new Error("Game objects bootstrap element is empty.");
 const BOOTSTRAP = JSON.parse(bootstrapEl.textContent) as GameObjectsBootstrap;
 const GAME = BOOTSTRAP.game;
+const INTERNAL_RESOURCES = new Set([
+    "feudal",
+    "dark_age_buildings",
+    "feudal_age_buildings",
+    "mill_built",
+    "barracks_built",
+]);
 
 function iconUrl(slug: string): string {
     return BOOTSTRAP.iconDataUris?.[slug] ?? "";
@@ -88,7 +95,7 @@ function actionCostsHtml(costs?: Record<string, number>): string {
             return `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;white-space:nowrap">
                 ${iconImg(resourceIconUrl(resource), resource)}
                 <code>${escapeHtml(String(amount))}</code>
-                <span class="muted" style="font-size:11px">${escapeHtml(resource)}</span>
+                <span class="muted" style="font-size:11px">${escapeHtml(resource)}${INTERNAL_RESOURCES.has(resource) ? " (internal)" : ""}</span>
             </span>`;
         })
         .join("");
@@ -159,13 +166,17 @@ function render(): void {
     nodesBody.innerHTML = nodeRows.join("") || "<tr><td colspan='6' class='muted'>No resource nodes</td></tr>";
 
     const resourcesBody = mustElement<HTMLElement>("resourcesBody");
-    const resourceRows = (GAME.resources ?? [])
-        .slice()
-        .sort((a, b) => a.localeCompare(b))
+    const normalResources = (GAME.resources ?? []).filter((resource) => !INTERNAL_RESOURCES.has(resource));
+    const internalResources = (GAME.resources ?? []).filter((resource) => INTERNAL_RESOURCES.has(resource));
+    const orderedResources = [
+        ...normalResources.slice().sort((a, b) => a.localeCompare(b)),
+        ...internalResources.slice().sort((a, b) => a.localeCompare(b)),
+    ];
+    const resourceRows = orderedResources
         .map(
             (resource) => `<tr>
             <td>${iconImg(resourceIconUrl(resource), resource)}</td>
-            <td><code>${escapeHtml(resource)}</code></td>
+            <td><code>${escapeHtml(resource)}</code>${INTERNAL_RESOURCES.has(resource) ? " <span class='muted'>(internal)</span>" : ""}</td>
         </tr>`,
         );
     resourcesBody.innerHTML = resourceRows.join("") || "<tr><td colspan='2' class='muted'>No resources</td></tr>";

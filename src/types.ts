@@ -322,6 +322,8 @@ export interface SimulationResult {
     initialResources: ResourceMap;
     resourcesAtEvaluation: ResourceMap;
     entitiesByType: Record<string, number>;
+    tcIdleTime: number;
+    totalVillagerIdleTime: number;
     totalGathered: ResourceMap;
     avgFloat: ResourceMap;
     peakDebt: ResourceMap;

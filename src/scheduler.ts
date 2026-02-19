@@ -15,6 +15,14 @@ import { shouldDebugAction, simDebug } from "./debug";
 import { matchesNodeSelector } from "./node_selectors";
 import { nextEligibleActorAvailabilityTime, pickEligibleActorIds } from "./actor_eligibility";
 
+const NON_DEBT_RESOURCE_FLOORS: Record<string, number> = {
+    feudal: 0,
+    dark_age_buildings: 0,
+    feudal_age_buildings: 0,
+    mill_built: 0,
+    barracks_built: 0,
+};
+
 function effectiveCosts(action: GameData["actions"][string], modifiers: NumericModifier[]): ResourceMap {
     const raw = action.costs ?? {};
     if (modifiers.length === 0) return raw;
@@ -112,6 +120,20 @@ function mergeFloorOverrides(
     return merged;
 }
 
+function baseResourceFloorOverrides(game: GameData): Record<string, number> | undefined {
+    const overrides: Record<string, number> = {};
+    const popResource = game.population?.resource;
+    if (popResource) overrides[popResource] = game.population?.floor ?? 0;
+
+    for (const [resource, floor] of Object.entries(NON_DEBT_RESOURCE_FLOORS)) {
+        if ((game.resources ?? []).includes(resource)) {
+            overrides[resource] = Math.max(overrides[resource] ?? Number.NEGATIVE_INFINITY, floor);
+        }
+    }
+
+    return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
 function queueResourceReservations(state: SimState, game: GameData, options: SimOptions): Record<string, number> {
     const reservedCosts: Record<string, number> = {};
     for (const rule of state.queueRules) {
@@ -126,8 +148,9 @@ function queueResourceReservations(state: SimState, game: GameData, options: Sim
     }
     if (Object.keys(reservedCosts).length === 0) return {};
     const floors: Record<string, number> = {};
+    const baseFloors = baseResourceFloorOverrides(game) ?? {};
     for (const [resource, totalCost] of Object.entries(reservedCosts)) {
-        floors[resource] = options.debtFloor + totalCost;
+        floors[resource] = (baseFloors[resource] ?? options.debtFloor) + totalCost;
     }
     return floors;
 }
@@ -250,10 +273,7 @@ export function tryScheduleActionNow(
 
     const costs = effectiveCosts(action, state.activeModifiers);
     const populationResource = game.population?.resource;
-    const baseResourceFloorOverrides = populationResource
-        ? { [populationResource]: game.population?.floor ?? 0 }
-        : undefined;
-    const resourceFloorOverrides = mergeFloorOverrides(baseResourceFloorOverrides, extraResourceFloorOverrides);
+    const resourceFloorOverrides = mergeFloorOverrides(baseResourceFloorOverrides(game), extraResourceFloorOverrides);
     const blockedResource = canAfford(state.resources, costs, options.debtFloor, resourceFloorOverrides);
     if (blockedResource !== undefined) {
         return {
@@ -412,11 +432,7 @@ function computeBlockedNextAttempt(
     }
 
     const econ = computeEconomySnapshot(state);
-    const populationResource = game.population?.resource;
-    const baseResourceFloorOverrides = populationResource
-        ? { [populationResource]: game.population?.floor ?? 0 }
-        : undefined;
-    const resourceFloorOverrides = mergeFloorOverrides(baseResourceFloorOverrides, extraResourceFloorOverrides);
+    const resourceFloorOverrides = mergeFloorOverrides(baseResourceFloorOverrides(game), extraResourceFloorOverrides);
     const dtToAfford = timeToAffordWithCurrentRates(
         state.resources,
         effectiveCosts(action, state.activeModifiers),
@@ -577,10 +593,7 @@ function describeResourceShortfallAtEvaluation(
     const entries = Object.entries(costs);
     if (entries.length === 0) return undefined;
 
-    const populationResource = game.population?.resource;
-    const resourceFloorOverrides = populationResource
-        ? { [populationResource]: game.population?.floor ?? 0 }
-        : undefined;
+    const resourceFloorOverrides = baseResourceFloorOverrides(game);
     const shortfalls = entries
         .map(([resource, cost]) => {
             const floor = resourceFloorOverrides?.[resource] ?? options.debtFloor;

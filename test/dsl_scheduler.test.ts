@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createDslValidationSymbols, parseBuildOrderDsl } from "../src/dsl";
+import { createActionDslLines, createDslValidationSymbols, parseBuildOrderDsl } from "../src/dsl";
 import { runSimulation } from "../src/sim";
 import { GameData } from "../src/types";
 import { createDslSelectorAliases } from "../src/node_selectors";
@@ -536,6 +536,142 @@ start with town_center,villager
             town_center: 1,
             villager: 1,
         });
+    });
+});
+
+describe("hidden prerequisite resources", () => {
+    function makeBarracksGateGame(): GameData {
+        return {
+            ...TEST_GAME,
+            resources: [...TEST_GAME.resources, "feudal", "barracks_built"],
+            startingResources: {
+                ...(TEST_GAME.startingResources ?? {}),
+                wood: 1000,
+                feudal: 1000,
+                barracks_built: 0,
+            },
+            actions: {
+                ...TEST_GAME.actions,
+                build_barracks: {
+                    id: "build_barracks",
+                    name: "Build Barracks",
+                    actorTypes: ["villager"],
+                    taskType: "build",
+                    duration: 1,
+                    costs: { wood: 175 },
+                    creates: { barracks: 1 },
+                    dslLines: ["grant barracks_built 1000"],
+                },
+                build_stable: {
+                    id: "build_stable",
+                    name: "Build Stable",
+                    actorTypes: ["villager"],
+                    taskType: "build",
+                    duration: 1,
+                    costs: { wood: 175, feudal: 1, barracks_built: 1 },
+                    creates: { stable: 1 },
+                },
+                build_archery_range: {
+                    id: "build_archery_range",
+                    name: "Build Archery Range",
+                    actorTypes: ["villager"],
+                    taskType: "build",
+                    duration: 1,
+                    costs: { wood: 175, feudal: 1, barracks_built: 1 },
+                    creates: { archery_range: 1 },
+                },
+            },
+            entities: {
+                ...TEST_GAME.entities,
+                barracks: { id: "barracks", name: "Barracks", kind: "building" },
+                stable: { id: "stable", name: "Stable", kind: "building" },
+                archery_range: { id: "archery_range", name: "Archery Range", kind: "building" },
+            },
+        };
+    }
+
+    test("stable and archery range are blocked without barracks unlock", () => {
+        const game = makeBarracksGateGame();
+        const build = parseBuildOrderDsl(
+            `
+evaluation 10
+queue build_stable using villager 1
+queue build_archery_range using villager 2
+`,
+            {
+                baseDslLines: createActionDslLines(game),
+                selectorAliases: createDslSelectorAliases(game.resources),
+                symbols: createDslValidationSymbols(game),
+            },
+        );
+
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: 0,
+        });
+
+        const stalls = result.violations.filter(
+            (v) =>
+                v.code === "RESOURCE_STALL" &&
+                (v.message.includes("'build_stable'") || v.message.includes("'build_archery_range'")),
+        );
+        expect(stalls.length).toBe(2);
+        expect(stalls.every((v) => v.message.includes("barracks_built short"))).toBe(true);
+    });
+
+    test("prereq hidden resources ignore negative debt floor", () => {
+        const game = makeBarracksGateGame();
+        const build = parseBuildOrderDsl(
+            `
+evaluation 10
+queue build_stable using villager 1
+`,
+            {
+                baseDslLines: createActionDslLines(game),
+                selectorAliases: createDslSelectorAliases(game.resources),
+                symbols: createDslValidationSymbols(game),
+            },
+        );
+
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const stall = result.violations.find(
+            (v) => v.code === "RESOURCE_STALL" && v.message.includes("'build_stable'"),
+        );
+        expect(stall).toBeDefined();
+        expect(stall?.message.includes("barracks_built short")).toBe(true);
+    });
+
+    test("stable and archery range unlock after barracks completes", () => {
+        const game = makeBarracksGateGame();
+        const build = parseBuildOrderDsl(
+            `
+evaluation 10
+queue build_barracks using villager 1
+queue build_stable using villager 1
+queue build_archery_range using villager 1
+`,
+            {
+                baseDslLines: createActionDslLines(game),
+                selectorAliases: createDslSelectorAliases(game.resources),
+                symbols: createDslValidationSymbols(game),
+            },
+        );
+
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: 0,
+        });
+
+        expect(result.entitiesByType.barracks).toBe(1);
+        expect(result.entitiesByType.stable).toBe(1);
+        expect(result.entitiesByType.archery_range).toBe(1);
     });
 });
 

@@ -68,7 +68,7 @@ after completed advance_feudal_age spawn-assign villager to straggler_trees
 after completed advance_feudal_age auto-queue build_farm using villager from straggler_trees idle
 
 after villager 30 queue research_wheelbarrow then queue advance_castle_age
-after clicked research_wheelbarrow queue build_blacksmith using villager from straggler_trees idle
+after villager 30 queue build_blacksmith using villager from straggler_trees idle
 
 # other houses
 at 11:30 queue build_house using villager from straggler_trees wood
