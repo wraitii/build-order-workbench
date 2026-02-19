@@ -14,7 +14,6 @@ interface Args {
     at?: number;
     eventLog: boolean;
     resourceLog: boolean;
-    activityLog: boolean;
     activityLogAt?: number;
 }
 
@@ -25,7 +24,6 @@ function parseArgs(argv: string[]): Args {
         strict: false,
         eventLog: false,
         resourceLog: false,
-        activityLog: false,
     };
 
     for (let i = 0; i < argv.length; i += 1) {
@@ -50,10 +48,8 @@ function parseArgs(argv: string[]): Args {
             args.eventLog = true;
         } else if (cur === "--resource-log") {
             args.resourceLog = true;
-        } else if (cur === "--activity-log") {
-            args.activityLog = true;
         } else if (cur === "--activity-log-at" && next) {
-            args.activityLogAt = parseCliTime(next, "--activity-log-at");
+            args.activityLogAt = parseCliTime(next, cur);
             i += 1;
         }
     }
@@ -111,7 +107,7 @@ async function runOnce(args: Args): Promise<void> {
         console.log("resourceLog:");
         for (const line of toResourceLogLines(result, 30)) console.log(line);
     }
-    if (args.activityLog) {
+    if (args.activityLogAt !== undefined) {
         console.log("activityLog:");
         for (const line of toActivityLogLines(result, 30, args.activityLogAt)) console.log(line);
     }

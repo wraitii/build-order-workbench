@@ -36,7 +36,7 @@
         "starting-resource wood 200",
         "starting-resource gold 100",
         "starting-resource stone 200",
-        "start-node sheep 2",
+        "start-node starter_sheep 2",
         "start-node neutral_sheep 6",
         "start-node wild_boar 2",
         "start-node wild_deer 3",
@@ -160,17 +160,17 @@
     "scout_cavalry": {
       "name": "Scout Cavalry",
       "kind": "unit",
-      "actions": ["find_sheep", "lure_deer", "lure_boar"]
+      "actions": ["find_starter_sheep", "find_sheep", "lure_deer", "lure_boar"]
     },
     "eagle_scout": {
       "name": "Eagle Scout",
       "kind": "unit",
-      "actions": ["find_sheep", "lure_deer", "lure_boar"]
+      "actions": ["find_starter_sheep", "find_sheep", "lure_deer", "lure_boar"]
     },
     "champi_scout": {
       "name": "Champi Scout",
       "kind": "unit",
-      "actions": ["find_sheep", "lure_deer", "lure_boar"]
+      "actions": ["find_starter_sheep", "find_sheep", "lure_deer", "lure_boar"]
     },
     "house": {
       "name": "House",
@@ -348,6 +348,13 @@
       "rateByEntityType": {},
       "stock": 1,
       "tags": ["herdable", "neutral_herdable"]
+    },
+    "starter_sheep": {
+      "name": "Starter Sheep",
+      "produces": "food",
+      "rateByEntityType": {},
+      "stock": 1,
+      "tags": ["herdable", "starter_herdable"]
     },
     "deer": {
       "name": "Deer",
@@ -542,10 +549,27 @@
       },
       "dslLines": ["grant dark_age_buildings 1", "grant mill_built 1000"]
     },
+    "find_starter_sheep": {
+      "name": "Find Starter Sheep",
+      "taskType": "lure",
+      "duration": 15,
+      "consumesResourceNodes": [
+        {
+          "prototypeId": "starter_sheep",
+          "count": 2
+        }
+      ],
+      "createsResourceNodes": [
+        {
+          "prototypeId": "sheep",
+          "count": 2
+        }
+      ]
+    },
     "find_sheep": {
       "name": "Find Sheep",
       "taskType": "lure",
-      "duration": 45,
+      "duration": 60,
       "consumesResourceNodes": [
         {
           "prototypeId": "neutral_sheep",

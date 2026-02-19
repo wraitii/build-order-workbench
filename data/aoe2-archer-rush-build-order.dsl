@@ -13,8 +13,9 @@ score time completed train_archer x4
 score time completed train_archer x8
 
 # Open: two houses + constant villager production
-auto-queue train_villager using town_center
+queue find_starter_sheep
 queue find_sheep x3
+auto-queue train_villager using town_center
 queue build_house using villager 1, villager 2
 queue build_house using villager 3
 after completed build_house assign villager 1 to sheep

@@ -13,11 +13,12 @@ score time clicked advance_castle_age
 score time completed train_fire_galley x2
 score time completed train_galley x5
 
+queue find_starter_sheep
+queue find_sheep x3
 # Keep TC running
 auto-queue train_villager using town_center
 
 # 2 houses, then builders back to sheep
-queue find_sheep x3
 queue build_house using villager 1, villager 2
 queue build_house using villager 3
 after completed build_house assign villager 1 to sheep

@@ -11,8 +11,9 @@ score time clicked advance_castle_age
 score time completed train_scout_cavalry x3
 
 # Open: two houses + constant villager production
-auto-queue train_villager using town_center
+queue find_starter_sheep
 queue find_sheep x3
+auto-queue train_villager using town_center
 queue build_house using villager 1, villager 2
 queue build_house using villager 3
 after completed build_house assign villager 1 to sheep

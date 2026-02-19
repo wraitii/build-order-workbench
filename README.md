@@ -50,7 +50,7 @@ These go at the top before any commands, and configure the simulation:
 | `evaluation <time>` | **Required.** How long to simulate, e.g. `evaluation 15:00`. |
 | `stop after <clicked\|completed\|depleted\|exhausted> <target> [xN]` | Optional early-stop trigger; sim ends at the earlier of this trigger time and `evaluation`. |
 | `ruleset aoe2` | Use standard AoE2 game rules. |
-| `setting arabia` | Start with the standard Arabia setup — 2 sheep, 6 neutral sheep, 2 boar, berries, etc. |
+| `setting arabia` | Start with the standard Arabia setup — 2 starter sheep, 6 neutral sheep, 2 boar, berries, etc. |
 | `debt-floor <amount>` | Allow resources to go this many below zero before triggering a warning (default: 0). |
 | `score time clicked <action>` | Track when you click something, e.g. `score time clicked advance_feudal_age`. |
 | `score time completed <action> [xN]` | Track when something finishes, e.g. `score time completed train_scout_cavalry x3`. |
@@ -231,10 +231,8 @@ bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --reso
 Optional entity activity snapshot log (`MM:SS villager-1: gather:sheep, ...`):
 
 ```bash
-bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log
-bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log out/activities.log
-bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log --activity-log-at 9:30
-bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log --activity-log-at 570
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log-at 9:30
+bun run src/index.ts --game data/aoe2-game.json --build data/my-build.dsl --activity-log-at 570
 ```
 
 Game data is a plain JSON file (`data/aoe2-game.json`) — adaptable to other RTS titles.

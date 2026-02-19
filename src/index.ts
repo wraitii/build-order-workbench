@@ -15,7 +15,6 @@ interface Args {
     at?: number;
     eventLog?: string | true;
     resourceLog?: string | true;
-    activityLog?: string | true;
     activityLogAt?: number;
 }
 
@@ -61,15 +60,8 @@ function parseArgs(argv: string[]): Args {
             } else {
                 args.resourceLog = true;
             }
-        } else if (cur === "--activity-log") {
-            if (next && !next.startsWith("--")) {
-                args.activityLog = next;
-                i += 1;
-            } else {
-                args.activityLog = true;
-            }
         } else if (cur === "--activity-log-at" && next) {
-            args.activityLogAt = parseCliTime(next, "--activity-log-at");
+            args.activityLogAt = parseCliTime(next, cur);
             i += 1;
         }
     }
@@ -148,16 +140,10 @@ async function main(): Promise<void> {
             for (const line of lines) console.log(line);
         }
     }
-    if (args.activityLog) {
+    if (args.activityLogAt !== undefined) {
         const lines = toActivityLogLines(result, 30, args.activityLogAt);
-        if (typeof args.activityLog === "string") {
-            const body = lines.length > 0 ? `${lines.join("\n")}\n` : "";
-            await Bun.write(args.activityLog, body);
-            console.log(`wrote activity log: ${args.activityLog}`);
-        } else {
-            console.log("activityLog:");
-            for (const line of lines) console.log(line);
-        }
+        console.log("activityLog:");
+        for (const line of lines) console.log(line);
     }
 
     if (args.report) {
