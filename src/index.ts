@@ -111,10 +111,9 @@ function deriveGameObjectsReportPath(reportPath: string): string {
 }
 
 function deriveLLMBenchmarksReportPath(reportPath: string): string {
-    if (reportPath.toLowerCase().endsWith(".html")) {
-        return reportPath.replace(/\.html$/i, "-llm-benchmarks.html");
-    }
-    return `${reportPath}-llm-benchmarks.html`;
+    const slashIndex = reportPath.lastIndexOf("/");
+    const dir = slashIndex >= 0 ? reportPath.slice(0, slashIndex + 1) : "";
+    return `${dir}aoe2-llm-benchmarks.html`;
 }
 
 async function main(): Promise<void> {
