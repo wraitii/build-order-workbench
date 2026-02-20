@@ -539,7 +539,8 @@
       "creates": {
         "lumber_camp": 1
       },
-      "onClicked": ["consume-res faraway_forest 1", "create-res forest 1"],
+      "requiresResourceNodes": [{ "prototypeId": "faraway_forest", "count": 1 }],
+      "createsResourceNodesOnClicked": [{ "prototypeId": "forest", "count": 1 }],
       "onCompleted": ["grant dark_age_buildings 1"]
     },
     "long_distance_mining": {
@@ -577,26 +578,31 @@
     "find_starter_sheep": {
       "name": "Find Starter Sheep",
       "taskType": "lure",
+      "repeatable": false,
       "duration": 15,
-      "onCompleted": ["consume-res starter_sheep 2", "create-res sheep 2"]
+      "consumesResourceNodes": [{ "prototypeId": "starter_sheep", "count": 2 }],
+      "createsResourceNodes": [{ "prototypeId": "sheep", "count": 2 }]
     },
     "find_sheep": {
       "name": "Find Sheep",
       "taskType": "lure",
       "duration": 60,
-      "onCompleted": ["consume-res neutral_sheep 2", "create-res sheep 2"]
+      "consumesResourceNodes": [{ "prototypeId": "neutral_sheep", "count": 2 }],
+      "createsResourceNodes": [{ "prototypeId": "sheep", "count": 2 }]
     },
     "lure_boar": {
       "name": "Lure Boar",
       "taskType": "lure",
       "duration": 30,
-      "onCompleted": ["consume-res wild_boar 1", "create-res boar 1"]
+      "consumesResourceNodes": [{ "prototypeId": "wild_boar", "count": 1 }],
+      "createsResourceNodes": [{ "prototypeId": "boar", "count": 1 }]
     },
     "lure_deer": {
       "name": "Lure Deer",
       "taskType": "lure",
       "duration": 54,
-      "onCompleted": ["consume-res wild_deer 1", "create-res deer 1"]
+      "consumesResourceNodes": [{ "prototypeId": "wild_deer", "count": 1 }],
+      "createsResourceNodes": [{ "prototypeId": "deer", "count": 1 }]
     },
     "build_barracks": {
       "name": "Build Barracks",
@@ -1057,7 +1063,8 @@
       "creates": {
         "mining_camp": 1
       },
-      "onClicked": ["consume-res faraway_gold_mine 1", "create-res gold_mine 1"]
+      "requiresResourceNodes": [{ "prototypeId": "faraway_gold_mine", "count": 1 }],
+      "createsResourceNodesOnClicked": [{ "prototypeId": "gold_mine", "count": 1 }]
     }
   },
   "civilizations": [

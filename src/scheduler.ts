@@ -19,7 +19,7 @@ import {
     switchEntityActivity,
     toFutureTick,
 } from "./sim_shared";
-import { activateNodeDecay, computeEconomySnapshot } from "./economy";
+import { activateNodeDecay, computeEconomySnapshot, instantiateResourceNode } from "./economy";
 import { shouldDebugAction, simDebug } from "./debug";
 import { matchesNodeSelector } from "./node_selectors";
 import { nextEligibleActorAvailabilityTime, pickEligibleActorIds } from "./actor_eligibility";
@@ -232,6 +232,22 @@ function resolveConsumableNodes(
     return available.slice(0, count);
 }
 
+function hasRequiredResourceNodes(state: SimState, specs: Array<{ prototypeId: string; count?: number }>): boolean {
+    if (specs.length === 0) return true;
+
+    const requiredByPrototype: Record<string, number> = {};
+    for (const spec of specs) {
+        const count = Math.max(1, spec.count ?? 1);
+        requiredByPrototype[spec.prototypeId] = (requiredByPrototype[spec.prototypeId] ?? 0) + count;
+    }
+
+    for (const [prototypeId, count] of Object.entries(requiredByPrototype)) {
+        const nodes = resolveConsumableNodes(state, prototypeId, count);
+        if (!nodes) return false;
+    }
+    return true;
+}
+
 export function consumeResourceNodes(state: SimState, specs: Array<{ prototypeId: string; count?: number }>): boolean {
     if (specs.length === 0) return true;
 
@@ -345,6 +361,10 @@ export function tryScheduleActionNow(
         return { status: "blocked", reason: "NO_ACTORS" };
     }
 
+    if (!hasRequiredResourceNodes(state, action.requiresResourceNodes ?? [])) {
+        return { status: "blocked", reason: "NO_RESOURCE_NODES" };
+    }
+
     if (!consumeResourceNodes(state, action.consumesResourceNodes ?? [])) {
         return { status: "blocked", reason: "NO_RESOURCE_NODES" };
     }
@@ -397,6 +417,15 @@ export function tryScheduleActionNow(
         actionId: action.id,
         actors: actorIds,
     });
+
+    for (const spec of action.createsResourceNodesOnClicked ?? []) {
+        const proto = game.resourceNodePrototypes[spec.prototypeId];
+        if (!proto) continue;
+        const count = spec.count ?? 1;
+        for (let i = 0; i < count; i += 1) {
+            instantiateResourceNode(state, proto);
+        }
+    }
 
     const clickTimes = state.actionClickTimes[action.id] ?? [];
     clickTimes.push(state.now);

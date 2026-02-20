@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+orig_dir="$(pwd)"
+cd your-git-clone-of-build-order-simulator
+
+args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --event-log|--resource-log)
+      args+=("$1")
+      shift
+      ;;
+    --activity-log-at)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value for --activity-log-at" >&2
+        exit 1
+      fi
+      args+=("$1" "$2")
+      shift 2
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+bun src/index.ts --game "${orig_dir}/aoe2-game.json" --build "${orig_dir}/build-order.dsl" "${args[@]}"

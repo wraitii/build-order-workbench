@@ -1,0 +1,125 @@
+{
+  "benchmarkDate": "2026-02-20",
+  "rows": [
+    {
+      "modelHarness": "Human baseline",
+      "feudalTime": "07:05",
+      "castleTime": "15:27",
+      "archers10Time": "15:51",
+      "fletchingTime": "12:37",
+      "humanEvalScore": "A",
+      "humanEvalComment": "Solid baseline, without luring deer. Far from fully optimised for this particular problem.",
+      "cost": "-",
+      "hadTrouble": "-",
+      "buildLink": "#z=pVZNc9s2EL3zV-yML8kkdkVKjhPdkja9ZNoeeuiRA5JLEWMQYAHQkvPru0tSEvhhWUlvonb3vcV-POAGPpuvCZTYFkKBsHmFFmzrKnizM0Jt4X74072NbuBPAwWSg2otvgfnrZC7yh_DjAYBTuqdQrBC7_COAjxUxlqZKbyL8EmoVnhJjvHDdrWKCsz8bamMsbCKbKvQIaEZTCL64QmJoEUmxelTG1sLlWJZylyizp8jyurv3Fg2csIucvSF4GWNkCuZP2IBongSOse0P2UqdnjJKxfOK5x5mbpR6MnPUpZ84rSk77wi5mU_ro5Oh9oc4hWn-leDegt-b6gqrUMH7yhAOy-0hyepFJFaaKwp2pzLFP3bYotQSl2k5GQ92tRViM3IwH_AYR2J1pvb3tBznxBb7gp4s9dpjppQhvislapIu1QGn1NI_P78O3ndndhLwg2OHzoL5-ROB-CUC_QH-ZGw5OfC1ucwasFXYdUzlMYUgFR7Uz9H04BNwDMx3b9s-jCi2fA67IllVDvV1hn1MBd1M63gA_gK9TF5gippppyf0Xy8YPsU2G7gixGWh5IntE-C9zbN-O9pt1czrDgOwAjtDzLQuFL6VqJ7fSLiZA7ZNXAJoWbwKcB6DrAOAWjzuYPUfD6RoB9dV2lRMqnkdxFs0MsH38xJLvQ4_hAmMLM-hFaetQMtYjcFHWTbNMb6XhuplL0EXFHJj3OmS1MQfxp37lcWOGgbEB6SFTTmuD5hRJ_FSdtIk-sXvRb0lLVNA0dtSYdVMVvQETKMe6_puIs7UVry7fWta95kQ0KiQcTnkMvt5VB2wx-P34zjX5CiECI8bSasFfmje-WoXNB_EDQSYM2Xy6Am0LMN9_UbrBtpZS4USdo9OMTa0fw5D3vpKy4X5K21JPlk823zdpbsvJWzAx82sz7Igq740Yz93ifUmD1FuEY-4jVUYWH6i_I57bdjUp1D0ufQCepywcfx4TUYXME38Jtp6S0CmfS34kCPGHqdOL61ichen_JpmosOLiW4lOB-AqDjTwd-Fm3F01Fz-97B-YVBqxvH9GQaz9LZd2maLhQriJzkc6bkrgpbcxG1kyymW5rHfUfioHtsdGBQkpcbZoScd_T-o1W1SM-bX7pRubuqZcHzpTcz7vKaHFnSnoU5pmKVxDSGYq9vp-PMQjyOj2YKmpx2nKvwjeeeVBNcbYyvul6spr3olZvm9PqECSb5_zAdzma7PuIsPGP_Aw"
+    },
+    {
+      "modelHarness": "Gemini 3.1 pro + pi",
+      "feudalTime": "07:35",
+      "castleTime": "15:37",
+      "archers10Time": "17:06",
+      "fletchingTime": "10:59",
+      "humanEvalScore": "B+",
+      "humanEvalComment": "Solid performance. Solid iterative approach, and the final build is decent with little idle time.\nUnfortunately got cut short due to harness issues, I think it would have got a bit better.\nFor what it's worth, I reran it a few times and got things in a similar ballpark.",
+      "cost": "~1$",
+      "hadTrouble": "Y",
+      "buildLink": "#z=rVdNj5swEL3zKyz1HImPtml7rVT1XK3UI3JgSKw1dmqb3ey_74CzCfiLUPW0S3jvzfh5PB7ghfKBGiYFKfNveZ5lLRzMruNSKpJnauCgwRAqoczwH8PEkVBFD4zeHoVUPeU1dB1rGIjmLct0IxUQw3ogDWfNM7SEti9UNFB3MLSIpkdIoRqqDQcPJfszB4M4oygTNVXNCRS5FHkYpTD3EVN3-NycMNks-zPAAKRjoq21ocqAqvUJ4EwGPS4GdQaD4dEW9UbMCQSZMybkpXqXOQyMt_VJDhqu_BfGOWatSGHJVGt2FMRIMnHXeWWYd32-warZq8HIndW1ttxAVtrIV1E3IHCpWUY7_DOzKGBEKtTEvr35SPSZvoqdy4jhP23Ef17Du4Q9mfvLh_6Aq2pof3Zd3rsud1g-2rh6X-IJhAlftxKKfJXhUQqyXn3FvHb5oKA-SKp8mCdexvMZFfxsqkU2Pf7uRalct3FbFAPtaSUKKkZJ1FSMkiird4rH2T_g-T7Kim-Az0nU3LQBLj5RcsENKxMVFwpQFpsrdKQYed5FO1OAYGGBWyL7QJ4UFZpNlxQG_TG9e-9k0esl2gouhbcLXtNdHNZEDNeTy550SvaTkeiBoscjx7hGAWjCWg5bxJfnSmDKwV6GFeNkf5SWAV6798XcFeBWLBTQ_p9jtett-doTcikfthrj_B5f2N0d7yWGPV57K1iJe6BK0eZZu3GnXbGh0nvtWHXTmwexc8dbjWV5DC3yX4Mtdb3Tcx13bLAF9r_rbbadjyb1zJz-m_F3RRvIH-auoe7IsYh-wTTNkKfv5KxkOzRj23hkOVvGqAfk4pPLsitk8_nNLr2jqg_aGGoofvMtvTNtydNwNzWmqRG5YoHUXOXE9ey2nDspcUHHSYkrOk4K3dH-4Sy92W9l2VX-kC7CVnQ94eUg11P1jJ9arqz3IbHa3a2OBpzEyjwfr2Lhl0mVGPSiFlfVI6QQa9M4ECDcT0YAvJwdZt-OfwE"
+    },
+    {
+      "modelHarness": "GPT 5.2-medium + codex",
+      "feudalTime": "09:01",
+      "castleTime": "16:22",
+      "archers10Time": "15:03",
+      "fletchingTime": "12:14",
+      "humanEvalScore": "B",
+      "humanEvalComment": "Decent. Got the archers out fast, and could have gotten castle earlier with some tweaks. Overall just got a decent result. Main flaw: didn't try hard enough to keep producing vills, stunting its eco. Also failed to realize it had more sheep available. Stopped on its own.",
+      "cost": "~20ct",
+      "hadTrouble": "-",
+      "buildLink": "#z=zVdNb9swDL37VxDYZcMaLEnTr9y67uOyAQN62NGQbdoWKkuZJKfJvx9lKaljxVm3dcAuTe08PZKPpMjgmomWWa4kzKfL6TQxVq2AlRY15KpZCbRYACvWTOaY5sxYgSmrMCkws5NSKKVhmuhWoEELTOE8oX8slxUwzTLO9o9S6YaJFMuS5xxlvk2SV3CfK-2-rBQTJjH0hGB5g5ALnj_0LJfYFnTaWT6B6vnXR-3jsJpxmTKd1xTeZjY9jtIUi8OkJT3nNfnnXP3A9APcVriEkqzAp86hM7A1knQTzWSF4JkNvIX90TPvJNx1rsHt_e235EeLLULJZZEayzRpnZoacQWtcWKQU62lWCg1ensAHgUxC_PlYgoeLFqNaaaYHsMunotNzIo9ygkzhlcS1lwI0laDVdD5krDWqokn8truIZ7NqkeZ5igpRKfhN6qt10bwqrZiCyQy_SUutlackvjERaoIYd6E2LOWiyKtVWsw0O6tbObJsFaPyDp0n8h7ITjpZjs5TtqCUqvGH_N5D8R9rsVvcZVUflRMAzL_1rFdvijb9YuyzaYvR0e14RvKMxGBoTb80XKNDVXPEr60TUZkd6xZUXd9JfKQ-L2dxYErosNTHTeroUOLsZAO-S6isrkYB19G4Mtx8FUEvhoHX0fg63HwTQS-6Ys8QA-y19D7oVYEGYhFqmqOJuKaRabp1Qn8PMbPT-HPY_x5H08VdNddtL6OovM3IdYjA4WOfq85Xc6VcsG3qyWsNLX4e6Y1yx_cdf5ZiYI-PjHduEfc0G0Hj0oVu-tndFwdSJztGP-o5X7HUsMlWTha_ycsVcofxehWjVmH6dicHzL32fbtvYRC0wyYQzcvnZSZcII03NZn0N3auyF6BhVtFL052vnaH6aRk7_QxBNvUz-r_yIF_63BJzH_-BZ2Fb4ki3KNlIvQXe94Qe3BpYN2LcBlmN7h1n6dMflANKpwXCE_b57jfm_q-xicgaMlG3wB58tIfXZnN7NrcFvs5Ch1MnL0MFckV3-r2W2MF8GxQ_Ds5SnnLhcfu1vGdREoUg0yRXkNjcNobW1pmfKrk2uctWMZDFEQLFM6zsOIf1FLz8Zb-jhlrwB9sPEuHeJ9Qo5lpMc1TOcvd81nehf_bji-t96zEu12CbyEupU2COU2k7CqQuG8ou5oaYZKVSBdX6ZWa-yq1UBGhimJhMBcBe-QOmwLBQYXx1fVLgddBz7Nu11ODElRVYJWHatxPzYH1N16_0-YC8S_Z_4J"
+    },
+    {
+      "modelHarness": "Claude 4.6 sonnet (cc)",
+      "feudalTime": "09:44",
+      "castleTime": "16:37",
+      "archers10Time": "-",
+      "fletchingTime": "14:54",
+      "humanEvalScore": "C+",
+      "humanEvalComment": "Ran out of context. Massively overthought, but got a relatively decent build and would beat GLM if it hadn't run out of context.\n(Ran in default claude code)",
+      "cost": "~30c",
+      "hadTrouble": "-",
+      "buildLink": "#z=zVjNbttGEL7rKQYoikpQhIiUJdlyfXDrpC0SFEXiFu2JWJErcRGSq3CX_nmBPkB77dPlSTqzu6JILhXL6aU305yZ75vZmW-H4ncsq5gWsoBwuppOB0rLHbCN5iXEMt9lXPMEWHLHiphHMVM64xHb8kHC13qyyaQsYTooq4wrroFJHg7wDy2KLbCSrQWrHwtZ5iyL-GYjYsGL-HEw-Arex7Kkl1vJMjVQ-MRBi5xDnIn4QwN5w6sEvQn5M1YNfk2rOg9dMlFErIxTTO8hmPZblZgL2UQbfI5T5EdUr66u4Ob63Ru4_uEVPTj6lYaNKBIFSrOSqqZSzneXwJQS28L-lzK8E5kCiSStAfAHobBgRQJZhRTWkpWDjxWvuAkXuWiRNa4UhVCEhjnikZWPA1ZpObEeNi1EyDDz0llreV9EMS8wymDQPdAeDEe4jhJgBMv1S7zD_-Q9e5a3LQKVMaIy9lYLD-v7FKtkq51wjGkjcxanpvrmjQd3iNpAMe69Z9LnbaxP8UaOv4kMzlaQykpxGO5wFGO2G4FOedGqR12pMxd5XYksiayfjd0wMe6uxnVhHdp8hazyNdFm-c6a3kuZdIHmLSDrEhmXDty8C7fBEVPa4SlYTJarXoSF1waLhnvHeOkZLz0sON9X8nj9zp-u3_nn6qfgYhJMV_3BLzySF93GPozb1J_AqXdaQbCCHN9DgQoFeASl4AqGCSs_kOpFJg1kryBwXeNsPLiglbiJ2ckbTTqJ72PtyYSro-FDP5uwE-LNqz_g9U-_r6wqGgZCGT76BRh1M9xgw8pcOXIiyfhLhXq33WYWT2Gk2xQdeaFwuhS2gEys2uqUaezq4hsr0baSL2mYX5oZ3ErTMia8KJTmLPEmuFGehuDa_5Jnt2ibUuZQE4x0yZESsa6LNqMTLMjJTM8wLjnTaLSVBqjgWA97sbkTpBdefWed46OAveOIlp1TrIFqSmetOenFO0FnAk9oukjYlfNJsFj1Q8z9lpm3o3Q9fMUIFv0ZLlsZ9qlPsDwhw-UT2hacT4KLfnULzn2y58f1LfC1I7jwFQ53NlizsmTxh34ZCC9xMNga1zOwa88jlKzY8tHxSoTTViXq8J1ioNnRYrylS1bxWOLUmcvzniw3osSVJ-FmtPaS4R6d3YlXuSl2GEzC8IjyhoG_kXgLzeGVr1Zh6GkvgVlFctfzQqfuT8wcZnNw97WphdBG0k3N1ejFZ64ghHqy84jOkUvovVnYD9p0_fONlQ-wOzOgCN4Z-jDMKzyANR4Ny2lrFFuMPerhQx8Bk6ML5tEEepZ1tzi_fvXrzfXb1upMtI2CNnDMTeBor_kWRRmG96S91Fi48uHWvMPUhM4eR55U--heHgfdJgq_uOM6nKH7MjDpUv2HZ_alugrnZPoC711Ems3GxjwM6Z4Zm_Yc74_6FF5Pnre5Ruw8HZ-yG1nhYE_W2GrswSYwDqdfm6HGKdf-NnuUSv3Jk5iYEcaMKKal1dj2CPc7MwRhW1AUjGGdkVDkAudieIUGB5iGIhFN-50GhL8reck_PrtqDjsy2M-v3v8arVHGL2mL1_uvVnwLSkqyah5NIgu_MzzkTl_Un8KO0sGSIK8PI-bGwFJltDa1u2RI7lmtPqRObuBToU9qA0-X3NRaYq2jMp99Rgv3HWfC24vIue2xkJoWOYXImU5HK2p0iYVwvK3-1MqAtG8vW4GUKSzcjmdz2knPIKefFnaIYLvGvCU3NBgHZ9Or23GwnCMqFQmvCno_Ir6WabCYuiKSA3z68699_OBiri67oBgKvrUv4dM_f3t1bFWqrdaNH00Q_kdZKvoxBDuuNLNqNPpR8IyuaKn0JV49YqPrjw-7asvmTvccwUkJL3J49ghp2z6pEboLUtC3Lj4vROjtj--4qvC2NGXYqxjc04jQWm_TF4Vr4mf27xPfEea74V8"
+    },
+    {
+      "modelHarness": "GLM-5 + pi",
+      "feudalTime": "09:50",
+      "castleTime": "16:34",
+      "archers10Time": "18:56",
+      "fletchingTime": "14:09",
+      "humanEvalScore": "C",
+      "humanEvalComment": "Ended up achieving the objective, but quite poorly, and took a while to get there.\nOverall reasonable approach, but never seemed to quite realize it had idle villagers that should be put to work.",
+      "cost": "~1$",
+      "hadTrouble": "-",
+      "buildLink": "#z=7VffT9swEH7PX3ET0p6o1B8wxt7YBhIavABC2lPkJk5r4diZ7VD63-9sJ6mTNKVUTNoDD0i0vbvv--7OZx99JrwkhkkB0_G38TjSRhZAMkMVJDIvODU0BZI-E5HQOCHacBqTBY1SOjejjEupYBypklNNDRBJpxH-Y5hYAFFkzkjzUUiVEx7TLGMJoyJZR9ER3CdS2R8XknAdafxEwbCcQsJZ8hQgZ7RM0dsi77AK-IVWjQ6jCBMxUckS5b1MxtutFGqxNnGGn5Ml8quolgYyJlINeklpASzPacqIoXwd_SlpSd2vsTZEYfpib1Rqq09bZ6SH2VZO-PeS8RSWstTWS2kDI3hmnCN1BbMq3Nwaxd7IxwlMMMiFK5PHyWQp0mMgWrOF2NhNPk_BSG8Tdcu6hW7X_yVwt0mwxkBKI0cul5bTxdXD5V0lwnOtEXQPMVTkonihvi4NqNdq5ErECRUYoZv_3FZtb01hbXbV5LFJLvYj1U44MlssOH5nFMWvPJrjv1tbJ42zVrDYBbOQvyyd2koDnsK6mgr_ZAqYYsMIxw7bBacLshKjLmhYuLDfpkAMFHjMT6ugjccpvN54YJZU1AK3q7opVd3Vc0lUDXfWhTur4Djax85yj9Myq8Odd8Odv84-UzLvMt5XkKaJFGlLEU6QDofJ-G2aeJnPbVlJXjS6XPVXWP3dAr1r7FwPkIkgVJvNGAmYHPuGCqx6RAY7bhPWC8zxNycoJeoJ0Mqzt3SPJr3szVoKne8B0lCHYr5yYeecNGXrNf5kj853yF7ecC493pwoRZInPSR82sP_0sJv_A-nkPvh7LrDslhI3uunyddOuq3LcENtB7aBrSvd3A8ZUXk9K20NB2aXK29IwPq9RTKaxwXBK3oAwMX7APgA-F8A8IT8sE9W8M9ZO4-mEzuSuicTv_WIW96_dmKnqTt39pTju6HnPe09QFr8wkPbdZ0d7npyuOvp_q7toe5HrH_R9_Mwfo-p3k_uPwh68q73j8_HGhQReO9cXd_dP8DKulR91zzQcesoFMMdzKw_9dq_33stkhVI7EE6ZAcJVhuELxhc395e_ry-eLi8-e0JtpkzjcsYSYcev20GvX2i2vM8s5ZtcFNze8_mzCyrPaZFYC_c1sW9CbdvQu6qbROabdNnIgj1ShoCS8-lv8BWbDaWm1Hkd2b3QPEt0vggbCpFPwlbwreHVbCG_wU"
+    },
+    {
+      "modelHarness": "Kimi 2.5 + pi",
+      "feudalTime": "10:15",
+      "castleTime": "-",
+      "archers10Time": "-",
+      "fletchingTime": "17:29",
+      "humanEvalScore": "D",
+      "humanEvalComment": "Pretty poor showing overall. Just did not realize it had idle villagers. Not terrible but didn't feel like it was improving much.\nStopped early at around 60% context",
+      "cost": "~25c",
+      "hadTrouble": "Y",
+      "buildLink": "#z=vVjfb9s2EH73X8GiD0uBGBMpy7-APGRJugELUCBdB-xJoCXaFiqLGSklzX-_O5K2KZGuXQzoSxJJ33139_GOPEa88LrjbSUbwpJlkox0K58JX7dCkULunmvRipLw8oU3hcgLrtta5HwjRqVYteN1LaUiyUh1tdCiJVwKNoI_2qrZEK74quKHx0aqHa9zsV5XRSWa4m00ek8-F1Lhx43ktR5peBKkrXaCFHVVfPU8r0VXgjV6_g7Ki89HHfJoFa-anKtiC-l9o0kcpSAXxORreC62EB-GenNzQ-5vn_4kt78_4IMLv2vJumpKTfRWiOfRv53ohHmT65YrkDE3H0inMU-NBhAmqK7eeuCTIHCTkpeq1gTWSEMGm00tlB5xratNg19qyFcRSlp5_J63SogQxC4BpTEQhPFbV9UlhKt0S7ay04K8Vu0WODE6l8wKMbn9arM5BnjtxWH4ePEVXb1KBb-3onEaDqvP5xzGyus6mtKAIrIgMaa1krshl6E3cUHIt10rxzbTvSE4O760BXbgtAq08rXJC9GA76OMJh1tFcT6K4lhALaWMGhEclbPiadn5syyIK3JMf5TkMxLETCTZXqB96nnfebMQuppz3sUMut7n12U-9zzvnBmIfW85z0KWSBkDZuAbo37xUXJ08TzT6mxpJetGmW-aWpNL5Oc-itOM2t6mV7UXy4623u9yNTXmhqxaXZRvMxXidEfCJf5IrHUWM4v8-lrxDLst78PHW7WfgeNqMmYfPz06R5-3H35TGC3r9_QSbJk5zooWWbJ9zoIQ13Sc51Al5OQZXa-Vee93WhhldCk7nYr3O_4zpkOpLLfc_w-FGxhd17nyGuG91DlY0rx1HmVsrS8WRgSTTwrAKVLFqZG6YCaQczwQFaSK2s1yVzI-CHH92HrHJABvznYDBmyp2M6xcD37JMljcSUHmxO7U104kMyrN0AkvUhkQKiUz-4R0iPsKbs055LfWaRkdqjMz-Aaaz26LwPidQeXfiQ6FbJkp7G2b74dgAwLVQB6KoRcJRheiWHUx0MLQyzgeUnH80c92GQt61SQzRMPBvWJxSyqnoDCVc77UZWpDgxPxh23x3aBe7S_2U9McpMx4zuq-_Xteudc5Xx09bOQNKQhdGBunc4XLsFc6r4YCtGZD53s_LHhy_3t4_-tGyXa8WVgsFPO_Fgyq1qvqqPA9V-BU7eAHrrMKDztqWjSzvwvxHFG7C29DavwzprcoWniZ_g61aSykzdTpQPQW2cic35za3f4UlFPU1qTGEHs-CJ8usz9fI_mEa2y4ODXdXgN3MAPNw-Pf7jGnUjsYGgL60D_S7M8VwAljp6tuCu329e9IcWpkqe3D2LHO9ZcedejtZzeENzrj0hwcFfOI3jAeWyg0CIlhIDcrUA69s9k6tSNr-05JVXrRHjwPojagR3S7wulCA93jAhYNmpQpANB0XUfjd0cZmJII2dLmnaV80CI92bTkLgJMqY9Y9rO3sGqGn_vP6DNyW0qDmaSoFaVLJx4ogX7C37VthjLeD7ltq7lfl48r42YBpexM5tv_HbW78ACyU4cGNOjI3ZfD_euH4wfx5Xxm0Z115dXdvz5p05wuYxhRnrKzyP7rZpH7SIMk2GoBjTcEGTKNU0QMW4Zv1lZ_NxOkOJzD5hJaoljM9ybV5ZFSiNepyHFRkPbRYDxqKLMMZdL2LAWJknIZBFu4bGgDFGFmvYn9jZQ-DJ5u5txfasvzP_PnMH5HHbDDbB4VY3mAW8_8L9Bw"
+    },
+    {
+      "modelHarness": "Minimax 2.5 + pi",
+      "feudalTime": "05:03",
+      "castleTime": "-",
+      "archers10Time": "-",
+      "fletchingTime": "-",
+      "humanEvalScore": "E",
+      "humanEvalComment": "Had too much trouble managing houses, could not get enough wood to really do anything. Clicked to Feudal early (too early, in fact). Stopped on its own.",
+      "cost": "1$",
+      "hadTrouble": "-",
+      "buildLink": "#z=5VZNj9sgEL37VyD1WK3kfCcr5ZB20x6avXS3ZwtjbKPFkAKOdv99wSQEB3vj5NqbwfPevDfMGOMDpDVUhDMwjh_jOJKK7wHMFRYA8WpPscIZgNkBMoQTBKWiOIEFjjKcqoecci5AHImaYokVgByPI_2gCCsAFDAl0C0ZFxWkCc5zgghm6COKvoAXxIV5WXBIZST1CgNFKgwQJejNy5zjOtNok_mTKE-fH-V8KAEJS6BApbb3Poq7o4T2YmKSXK9RqfUZqev1Gjxtfv8Cm59bs4j-1rjGICcsS6SCQlcskSXG--iyemEIgFKSgoEDoVSLFQBSChQHd-MnDVrbKwqqg5TAWBrR32pCM1DyWur1AF7rKTWopEGBWprzcYlGAYsffBU-NqJezSm4vRt02eM7AY84xz0NqjK9rKn3ZgjjLGCc9TLOuhm13V2tWyzlUNMrMHqcxMdIqveTZl8HPZs-vCyJI58HQua9QuaDrC0CxkUv46LXmm2vSu_0qbC9YCLCTjrVRmLEWeZKNNGfodtLtAwMLXsNLQeVaBUwrs6Mzjytq9R0L6zCwfXM-9WwkMRALoui57jE7JRYZ8u1aamu218NsjSKA096KzSVQ1GFc9ljxwRf-sgFr07au2ka1H9Pc7xXfmz_PG123q3Sce25w0mhEBC9ufPpvSlbSk6oK2psCntDfgABmc7c7dUR-lmOwKQBXkn1TJh57U_OMCtVA-ycHy9Fa5JcwPvYtHvBLY2tKjU2KqJK8BWcr_xu122DrQKfaW7uGw9rKbt_QezFaSX0jWeXwPZvzzRAtt53QSb3QE7frOPHpFb84Y7R-L55ed1tO0bD-9f7Bw"
+    },
+    {
+      "modelHarness": "Mimo v2 flash + pi",
+      "feudalTime": "12:05",
+      "castleTime": "-",
+      "archers10Time": "-",
+      "fletchingTime": "-",
+      "humanEvalScore": "E",
+      "humanEvalComment": "Overall poor. Had trouble with houses, with food income, with idle villagers. Did manage to end up clicking to Feudal. Ran out of context.",
+      "cost": "~15c",
+      "hadTrouble": "-",
+      "buildLink": "#z=pVdLb-M2EL7rVwywlwRNAEnO7qYB9uAmbhE02QKOi8WeBFoaW0Qk0UtS9vrfd0gqEvVwkrY-WJY1M988vhmOcM-KmmkuKojDmzAMlBY7YBuNElJR7grUmAHL9qxKMUmZ0gUmbItBhmt9uSmEkBAGsi5QoQYmMA7oh-bVFphka87a20rIkhUJbjY85VilxyD4AE-pkObhVrBCBYruEDQvEdKCp88e8gbrjLQN8itSnn--VBuHloxXCZNpTuH9jMJpKUmxGJlkQ_dpTv4ZV794H7ibL_-E-R-L3r8unlrDhleZAqWZNGlUOeIOeFlixpnG4hj8qLFGK5U0QokTqpVJhjJGKBYqjbRZmivFt5UzaAT2vCgoRqngLLqA-AJm56BFA8QIWVA5zdXzRudYBsO6TrjAHNYLBESt5f-iHf8v7VmnTVlYmeJ5saeiomzUolbFETZSlLC6DVitxaXLryt2a8zlVotDlaRYEaix-VvNC-OKVBpysoRw__i4uLufrxYP34FpCG-iEM7WuDE8OSDkXMOOOiRlu_Pg5bnDWxtbibPiwFrsK6-K7Z8fbXTk5XZb0K2WiAoIBw5CZE26POFhcvrqiVX3QhLFgclnOMvMNyk494xXH6JzOHCdd6Y-BX4EL6qDGD51xou6XJtasnI3CRAPAT73AJx6YtUHIJ-nEnV9KlGlLcpEtq5H2bo-ka0nJBplTe1tPWcfg-b6dl1_NSYeaokNhdaCSWMlupmFQXNtrBQkldjnJ5r8W46VM8CVlc4uKMA9eoy3JHetQtE4WW-sDDusgxxm4-fVhK2uviXJwWK-pBbo1zEKL8wgqawKSskpiTbMuN8E1sAgV9QnVrXxxbPg4VZGxRJjABx1wKYVlXa4V0NcY2CSWVE0hG_sjAmn3FORwWVvdnW24vGYjPuzKufSY1VkTtbm-jarollLK-XoactD-nGn_yafHvvcIe-2gnJ8MEmwCSKaZaLCEW3GqRzRZ_ZizojhNFpTXQdoCfEWIImMkOJpopjGt7lTLi3RO5rVMr4jT_yuDveVhkvA74u_7-YPsFrOvz7dr-7_-jraBswu1Zqy55FdjLRhYy9ZilH6LOXMXHPLjhmqZi5QpPT0phvpNL9_6c9gGrhf6KwdjWI1Ym4EZsG7PHlMTig4sYlF7EQ-JtaiJaq6xIlUeOOrWTqd_RFHxvAwecqbpa6lybpg6bMqzSQ5a3Lqn4LvB3EE8cy9zhKH7tbMI0hWkaGxA_G_dqCxmDiLr_uwbJZYaJdYw7suhBNd6MXokKeXYbeL0Uh3LqkT1voO-wXzdnAzgLOmp8fzyvRDjmx_hAxLVo2Oejp53jGeejy9nT-tHhav9O2tea0A9zIBggoCjGbTTqLEHzVXXNNYY-Tt5DQbxjd6mRpndNBi3lvMPw"
+    },
+    {
+      "modelHarness": "GPT-OSS 120B + pi",
+      "feudalTime": "-",
+      "castleTime": "-",
+      "archers10Time": "-",
+      "fletchingTime": "-",
+      "humanEvalScore": "F",
+      "humanEvalComment": "Ran as a baseline. Did write valid DSL. Stopped early, failed tool call.",
+      "cost": "~5c",
+      "hadTrouble": "failure",
+      "buildLink": "#z=rVZLbtswEN3rFANkkwAJoNhu0HSXBu2mu_YAAk2NZCISqfBj15siVyh6kN4pJ-mQVGRZlBMUyMqWOPPemy-FW9Y4ZoWSsMg_5XlmrOqAVRY1cNV2DVosgZVbJjkWnBnbYMFqzEpc26uqUUpDnmnXoEELTOEioz9WyBqYZmvBhkepdMuaAqtKcIGS77PsDH5wpf1hrVhjMkNPCFa0CLwR_GHEXKErydszv2I10je2GuKwmglZMM03FN7P63zeSlMs3qao6JlvSJ-X-g2xiwBe8FY0DdFokzFn1dWjQ4c9_MsROOMtrdrJgqOkjHqYL0w3-4M7PD_9gUopikGWsKM_GTNG1HIwgWuCALMh-uRocfpo6Y8qis5YT_vZiYbi3ynYKGfQwKOj1JGS847qzVl3kcUY1t6wCEZ9AGMhG5TQMw3Mb_ot5v0GVY1r177dWNuFLLTkSLq02ooSvS8hlEw_-LoWgYfgzbHgiFEEjAn9ckrfZ2XsHignfqt5PwA4G4yen_6uQJggknrJWXBShITfhRHyuJfANTKLIfsV063xSGAssnIfap9N520kaqzSO09VfkhUktEJwOD_FuDNLKCPKL6RuBu1L53vXrq3VlRMFpKxB9Z1NES9kEML5TBtVHp1qMnUfJGah573VJQfiYnHKvVYvUJwk5rfHBNQ5Pd-zcDXsILgrkZglrYl1Z5mZ4q4yPsMz2wugoogz0-_6ZnqI43Vjvv1a5KapQBHtVszrRl_MMmUfjzR7_-JH7fkvtBM1ukquH0fknXjQ2iF3SRLI38fhjbs69nFsEgW2lHV7-I1QXuojCXyvW1U_PUDHzND06_9JJ-YueM0JpdFfxdFZUe2XsL3_iaC4Saaahgl8A0hI8soYP6auw9X6EuDhsaPeIPVZQz8Msw8SuXqDdAguCZ-Rpz_Wq4uEg0pWfKRMZuv4-FaribDdbjw_wE"
+    },
+    {
+      "modelHarness": "Step 3.5 Flash + pi",
+      "feudalTime": "-",
+      "castleTime": "-",
+      "archers10Time": "-",
+      "fletchingTime": "-",
+      "humanEvalScore": "F",
+      "humanEvalComment": "Failed entirely - stuck thinking.",
+      "cost": "-",
+      "hadTrouble": "failure",
+      "buildLink": ""
+    }
+  ]
+}

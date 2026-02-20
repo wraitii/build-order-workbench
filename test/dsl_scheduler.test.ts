@@ -896,6 +896,28 @@ at 0 queue find_sheep x5 using scout 1
         );
         expect(stall).toBeDefined();
     });
+
+    test("aoe2 find_sheep uses native node consumption config", async () => {
+        const game = await Bun.file("data/aoe2-game.json").json() as GameData;
+        const findSheep = game.actions.find_sheep;
+        const findStarterSheep = game.actions.find_starter_sheep;
+        const buildLumberCamp = game.actions.build_lumber_camp;
+        const buildMiningCamp = game.actions.build_mining_camp;
+
+        expect(findSheep?.consumesResourceNodes).toEqual([{ prototypeId: "neutral_sheep", count: 2 }]);
+        expect(findSheep?.createsResourceNodes).toEqual([{ prototypeId: "sheep", count: 2 }]);
+        expect(findSheep?.onCompleted).toBeUndefined();
+
+        expect(findStarterSheep?.consumesResourceNodes).toEqual([{ prototypeId: "starter_sheep", count: 2 }]);
+        expect(findStarterSheep?.createsResourceNodes).toEqual([{ prototypeId: "sheep", count: 2 }]);
+        expect(findStarterSheep?.onCompleted).toBeUndefined();
+
+        expect(buildLumberCamp?.requiresResourceNodes).toEqual([{ prototypeId: "faraway_forest", count: 1 }]);
+        expect(buildLumberCamp?.createsResourceNodesOnClicked).toEqual([{ prototypeId: "forest", count: 1 }]);
+
+        expect(buildMiningCamp?.requiresResourceNodes).toEqual([{ prototypeId: "faraway_gold_mine", count: 1 }]);
+        expect(buildMiningCamp?.createsResourceNodesOnClicked).toEqual([{ prototypeId: "gold_mine", count: 1 }]);
+    });
 });
 
 describe("secondary gather modifiers", () => {
@@ -1946,7 +1968,7 @@ assign villager 2 to sheep
         expect(resourceFull[0]?.message).toContain("All 'sheep' gathering spots are full right now.");
     });
 
-    test("build_lumber_camp converts faraway_forest into gatherable forest", () => {
+    test("build_lumber_camp creates gatherable forest on click", () => {
         const convertedForestGame: GameData = {
             ...TEST_GAME,
             resourceNodePrototypes: {
@@ -1968,8 +1990,8 @@ assign villager 2 to sheep
                     actorTypes: ["villager"],
                     taskType: "build",
                     duration: 35,
-                    consumesResourceNodes: [{ prototypeId: "faraway_forest", count: 1 }],
-                    createsResourceNodes: [{ prototypeId: "forest", count: 1 }],
+                    requiresResourceNodes: [{ prototypeId: "faraway_forest", count: 1 }],
+                    createsResourceNodesOnClicked: [{ prototypeId: "forest", count: 1 }],
                 },
             },
         };
@@ -1977,7 +1999,7 @@ assign villager 2 to sheep
 evaluation 120
 start with villager,villager
 at 0 queue build_lumber_camp using villager 1
-at 60 assign villager 2 to forest
+at 10 assign villager 2 to forest
 `, { symbols: createDslValidationSymbols(convertedForestGame) });
 
         const result = runSimulation(convertedForestGame, build, {
@@ -1989,6 +2011,7 @@ at 60 assign villager 2 to forest
         const villager2 = result.entityTimelines["villager-2"];
         const forestSeg = villager2?.segments.find((s) => s.kind === "gather" && s.detail === "wood:forest");
         expect(forestSeg).toBeDefined();
+        expect((forestSeg?.start ?? 999)).toBeLessThan(35);
     });
 
     test("long_distance_mining is one-time and grants 10 gold on completion", () => {

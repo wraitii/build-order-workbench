@@ -42,7 +42,9 @@ export interface ActionDef {
     many_workers?: "aoe2" | { model: "aoe2"; additionalWorkerRate?: number };
     costs?: ResourceMap;
     creates?: Record<string, number>;
+    createsResourceNodesOnClicked?: ResourceNodeCreateSpec[];
     createsResourceNodes?: ResourceNodeCreateSpec[];
+    requiresResourceNodes?: ResourceNodeCreateSpec[];
     consumesResourceNodes?: ResourceNodeCreateSpec[];
     resourceDeltaOnComplete?: ResourceMap;
     onClicked?: string[];

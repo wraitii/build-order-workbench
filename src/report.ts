@@ -9,6 +9,28 @@ export interface BuildOrderPreset {
     dsl: string;
 }
 
+export interface LLMBenchmarkRow {
+    modelHarness: string;
+    feudalTime: string;
+    castleTime: string;
+    archers10Time: string;
+    fletchingTime: string;
+    humanEvalScore: string;
+    humanEvalComment: string;
+    cost: string;
+    hadTrouble: string;
+    buildLink: string;
+}
+
+export interface LLMBenchmarkDataset {
+    benchmarkName?: string;
+    benchmarkDate?: string;
+    prompt?: string;
+    evalCommand?: string;
+    notes?: string[];
+    rows: LLMBenchmarkRow[];
+}
+
 const WITH_LLM = process.env.INCLUDE_LLM === "1";
 
 let workbenchBundlePromise: Promise<string> | undefined;
@@ -285,6 +307,7 @@ export async function toHtmlReport(
     initialDsl: string,
     buildOrderPresets: BuildOrderPreset[] = [],
     gameObjectsHref = "#",
+    llmBenchmarksHref = "#",
 ): Promise<string> {
     const [workbenchBundle, llmBundle, bgDataUri, faviconDataUri, iconDataUris, htmlTemplate, css] = await Promise.all([
         getWorkbenchBundle(),
@@ -315,6 +338,7 @@ export async function toHtmlReport(
     html = html.replace('<link rel="stylesheet" href="./workbench.css" />', () => cssBlock);
     html = html.replace('href="./favicon.png"', () => `href="${faviconDataUri}"`);
     html = html.replace(/__GAME_OBJECTS_HREF__/g, () => gameObjectsHref);
+    html = html.replace(/__LLM_BENCHMARKS_HREF__/g, () => llmBenchmarksHref);
 
     // Inline workbench JS bundle
     html = html.replace('<script src="./workbench.ts"></script>', () => `<script>${workbenchBundle}</script>`);
@@ -352,6 +376,30 @@ export async function toGameObjectsHtml(game: GameData, timelineHref: string): P
     html = html.replace('href="./favicon.png"', () => `href="${faviconDataUri}"`);
     html = html.replace('<script src="./game_objects.ts"></script>', () => `<script>${gameObjectsBundle}</script>`);
     html = html.replace(">null</script>", () => `>${bootstrapJson}</script>`);
+
+    return html;
+}
+
+export async function toLLMBenchmarksHtml(
+    dataset: LLMBenchmarkDataset,
+    timelineHref: string,
+    gameObjectsHref: string,
+): Promise<string> {
+    const [bgDataUri, faviconDataUri, htmlTemplate, css] = await Promise.all([
+        getBgDataUri(),
+        getFaviconDataUri(),
+        Bun.file(new URL("./llm_benchmarks.html", import.meta.url).pathname).text(),
+        Bun.file(new URL("./workbench.css", import.meta.url).pathname).text(),
+    ]);
+
+    const datasetJson = scriptSafeJson(dataset);
+    let html = htmlTemplate;
+    const cssBlock = `<style>${css}</style>\n  <style>:root { --bg-image: url('${bgDataUri}') }</style>`;
+    html = html.replace('<link rel="stylesheet" href="./workbench.css" />', () => cssBlock);
+    html = html.replace('href="./favicon.png"', () => `href="${faviconDataUri}"`);
+    html = html.replace(/__TIMELINE_HREF__/g, () => timelineHref);
+    html = html.replace(/__GAME_OBJECTS_HREF__/g, () => gameObjectsHref);
+    html = html.replace(">null</script>", () => `>${datasetJson}</script>`);
 
     return html;
 }

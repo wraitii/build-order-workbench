@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LLM Benchmarks</title>
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <link rel="stylesheet" href="./workbench.css" />
+  <style>
+    .bench-meta {
+      margin: 0;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .bench-meta code {
+      font-size: 12px;
+    }
+    .bench-prompt {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--ink);
+      padding: 12px;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    /* Grade badge */
+    .grade-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      min-width: 34px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+    .grade-a  { background: #d1fae5; color: #065f46; }
+    .grade-b  { background: #dbeafe; color: #1e40af; }
+    .grade-c  { background: #fef3c7; color: #92400e; }
+    .grade-d  { background: #ffedd5; color: #9a3412; }
+    .grade-e  { background: #fee2e2; color: #7f1d1d; }
+    .grade-f  { background: #fce7f3; color: #831843; }
+    @media (prefers-color-scheme: dark) {
+      .grade-a  { background: #064e3b; color: #6ee7b7; }
+      .grade-b  { background: #1e3a5f; color: #93c5fd; }
+      .grade-c  { background: #451a03; color: #fcd34d; }
+      .grade-d  { background: #431407; color: #fdba74; }
+      .grade-e  { background: #450a0a; color: #fca5a5; }
+      .grade-f  { background: #4a044e; color: #f0abfc; }
+    }
+    /* Rank column */
+    .rank-cell {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 24px;
+    }
+    .rank-1 { color: #ca8a04; }
+    .rank-2 { color: #6b7280; }
+    .rank-3 { color: #b45309; }
+    /* Trouble badge */
+    .trouble-badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .trouble-yes     { background: #ffedd5; color: #9a3412; }
+    .trouble-failure { background: #fee2e2; color: #7f1d1d; }
+    .trouble-ok      { color: var(--muted); font-size: 12px; }
+    @media (prefers-color-scheme: dark) {
+      .trouble-yes     { background: #431407; color: #fdba74; }
+      .trouble-failure { background: #450a0a; color: #fca5a5; }
+    }
+    /* Timing cells */
+    .time-miss { color: var(--muted); }
+    .time-hit  { font-variant-numeric: tabular-nums; }
+    /* Table rows */
+    .result-row:hover td { background: var(--accent-dim); }
+    .comment-row td { border-top: none; padding-top:0; }
+    .comment-cell {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      padding-top: 2px !important;
+      padding-bottom: 10px !important;
+    }
+    td, tr {
+      border: none;
+    }
+    td, th {
+      text-align: center;
+      font-size: 1.05em;
+    }
+    td {
+      padding-bottom:3px;
+    }
+    .score-col-mobile {
+      display: none;
+    }
+    .score-stack {
+      display: grid;
+      gap: 4px;
+      text-align: left;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .score-stack-line {
+      white-space: nowrap;
+    }
+    /* Results header row */
+    .results-header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .results-header h2 { margin: 0; }
+    .results-date {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    @media (max-width: 600px) {
+      .score-col-desktop {
+        display: none;
+      }
+      .score-col-mobile {
+        display: table-cell;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <h1 style="margin:0 0 6px">AoE 2 LLM Benchmarks</h1>
+          <p class="bench-meta">How good are LLMs at crafting AoE 2 build orders?</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a id="timelineLink" class="btn" href="__TIMELINE_HREF__">Open Workbench</a>
+          <a class="btn" href="__GAME_OBJECTS_HREF__">Open Item Reference</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Purpose</h2>
+      <p class="bench-meta">This benchmark compares how well different LLM+harness setups can produce a competitive AoE2 build-order DSL file under similar constraints.</p>
+      <p class="bench-meta" style="margin-top:8px">It is designed to test practical build-order quality, not just syntax correctness. A model needs to hit the timing goals quickly, keep eco healthy, and avoid brittle scripts that collapse under simulation constraints.</p>
+      <h2 style="margin-top:12px">What It Tests</h2>
+      <p>This test is technically a coding optimization problem, which I feel represents pretty well what we want our agentic coders to do. It is, however, kind of a weird test, weird enough that it's likely quite out of distribution.</p>
+      <ul style="margin:0;padding-left:20px;">
+        <li style="margin:0 0 8px">Instruction following: honor the exact benchmark prompt and required scoring lines.</li>
+        <li style="margin:0 0 8px">Needle in a haystack: the JSON is 1000 lines and some elements are critical.</li>
+        <li style="margin:0 0 8px">Context rot: several model iterated their full context. This compounds the above problem.</li>
+        <li style="margin:0 0 8px">Out-of-distribution coding: the DSL syntax is strict and original.</li>
+        <li style="margin:0 0 8px">Strategic thining: it's not 100% trivial to achieve all 4 objectives and have a good build order.</li>
+        <li style="margin:0 0 0">World knowledge: some models show obvious existing knowledge of typical AoE2 build orders.</li>
+      </ul>
+      <h2 style="margin-top:12px">Disclaimer</h2>
+      <p>For cost reasons, I haven't rerun these benchmarks too many time. I don't think they're _that_ high variance to be honest, but it's worth keeping in mind.</p>
+    </section>
+
+    <section class="card benchmark" style="background: var(--panel);">
+      <div class="results-header">
+        <h2>Results</h2>
+        <span class="results-date" id="benchDate"></span>
+      </div>
+      <p style="margin:0 0 14px;font-size:13px;color:var(--muted)">These results are overall not great - Gemini 3.1 Pro is the best, and it's easily below par. However, all models that I could run did succesfully write a DSL script.<br/>
+        To be fair - the LLMs have a slightly worse interface to work with, but I would expect better.<br/>
+        What I find interesting is that there is a very clear skill divide on display, when all these models are "good at code".<br/>
+        Partly inspired by the brillant <a href="https://minebench.ai" target="_blank" rel="noopener noreferrer">minebench.ai</a></p>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:center;width:32px">#</th>
+            <th style="text-align: left;">Model + Harness</th>
+            <th class="score-col-desktop">Feudal</th>
+            <th class="score-col-desktop">Castle</th>
+            <th class="score-col-desktop">10 Archers</th>
+            <th class="score-col-desktop">Fletching</th>
+            <th class="score-col-mobile">Feudal<br>Castle<br>10 Archers<br>Fletching</th>
+            <th>Grade</th>
+            <th>Cost</th>
+            <th class="score-col-desktop">Trouble</th>
+            <th class="score-col-desktop">Build</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Reproduce</h2>
+      <p class="bench-meta">Benchmark assets live in <code>benchmarks/aoe2-llm/</code>: <code>prompt.txt</code>, <code>eval</code>.</p>
+      <p class="bench-meta">I ran the model with the same constraints and access, but pi has some issues with a few of them.</p>
+    </section>
+
+    <section class="card">
+      <h2>Prompt</h2>
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;">Click to expand</summary>
+        <pre id="promptText" class="bench-prompt" style="margin-top:10px"></pre>
+      </details>
+    </section>
+  </main>
+
+  <script id="__benchmark_data__" type="application/json">null</script>
+  <script>
+    (function () {
+      function escapeHtml(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      var dataEl = document.getElementById("__benchmark_data__");
+      var data = {};
+      try {
+        data = JSON.parse((dataEl && dataEl.textContent) || "{}");
+      } catch (_) {
+        data = {};
+      }
+
+      var promptText = document.getElementById("promptText");
+      var rows = document.getElementById("rows");
+      var timelineLink = document.getElementById("timelineLink");
+      var benchDate = document.getElementById("benchDate");
+
+      if (benchDate && data.benchmarkDate) {
+        benchDate.textContent = data.benchmarkDate;
+      }
+
+      function formatTime(value) {
+        if (!value) return "-";
+        if (/^\d{1,2}:\d{2}$/.test(value)) return value;
+        if (value === "-") return value;
+        return "-";
+      }
+
+      function gradeBadge(score) {
+        if (!score || score === "-") return "<span class=\"muted\">—</span>";
+        var letter = score.charAt(0).toUpperCase();
+        var cls = { A: "grade-a", B: "grade-b", C: "grade-c", D: "grade-d", E: "grade-e", F: "grade-f" }[letter] || "grade-c";
+        return "<span class=\"grade-badge " + cls + "\">" + escapeHtml(score) + "</span>";
+      }
+
+      function troubleBadge(val) {
+        if (!val || val === "-") return "<span class=\"trouble-ok\">—</span>";
+        var v = String(val).toLowerCase();
+        if (v === "failure") return "<span class=\"trouble-badge trouble-failure\">failure</span>";
+        if (v === "y" || v === "yes") return "<span class=\"trouble-badge trouble-yes\">trouble</span>";
+        return "<span class=\"trouble-ok\">" + escapeHtml(val) + "</span>";
+      }
+
+      function timeCell(value) {
+        var t = formatTime(value);
+        if (t === "-") return "<span class=\"time-miss\">—</span>";
+        return "<span class=\"time-hit\">" + escapeHtml(t) + "</span>";
+      }
+
+      function rankLabel(i) {
+        var n = i + 1;
+        var cls = n <= 3 ? " rank-" + n : "";
+        return "<span class=\"rank-cell" + cls + "\">" + n + "</span>";
+      }
+
+      function resolveBuildLink(rawLink) {
+        if (!rawLink) return "";
+        var timelineHref = (timelineLink && timelineLink.getAttribute("href")) || "";
+        var normalized = String(rawLink).trim();
+        if (!normalized) return "";
+        if (normalized === "#" || normalized === "z=" || normalized === "#z=") return "";
+        if (/^z=/.test(normalized)) normalized = "#" + normalized;
+        if (/^#/.test(normalized) && timelineHref) {
+          try {
+            return new URL(normalized, new URL(timelineHref, window.location.href)).toString();
+          } catch (_) {
+            return normalized;
+          }
+        }
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(normalized)) return normalized;
+        if (timelineHref) {
+          try {
+            return new URL(normalized, new URL(timelineHref, window.location.href)).toString();
+          } catch (_) {
+            return normalized;
+          }
+        }
+        return normalized;
+      }
+
+      if (promptText) promptText.textContent = data.prompt || "Add the benchmark prompt in benchmarks/aoe2-llm/prompt.txt.";
+
+      var rowItems = Array.isArray(data.rows) ? data.rows : [];
+      if (!rows) return;
+      if (rowItems.length === 0) {
+        rows.innerHTML = "<tr><td colspan=\"10\" class=\"muted\">No rows yet. Add entries to <code>benchmarks/aoe2-llm/results.json</code>.</td></tr>";
+        return;
+      }
+
+      rows.innerHTML = rowItems.map(function (row, i) {
+        var resolvedBuildLink = resolveBuildLink(row.buildLink);
+        var link = resolvedBuildLink
+          ? "<a href=\"" + escapeHtml(resolvedBuildLink) + "\" target=\"_blank\" rel=\"noopener noreferrer\">open</a>"
+          : "<span class=\"muted\">—</span>";
+        return "<tr class=\"result-row\" style=\"border-top:1px solid var(--line);\">" +
+          "<td style=\"text-align:center;\">" + rankLabel(i) + "</td>" +
+          "<td style=\"text-align: left;\">" + escapeHtml(row.modelHarness || "—") + "</td>" +
+          "<td class=\"score-col-desktop\">" + timeCell(row.feudalTime) + "</td>" +
+          "<td class=\"score-col-desktop\">" + timeCell(row.castleTime) + "</td>" +
+          "<td class=\"score-col-desktop\">" + timeCell(row.archers10Time) + "</td>" +
+          "<td class=\"score-col-desktop\">" + timeCell(row.fletchingTime) + "</td>" +
+          "<td class=\"score-col-mobile\">" +
+            timeCell(row.feudalTime) + "<br>" +
+            timeCell(row.castleTime) + "<br>" +
+            timeCell(row.archers10Time) + "<br>" +
+            timeCell(row.fletchingTime) + "<br>" +
+          "</td>" +
+          "<td>" + gradeBadge(row.humanEvalScore) + "</td>" +
+          "<td style=\"font-size:12px;color:var(--muted)\">" + escapeHtml(row.cost || "—") + "</td>" +
+          "<td class=\"score-col-desktop\">" + troubleBadge(row.hadTrouble) + "</td>" +
+          "<td class=\"score-col-desktop\">" + link + "</td>" +
+          "</tr>" +
+          "<tr class=\"comment-row\">" +
+          "<td></td>" +
+          "<td style=\"white-space:pre-wrap;text-align:left;\" class=\"comment-cell\" colspan=\"9\">" + escapeHtml(row.humanEvalComment || "") + "</td>" +
+          "</tr>";
+      }).join("");
+    })();
+  </script>
+</body>
+</html>

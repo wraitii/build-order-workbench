@@ -1,0 +1,35 @@
+Craft the best possible build order DSL for AoE2 meeting specific objectives.
+
+Use only:
+- ./aoe2-game.json
+- the grammar for the DSL at ./grammar.md
+- the command `./eval` with optional flags `--event-log`, `--resource-log`, and `--activity-log-at T` (flags may be used individually or combined in one command).
+	- `--event-log` will give you a chronological log of simulation events (including entity task transitions)
+	- `--resource-log` will give you a log of resource values every 30s
+	- `--activity-log-at 4:00` will give you snapshot of tasks for all entities at a given timestamp.
+
+The DSL file is at ./build-order.dsl & must start with:
+```
+evaluation 20:00
+stop after completed advance_castle_age
+debt-floor 0
+ruleset aoe2
+setting arabia
+setting normal_efficiency
+
+# Scoring goals
+score time clicked advance_feudal_age
+score time clicked advance_castle_age
+score time completed train_archer x10
+score time completed research_fletching
+```
+
+The objectives for this build order are:
+- achieve all 4 above scoring goals.
+- as fast as possible.
+- while gathering as many resources as possible.
+- with very little TC & villager idle time.
+The run stops once you complete castle-age research.
+
+You are being benchmarked against other AI agents. The final output matters most, but your approach will be graded as well.
+You may think or script as required, but not access the internet or other data, or you will be disqualified.

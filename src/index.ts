@@ -1,5 +1,15 @@
 import { runSimulation } from "./sim";
-import { BuildOrderPreset, toActivityLogLines, toEventLogLines, toGameObjectsHtml, toHtmlReport, toResourceLogLines, toTextReport } from "./report";
+import {
+    BuildOrderPreset,
+    LLMBenchmarkDataset,
+    toActivityLogLines,
+    toEventLogLines,
+    toGameObjectsHtml,
+    toHtmlReport,
+    toLLMBenchmarksHtml,
+    toResourceLogLines,
+    toTextReport,
+} from "./report";
 import { GameData } from "./types";
 import {
     createActionDslLines,
@@ -100,6 +110,13 @@ function deriveGameObjectsReportPath(reportPath: string): string {
     return `${reportPath}-game-objects.html`;
 }
 
+function deriveLLMBenchmarksReportPath(reportPath: string): string {
+    if (reportPath.toLowerCase().endsWith(".html")) {
+        return reportPath.replace(/\.html$/i, "-llm-benchmarks.html");
+    }
+    return `${reportPath}-llm-benchmarks.html`;
+}
+
 async function main(): Promise<void> {
     const args = parseArgs(Bun.argv.slice(2));
 
@@ -173,11 +190,42 @@ async function main(): Promise<void> {
         }
 
         const gameObjectsReport = deriveGameObjectsReportPath(args.report);
+        const llmBenchmarksReport = deriveLLMBenchmarksReportPath(args.report);
+        const llmBenchmarksDataFile = Bun.file("benchmarks/aoe2-llm/results.json");
+        const llmPromptFile = Bun.file("benchmarks/aoe2-llm/prompt.txt");
+        let llmBenchmarks: LLMBenchmarkDataset = {
+            rows: [],
+        };
+        if (await llmBenchmarksDataFile.exists()) {
+            llmBenchmarks = await llmBenchmarksDataFile.json() as LLMBenchmarkDataset;
+        }
+        if (!llmBenchmarks.prompt && await llmPromptFile.exists()) {
+            llmBenchmarks.prompt = await llmPromptFile.text();
+        }
 
-        await Bun.write(args.report, await toHtmlReport(result, game, buildDsl, presets, gameObjectsReport.split("/").pop() ?? gameObjectsReport));
+        await Bun.write(
+            args.report,
+            await toHtmlReport(
+                result,
+                game,
+                buildDsl,
+                presets,
+                gameObjectsReport.split("/").pop() ?? gameObjectsReport,
+                llmBenchmarksReport.split("/").pop() ?? llmBenchmarksReport,
+            ),
+        );
         await Bun.write(gameObjectsReport, await toGameObjectsHtml(game, args.report.split("/").pop() ?? args.report));
+        await Bun.write(
+            llmBenchmarksReport,
+            await toLLMBenchmarksHtml(
+                llmBenchmarks,
+                args.report.split("/").pop() ?? args.report,
+                gameObjectsReport.split("/").pop() ?? gameObjectsReport,
+            ),
+        );
         console.log(`wrote html report: ${args.report}`);
         console.log(`wrote game objects report: ${gameObjectsReport}`);
+        console.log(`wrote llm benchmarks report: ${llmBenchmarksReport}`);
     }
 }
 
