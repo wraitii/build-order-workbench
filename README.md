@@ -48,7 +48,7 @@ These go at the top before any commands, and configure the simulation:
 | Line | What it does |
 | --- | --- |
 | `evaluation <time>` | **Required.** How long to simulate, e.g. `evaluation 15:00`. |
-| `stop after <clicked\|completed\|depleted\|exhausted> <target> [xN]` | Optional early-stop trigger; sim ends at the earlier of this trigger time and `evaluation`. |
+| `stop after <clicked\|completed\|depleted\|exhausted> <target> [xN]` | Optional early-stop trigger; sim ends 5 seconds after this trigger (or at `evaluation`, whichever comes first). |
 | `ruleset aoe2` | Use standard AoE2 game rules. |
 | `setting arabia` | Start with the standard Arabia setup — 2 starter sheep, 6 neutral sheep, 2 boar, berries, etc. |
 | `debt-floor <amount>` | Allow resources to go this many below zero before triggering a warning (default: 0). |
@@ -163,7 +163,7 @@ Whenever a command needs to know *which* villager or *which* resource, you use a
 ```
 # Preamble (before any commands)
 evaluation <time>                                     # required: simulation length
-stop after <clicked|completed|depleted|exhausted> <target> [xN]  # optional early stop condition
+stop after <clicked|completed|depleted|exhausted> <target> [xN]  # optional early stop condition (+5s)
 debt-floor <value>                                    # min resource deficit allowed (default 0)
 starting-resource <resource> <amount>                 # override a starting resource
 ruleset <name>                                        # currently: aoe2

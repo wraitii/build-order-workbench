@@ -1217,7 +1217,7 @@ at 0 queue lure_boar x2 using villager 1
         expect(result.scores[1]?.value).toBe(1);
     });
 
-    test("stop after clicked ends simulation at trigger time", () => {
+    test("stop after clicked ends simulation 5 seconds after trigger time", () => {
         const build = parseDsl(`
 evaluation 10
 start with villager
@@ -1233,10 +1233,12 @@ at 0 queue build_farm using villager 1
         });
 
         expect(result.entitiesByType.villager).toBe(1);
-        expect(result.completedActions).toBe(0);
-        expect(result.commandResults).toHaveLength(1);
+        expect(result.completedActions).toBe(2);
+        expect(result.commandResults).toHaveLength(2);
         expect(result.commandResults[0]?.type).toBe("queueAction");
         expect(result.commandResults[0]?.startedAt).toBe(0);
+        expect(result.commandResults[1]?.type).toBe("queueAction");
+        expect(result.commandResults[1]?.startedAt).toBe(1);
     });
 
     test("sheep decay starts on first gather assignment", () => {

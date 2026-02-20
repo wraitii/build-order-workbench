@@ -53,6 +53,8 @@ import { isSimDebugEnabled, simDebug } from "./debug";
 import { nextEligibleActorAvailabilityTime, pickEligibleActorIds } from "./actor_eligibility";
 import { applyNumericModifiers } from "./modifiers";
 
+const STOP_AFTER_DELAY_SECONDS = 5;
+
 function populationCapacityProvidedForEntityType(game: GameData, entityType: string, count: number): number {
     const population = game.population;
     if (!population) return 0;
@@ -983,7 +985,7 @@ export function runSimulation(game: GameData, buildOrder: BuildOrderInput, optio
         if (!buildOrder.stopAfter) return;
         const stopAt = resolveConditionTime(state, buildOrder.stopAfter);
         if (stopAt === null) return;
-        const stopAtTick = toTick(stopAt);
+        const stopAtTick = toTick(stopAt + STOP_AFTER_DELAY_SECONDS);
         effectiveEvaluationTime = Math.min(effectiveEvaluationTime, stopAtTick);
         if (state.now + EPS >= stopAtTick) {
             stopAfterReached = true;
