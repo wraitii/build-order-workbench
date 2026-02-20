@@ -40,6 +40,7 @@ export function processTriggers(
         triggerContext?: TriggerEventContext,
     ) => void,
 ): void {
+    const sharedCreatedNodeIds = [...(event.context.createdNodeIds ?? [])];
     // Snapshot current rules so newly registered triggers (from executed commands)
     // do not retroactively match the same event.
     const rulesToCheck = state.triggerRules.slice();
@@ -77,6 +78,7 @@ export function processTriggers(
         if (!matched) continue;
         executeCommand(state, game, options, rule.command, rule.sourceCommandIndex, {
             ...event.context,
+            createdNodeIds: sharedCreatedNodeIds,
             triggerMode: rule.mode,
         });
         if (rule.mode === "once") {

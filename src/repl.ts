@@ -2,7 +2,15 @@ import { watch } from "node:fs";
 import { runSimulation } from "./sim";
 import { toActivityLogLines, toEventLogLines, toResourceLogLines, toTextReport } from "./report";
 import { GameData } from "./types";
-import { createActionDslLines, createCivDslByName, createDslValidationSymbols, createRulesetDslByName, createSettingDslByName, parseBuildOrderDsl } from "./dsl";
+import {
+    createActionDslLines,
+    createCivDslByName,
+    createDslValidationSymbols,
+    createParseBuildOrderDslOptions,
+    createRulesetDslByName,
+    createSettingDslByName,
+    parseBuildOrderDsl,
+} from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
 import { normalizeGame } from "./sim_shared";
 
@@ -77,14 +85,14 @@ async function loadGame(path: string): Promise<GameData> {
 
 async function runOnce(args: Args): Promise<void> {
     const game = await loadGame(args.game);
-    const build = parseBuildOrderDsl(await Bun.file(args.build).text(), {
+    const build = parseBuildOrderDsl(await Bun.file(args.build).text(), createParseBuildOrderDslOptions({
         selectorAliases: createDslSelectorAliases(game.resources),
         symbols: createDslValidationSymbols(game),
         baseDslLines: createActionDslLines(game),
         civDslByName: createCivDslByName(game),
         rulesetDslByName: createRulesetDslByName(game),
         settingDslByName: createSettingDslByName(game),
-    });
+    }));
 
     const evaluationTime = args.at ?? build.evaluationTime;
     const debtFloor = args.strict ? 0 : (args.debtFloor ?? build.debtFloor ?? -30);

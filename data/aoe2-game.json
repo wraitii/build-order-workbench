@@ -37,17 +37,17 @@
         "starting-resource wood 200",
         "starting-resource gold 100",
         "starting-resource stone 200",
-        "start-node starter_sheep 2",
-        "start-node neutral_sheep 6",
-        "start-node wild_boar 2",
-        "start-node wild_deer 3",
-        "start-node berries 1",
-        "start-node shore_fish 4",
-        "start-node deep_fish 6",
-        "start-node forest 1",
-        "start-node straggler_trees 5",
-        "start-node gold_mine 1",
-        "start-node stone_mine 1"
+        "create-res starter_sheep 2",
+        "create-res neutral_sheep 6",
+        "create-res wild_boar 2",
+        "create-res wild_deer 3",
+        "create-res berries 1",
+        "create-res shore_fish 4",
+        "create-res deep_fish 6",
+        "create-res faraway_forest 4",
+        "create-res straggler_trees 5",
+        "create-res faraway_gold_mine 3",
+        "create-res stone_mine 1"
       ]
     },
     "normal_efficiency": {
@@ -96,6 +96,7 @@
       "train": 1,
       "research": 1,
       "lure": 1.1111111111,
+      "long_distance_mining": 2,
       "build_palisade_walk": 1.8
     }
   },
@@ -144,7 +145,8 @@
         "build_market",
         "build_blacksmith",
         "build_watch_tower",
-        "build_palisade_wall"
+        "build_palisade_wall",
+        "long_distance_mining"
       ]
     },
     "town_center": {
@@ -418,6 +420,12 @@
       },
       "tags": ["wood", "woodcutting"]
     },
+    "faraway_forest": {
+      "name": "Faraway Forest",
+      "produces": "wood",
+      "rateByEntityType": {},
+      "tags": ["wood", "woodcutting", "faraway"]
+    },
     "straggler_trees": {
       "name": "Straggler Trees",
       "produces": "wood",
@@ -434,6 +442,12 @@
         "villager": 0.38
       },
       "tags": ["gold", "mining"]
+    },
+    "faraway_gold_mine": {
+      "name": "Faraway Gold Mine",
+      "produces": "gold",
+      "rateByEntityType": {},
+      "tags": ["gold", "mining", "faraway"]
     },
     "stone_mine": {
       "name": "Stone Mine",
@@ -473,7 +487,8 @@
       "duration": 25,
       "costs": {
         "gold": 50
-      }
+      },
+      "repeatable": false
     },
     "advance_feudal_age": {
       "name": "Advance to Feudal",
@@ -483,10 +498,11 @@
         "food": 500,
         "dark_age_buildings": 2
       },
-      "dslLines": [
+      "onCompleted": [
         "grant feudal 1000",
         "modifier action.duration.train_eagle_scout add -15"
-      ]
+      ],
+      "repeatable": false
     },
     "advance_castle_age": {
       "name": "Advance to Castle Age",
@@ -497,7 +513,8 @@
         "gold": 200,
         "feudal": 1,
         "feudal_age_buildings": 2
-      }
+      },
+      "repeatable": false
     },
     "build_house": {
       "name": "Build House",
@@ -522,7 +539,14 @@
       "creates": {
         "lumber_camp": 1
       },
-      "dslLines": ["grant dark_age_buildings 1"]
+      "onClicked": ["consume-res faraway_forest 1", "create-res forest 1"],
+      "onCompleted": ["grant dark_age_buildings 1"]
+    },
+    "long_distance_mining": {
+      "name": "Long Distance Mining",
+      "taskType": "long_distance_mining",
+      "duration": 27,
+      "onCompleted": ["grant gold 10"]
     },
     "build_mill": {
       "name": "Build Mill",
@@ -535,7 +559,7 @@
       "creates": {
         "mill": 1
       },
-      "dslLines": ["grant dark_age_buildings 1", "grant mill_built 1000"]
+      "onCompleted": ["grant dark_age_buildings 1", "grant mill_built 1000"]
     },
     "build_folwark": {
       "name": "Build Folwark",
@@ -548,74 +572,31 @@
       "creates": {
         "folwark": 1
       },
-      "dslLines": ["grant dark_age_buildings 1", "grant mill_built 1000"]
+      "onCompleted": ["grant dark_age_buildings 1", "grant mill_built 1000"]
     },
     "find_starter_sheep": {
       "name": "Find Starter Sheep",
       "taskType": "lure",
       "duration": 15,
-      "consumesResourceNodes": [
-        {
-          "prototypeId": "starter_sheep",
-          "count": 2
-        }
-      ],
-      "createsResourceNodes": [
-        {
-          "prototypeId": "sheep",
-          "count": 2
-        }
-      ]
+      "onCompleted": ["consume-res starter_sheep 2", "create-res sheep 2"]
     },
     "find_sheep": {
       "name": "Find Sheep",
       "taskType": "lure",
       "duration": 60,
-      "consumesResourceNodes": [
-        {
-          "prototypeId": "neutral_sheep",
-          "count": 2
-        }
-      ],
-      "createsResourceNodes": [
-        {
-          "prototypeId": "sheep",
-          "count": 2
-        }
-      ]
+      "onCompleted": ["consume-res neutral_sheep 2", "create-res sheep 2"]
     },
     "lure_boar": {
       "name": "Lure Boar",
+      "taskType": "lure",
       "duration": 30,
-      "consumesResourceNodes": [
-        {
-          "prototypeId": "wild_boar",
-          "count": 1
-        }
-      ],
-      "createsResourceNodes": [
-        {
-          "prototypeId": "boar",
-          "count": 1
-        }
-      ]
+      "onCompleted": ["consume-res wild_boar 1", "create-res boar 1"]
     },
     "lure_deer": {
       "name": "Lure Deer",
       "taskType": "lure",
       "duration": 54,
-      "consumesResourceNodes": [
-        {
-          "prototypeId": "wild_deer",
-          "count": 1
-        }
-      ],
-      "createsResourceNodes": [
-        {
-          "prototypeId": "deer",
-          "count": 1
-        }
-      ]
+      "onCompleted": ["consume-res wild_deer 1", "create-res deer 1"]
     },
     "build_barracks": {
       "name": "Build Barracks",
@@ -628,7 +609,7 @@
       "creates": {
         "barracks": 1
       },
-      "dslLines": ["grant dark_age_buildings 1", "grant barracks_built 1000"]
+      "onCompleted": ["grant dark_age_buildings 1", "grant barracks_built 1000"]
     },
     "build_stable": {
       "name": "Build Stable",
@@ -643,7 +624,7 @@
       "creates": {
         "stable": 1
       },
-      "dslLines": ["grant feudal_age_buildings 1"]
+      "onCompleted": ["grant feudal_age_buildings 1"]
     },
     "build_farm": {
       "name": "Build Farm",
@@ -657,12 +638,7 @@
       "creates": {
         "farm": 1
       },
-      "createsResourceNodes": [
-        {
-          "prototypeId": "farm_patch",
-          "count": 1
-        }
-      ]
+      "onCompleted": ["create-res farm_patch 1"]
     },
     "research_double_bit_axe": {
       "name": "Research Double-Bit Axe",
@@ -672,7 +648,8 @@
         "food": 100,
         "wood": 50
       },
-      "dslLines": ["modifier gather.rate.tag.woodcutting mul 1.2"]
+      "onCompleted": ["modifier gather.rate.tag.woodcutting mul 1.2"],
+      "repeatable": false
     },
     "research_gold_mining": {
       "name": "Research Gold Mining",
@@ -682,7 +659,8 @@
         "food": 100,
         "wood": 75
       },
-      "dslLines": ["modifier gather.rate.tag.gold mul 1.15"]
+      "onCompleted": ["modifier gather.rate.tag.gold mul 1.15"],
+      "repeatable": false
     },
     "research_stone_mining": {
       "name": "Research Stone Mining",
@@ -692,7 +670,8 @@
         "food": 100,
         "wood": 75
       },
-      "dslLines": ["modifier gather.rate.tag.stone mul 1.15"]
+      "onCompleted": ["modifier gather.rate.tag.stone mul 1.15"],
+      "repeatable": false
     },
     "research_horse_collar": {
       "name": "Research Horse Collar",
@@ -702,7 +681,8 @@
         "food": 75,
         "wood": 75
       },
-      "dslLines": ["modifier gather.stock.tag.farm mul 1.4285714286"]
+      "onCompleted": ["modifier gather.stock.tag.farm mul 1.4285714286"],
+      "repeatable": false
     },
     "train_scout_cavalry": {
       "name": "Train Scout Cavalry",
@@ -749,7 +729,8 @@
       "costs": {
         "food": 100,
         "gold": 60
-      }
+      },
+      "repeatable": false
     },
     "build_archery_range": {
       "name": "Build Archery Range",
@@ -764,7 +745,7 @@
       "creates": {
         "archery_range": 1
       },
-      "dslLines": ["grant feudal_age_buildings 1"]
+      "onCompleted": ["grant feudal_age_buildings 1"]
     },
     "build_dock": {
       "name": "Build Dock",
@@ -777,7 +758,7 @@
       "creates": {
         "dock": 1
       },
-      "dslLines": ["grant dark_age_buildings 1"]
+      "onCompleted": ["grant dark_age_buildings 1"]
     },
     "build_market": {
       "name": "Build Market",
@@ -792,7 +773,7 @@
       "creates": {
         "market": 1
       },
-      "dslLines": ["grant feudal_age_buildings 1"]
+      "onCompleted": ["grant feudal_age_buildings 1"]
     },
     "build_blacksmith": {
       "name": "Build Blacksmith",
@@ -806,7 +787,7 @@
       "creates": {
         "blacksmith": 1
       },
-      "dslLines": ["grant feudal_age_buildings 1"]
+      "onCompleted": ["grant feudal_age_buildings 1"]
     },
     "build_watch_tower": {
       "name": "Build Watch Tower",
@@ -957,7 +938,8 @@
         "food": 50,
         "wood": 100
       },
-      "dslLines": ["modifier gather.rate.node.deep_fish mul 1.1"]
+      "onCompleted": ["modifier gather.rate.node.deep_fish mul 1.1"],
+      "repeatable": false
     },
     "research_man_at_arms": {
       "name": "Research Man-at-Arms",
@@ -966,7 +948,8 @@
       "costs": {
         "food": 100,
         "gold": 40
-      }
+      },
+      "repeatable": false
     },
     "research_eagle_warrior": {
       "name": "Research Eagle Warrior",
@@ -975,7 +958,8 @@
       "costs": {
         "food": 200,
         "gold": 200
-      }
+      },
+      "repeatable": false
     },
     "research_wheelbarrow": {
       "name": "Research Wheelbarrow",
@@ -985,11 +969,12 @@
         "food": 175,
         "wood": 50
       },
-      "dslLines": [
+      "onCompleted": [
         "# Slight general boost, specific farm boost per SOTL",
         "modifier gather.rate.entity.villager mul 1.02",
         "modifier gather.rate.tag.farm mul 1.1"
-      ]
+      ],
+      "repeatable": false
     },
     "research_fletching": {
       "name": "Research Fletching",
@@ -998,7 +983,8 @@
       "costs": {
         "food": 100,
         "gold": 50
-      }
+      },
+      "repeatable": false
     },
     "research_forging": {
       "name": "Research Forging",
@@ -1006,7 +992,8 @@
       "duration": 50,
       "costs": {
         "food": 150
-      }
+      },
+      "repeatable": false
     },
     "research_scale_mail_armor": {
       "name": "Research Scale Mail Armor",
@@ -1014,7 +1001,8 @@
       "duration": 40,
       "costs": {
         "food": 100
-      }
+      },
+      "repeatable": false
     },
     "research_scale_barding_armor": {
       "name": "Research Scale Barding Armor",
@@ -1022,7 +1010,8 @@
       "duration": 45,
       "costs": {
         "food": 150
-      }
+      },
+      "repeatable": false
     },
     "research_padded_archer_armor": {
       "name": "Research Padded Archer Armor",
@@ -1030,7 +1019,8 @@
       "duration": 40,
       "costs": {
         "food": 100
-      }
+      },
+      "repeatable": false
     },
     "train_spearman": {
       "name": "Train Spearman",
@@ -1066,7 +1056,8 @@
       },
       "creates": {
         "mining_camp": 1
-      }
+      },
+      "onClicked": ["consume-res faraway_gold_mine 1", "create-res gold_mine 1"]
     }
   },
   "civilizations": [

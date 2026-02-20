@@ -424,18 +424,6 @@ export function parseDslAstLine(line: string, lineNo: number): AstDslLine {
         return { type: "preamble", preamble: { type: "setting", settingName } };
     }
 
-    if (op === "start-node") {
-        const prototypeId = tokens[1];
-        const countToken = tokens[2];
-        if (!prototypeId || tokens.length > 3) {
-            throw new Error(`Line ${lineNo}: expected 'start-node <prototypeId> [count]'.`);
-        }
-        return {
-            type: "preamble",
-            preamble: { type: "startNode", prototypeId, ...(countToken !== undefined ? { countToken } : {}) },
-        };
-    }
-
     if (op === "starting-resource") {
         const resource = tokens[1];
         const amountToken = tokens[2];

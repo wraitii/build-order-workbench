@@ -38,6 +38,7 @@ import {
     assignGather,
     assignGatherByEntityIds,
     classifyGatherAssignFailure,
+    consumeResourceNodes,
     finalizeQueueRulesAtEvaluation,
     processAutoQueue,
     processQueueRules,
@@ -661,6 +662,36 @@ function executeCommand(
             }
             recordEntityCountPoint(state);
             pushScheduled(spawnCmd.type, state.now);
+        },
+        consumeResourceNodes: () => {
+            const consumeCmd = cmd as Extract<BuildOrderCommand, { type: "consumeResourceNodes" }>;
+            if (!consumeResourceNodes(state, consumeCmd.specs)) {
+                const targets = consumeCmd.specs.map((s) => `${s.prototypeId} x${s.count ?? 1}`).join(", ");
+                pushNoResource(consumeCmd.type, state.now, `Missing required res: ${targets}.`);
+                return;
+            }
+            pushScheduled(consumeCmd.type, state.now);
+        },
+        createResourceNodes: () => {
+            const createCmd = cmd as Extract<BuildOrderCommand, { type: "createResourceNodes" }>;
+            const createdIds: string[] = [];
+            for (const spec of createCmd.specs) {
+                const proto = game.resourceNodePrototypes[spec.prototypeId];
+                if (!proto) {
+                    pushInvalidAssignment(createCmd.type, state.now, `Unknown resource prototype '${spec.prototypeId}'.`);
+                    return;
+                }
+                const count = spec.count ?? 1;
+                for (let i = 0; i < count; i += 1) {
+                    const node = instantiateResourceNode(state, proto);
+                    createdIds.push(node.id);
+                }
+            }
+            if (triggerContext && createdIds.length > 0) {
+                if (!triggerContext.createdNodeIds) triggerContext.createdNodeIds = [];
+                triggerContext.createdNodeIds.push(...createdIds);
+            }
+            pushScheduled(createCmd.type, state.now);
         },
         addModifier: () => {
             const modCmd = cmd as Extract<BuildOrderCommand, { type: "addModifier" }>;

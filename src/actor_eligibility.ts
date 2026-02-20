@@ -91,11 +91,13 @@ function isEligibleEntity(
     nodeFilter: ActorNodeFilter,
 ): boolean {
     if (!request.actorTypes.includes(ent.entityType)) return false;
-    if (request.idleOnly && ent.busyUntil > state.now + EPS) return false;
+    const isBusy = ent.busyUntil > state.now + EPS;
+    if (request.idleOnly && isBusy) return false;
     const { hasFilter, allowedNodeIds, allowIdle } = nodeFilter;
     if (!hasFilter) return true;
-    if (!allowedNodeIds) return allowIdle ? !ent.resourceNodeId : false;
-    if (!ent.resourceNodeId) return allowIdle;
+    if (!ent.resourceNodeId) return allowIdle && !isBusy;
+    if (isBusy) return false;
+    if (!allowedNodeIds) return false;
     return allowedNodeIds.has(ent.resourceNodeId);
 }
 

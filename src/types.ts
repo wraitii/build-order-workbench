@@ -36,6 +36,7 @@ export interface ActionDef {
     name: string;
     actorTypes: string[];
     actorCount?: number;
+    repeatable?: boolean;
     duration: number;
     taskType?: string;
     many_workers?: "aoe2" | { model: "aoe2"; additionalWorkerRate?: number };
@@ -44,7 +45,8 @@ export interface ActionDef {
     createsResourceNodes?: ResourceNodeCreateSpec[];
     consumesResourceNodes?: ResourceNodeCreateSpec[];
     resourceDeltaOnComplete?: ResourceMap;
-    dslLines?: string[];
+    onClicked?: string[];
+    onCompleted?: string[];
 }
 
 export interface TaskEfficiencyConfig {
@@ -193,6 +195,20 @@ export interface SpawnEntitiesCommand {
     count: number;
 }
 
+export interface ConsumeResourceNodesCommand {
+    type: "consumeResourceNodes";
+    at?: number;
+    afterEntityId?: string;
+    specs: ResourceNodeCreateSpec[];
+}
+
+export interface CreateResourceNodesCommand {
+    type: "createResourceNodes";
+    at?: number;
+    afterEntityId?: string;
+    specs: ResourceNodeCreateSpec[];
+}
+
 export interface AddModifierCommand {
     type: "addModifier";
     at?: number;
@@ -218,6 +234,8 @@ export type TriggerExecutableCommand =
     | SetSpawnGatherCommand
     | GrantResourcesCommand
     | SpawnEntitiesCommand
+    | ConsumeResourceNodesCommand
+    | CreateResourceNodesCommand
     | AddModifierCommand
     | TradeResourcesCommand;
 

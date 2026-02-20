@@ -108,7 +108,10 @@ function render(): void {
     const actionRows = Object.entries(GAME.actions)
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([id, action]) => {
-            const hasDsl = Boolean(action.dslLines?.length);
+            const clickedLines = (action.onClicked ?? []).map((line) => `[clicked] ${line}`);
+            const completedLines = (action.onCompleted ?? []).map((line) => `[completed] ${line}`);
+            const actionDslLines = [...clickedLines, ...completedLines];
+            const hasDsl = actionDslLines.length > 0;
             const mainRow = `<tr>
                 <td>${iconImg(actionIconUrl(id), id)}</td>
                 <td><code>${escapeHtml(id)}</code></td>
@@ -118,7 +121,7 @@ function render(): void {
                 <td>${actionCostsHtml(action.costs)}</td>
             </tr>`;
             const dslRow = hasDsl
-                ? `<tr style="border-top:none;"><td/><td colspan="5" style="padding:0px 8px 10px;">${dslLinesHtml(action.dslLines)}</td></tr>`
+                ? `<tr style="border-top:none;"><td/><td colspan="5" style="padding:0px 8px 10px;">${dslLinesHtml(actionDslLines)}</td></tr>`
                 : "";
             return `${mainRow}${dslRow}`;
         });

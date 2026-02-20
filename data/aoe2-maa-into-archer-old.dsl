@@ -30,8 +30,7 @@ assign villager 5 to sheep
 assign villager 6 to sheep
 
 # 4 on wood
-queue build_lumber_camp using villager 7
-assign villager 7 to forest
+queue build_lumber_camp using villager 7 then assign to forest
 assign villager 8 to forest
 assign villager 9 to forest
 # Boar timing
@@ -59,8 +58,7 @@ queue build_barracks using villager 19 then assign to straggler_trees
 after completed build_barracks queue train_militia x3
 
 # mining camp
-queue build_mining_camp using villager 20
-assign villager 20 to gold
+queue build_mining_camp using villager 20 then assign to gold
 assign villager 21 to gold
 
 # Click up at 22 pop

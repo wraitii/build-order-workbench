@@ -37,7 +37,6 @@ export type AstPreambleLine =
     | { type: "ruleset"; rulesetName: string }
     | { type: "setting"; settingName: string }
     | { type: "startingResource"; resource: string; amountToken: string }
-    | { type: "startNode"; prototypeId: string; countToken?: string }
     | { type: "startWith"; entries: string[] }
     | { type: "scoreTime"; condKind: AstTriggerKind; condTarget: string; countToken?: string }
     | { type: "humanDelay"; actionId: string; chanceToken: string; minToken: string; maxToken: string };

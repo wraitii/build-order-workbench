@@ -181,6 +181,8 @@ assign <actorType> <xN|idNum|all> [from <selectors...>] to <selectors...>
 auto-queue <actionId> [using <actorType>] [from <selectors...>]
 stop-auto-queue <actionId> [using <actorType>]
 spawn-assign <entityType> to <selector>
+consume-res <prototypeId> [count]
+create-res <prototypeId> [count]
 sell <amount> <resource>    # amount must be a positive multiple of 100 (non-gold)
 buy <amount> <resource>     # amount must be a positive multiple of 100 (non-gold)
 ```

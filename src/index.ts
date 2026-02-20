@@ -1,7 +1,15 @@
 import { runSimulation } from "./sim";
 import { BuildOrderPreset, toActivityLogLines, toEventLogLines, toGameObjectsHtml, toHtmlReport, toResourceLogLines, toTextReport } from "./report";
 import { GameData } from "./types";
-import { createActionDslLines, createCivDslByName, createDslValidationSymbols, createRulesetDslByName, createSettingDslByName, parseBuildOrderDsl } from "./dsl";
+import {
+    createActionDslLines,
+    createCivDslByName,
+    createDslValidationSymbols,
+    createParseBuildOrderDslOptions,
+    createRulesetDslByName,
+    createSettingDslByName,
+    parseBuildOrderDsl,
+} from "./dsl";
 import { createDslSelectorAliases } from "./node_selectors";
 import { normalizeGame } from "./sim_shared";
 import { readdir } from "node:fs/promises";
@@ -98,14 +106,14 @@ async function main(): Promise<void> {
     const game = await loadJson<GameData>(args.game);
     normalizeGame(game);
     const buildDsl = await Bun.file(args.build).text();
-    const build = parseBuildOrderDsl(buildDsl, {
+    const build = parseBuildOrderDsl(buildDsl, createParseBuildOrderDslOptions({
         selectorAliases: createDslSelectorAliases(game.resources),
         symbols: createDslValidationSymbols(game),
         baseDslLines: createActionDslLines(game),
         civDslByName: createCivDslByName(game),
         rulesetDslByName: createRulesetDslByName(game),
         settingDslByName: createSettingDslByName(game),
-    });
+    }));
 
     const evaluationTime = args.at ?? build.evaluationTime;
     const debtFloor = args.strict ? 0 : (args.debtFloor ?? build.debtFloor ?? -30);

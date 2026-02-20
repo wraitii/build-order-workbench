@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { createActionDslLines, createDslValidationSymbols, parseBuildOrderDsl } from "../src/dsl";
+import {
+    ParseBuildOrderDslOptions,
+    createActionDslLines,
+    createDslValidationSymbols,
+    createParseBuildOrderDslOptions,
+    parseBuildOrderDsl,
+} from "../src/dsl";
 import { runSimulation } from "../src/sim";
 import { GameData } from "../src/types";
 import { createDslSelectorAliases } from "../src/node_selectors";
@@ -142,9 +148,21 @@ const TEST_GAME: GameData = {
     },
 };
 
+const TEST_SYMBOLS = createDslValidationSymbols(TEST_GAME);
+TEST_SYMBOLS.nodePrototypes.add("created");
+
+const TEST_PARSE_OPTIONS = createParseBuildOrderDslOptions({
+    selectorAliases: createDslSelectorAliases(TEST_GAME.resources),
+    symbols: TEST_SYMBOLS,
+});
+
+function parseDsl(input: string, overrides?: Partial<ParseBuildOrderDslOptions>) {
+    return parseBuildOrderDsl(input, { ...TEST_PARSE_OPTIONS, ...overrides });
+}
+
 describe("DSL parsing", () => {
     test("parses mixed queue selectors with IDs and types", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 30
 at 0 queue build_house_aoe2 using villager 1, villager
 `);
@@ -155,7 +173,7 @@ at 0 queue build_house_aoe2 using villager 1, villager
     });
 
     test("parses queue using selector multiplier without turning it into queue count", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 30
 at 0 queue build_house_aoe2 using villager x2 from forest
 `);
@@ -168,11 +186,11 @@ at 0 queue build_house_aoe2 using villager x2 from forest
     });
 
     test("parses assign x-count and numeric-id modes", () => {
-        const countMode = parseBuildOrderDsl(`
+        const countMode = parseDsl(`
 evaluation 30
 at 0 assign villager x3 to food
 `);
-        const idMode = parseBuildOrderDsl(`
+        const idMode = parseDsl(`
 evaluation 30
 at 0 assign villager 3 to food
 `);
@@ -190,8 +208,36 @@ at 0 assign villager 3 to food
         expect(assignId.actorSelectors).toEqual(["villager-3"]);
     });
 
+    test("parses assign without amount as implicit x1", () => {
+        const implicit = parseDsl(`
+evaluation 30
+at 0 assign villager to food
+`);
+        const implicitFrom = parseDsl(`
+evaluation 30
+at 0 assign villager from sheep to food
+`);
+
+        const assignImplicit = implicit.commands.find((c) => c.type === "assignGather");
+        const assignImplicitFrom = implicitFrom.commands.find((c) => c.type === "assignGather");
+        expect(assignImplicit?.type).toBe("assignGather");
+        expect(assignImplicitFrom?.type).toBe("assignGather");
+        if (
+            !assignImplicit ||
+            assignImplicit.type !== "assignGather" ||
+            !assignImplicitFrom ||
+            assignImplicitFrom.type !== "assignGather"
+        )
+            return;
+
+        expect(assignImplicit.count).toBe(1);
+        expect(assignImplicit.actorSelectors).toBeUndefined();
+        expect(assignImplicitFrom.count).toBe(1);
+        expect(assignImplicitFrom.actorResourceNodeSelectors).toEqual(["proto:sheep"]);
+    });
+
     test("parses after entity spawn condition", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 at 0 after villager 7 spawn-assign villager to food
 `);
@@ -202,7 +248,7 @@ at 0 after villager 7 spawn-assign villager to food
     });
 
     test("parses after shorthand without at-time", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 after villager 7 assign villager 7 to food
 `);
@@ -216,7 +262,7 @@ after villager 7 assign villager 7 to food
 
     test("rejects plain label-style after conditions", () => {
         expect(() =>
-            parseBuildOrderDsl(`
+            parseDsl(`
 evaluation 120
 after houses assign villager 1 to sheep
 `),
@@ -224,7 +270,7 @@ after houses assign villager 1 to sheep
     });
 
     test("parses bare directive shorthand", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 assign villager 4 to food
 `);
@@ -236,7 +282,7 @@ assign villager 4 to food
     });
 
     test("parses auto-queue from resource node selectors", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 at 0 auto-queue build_farm using villager from straggler_trees
 `);
@@ -248,7 +294,7 @@ at 0 auto-queue build_farm using villager from straggler_trees
     });
 
     test("parses auto-queue from mixed selectors including idle", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 at 0 auto-queue build_farm using villager from straggler_trees idle
 `);
@@ -260,7 +306,7 @@ at 0 auto-queue build_farm using villager from straggler_trees idle
     });
 
     test("parses after completed trigger with assign event context", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 after completed build_farm assign to created
 `);
@@ -276,7 +322,7 @@ after completed build_farm assign to created
     });
 
     test("parses after completed trigger with x-count by lowering to chained triggers", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 after completed build_farm x2 assign to created
 `);
@@ -295,7 +341,7 @@ after completed build_farm x2 assign to created
 
     test("rejects after every trigger count suffix", () => {
         expect(() =>
-            parseBuildOrderDsl(`
+            parseDsl(`
 evaluation 120
 after every completed build_farm x2 assign to created
 `),
@@ -304,7 +350,7 @@ after every completed build_farm x2 assign to created
 
     test("rejects explicit assign event form", () => {
         expect(() =>
-            parseBuildOrderDsl(`
+            parseDsl(`
 evaluation 120
 after completed build_farm assign event to created
 `),
@@ -312,7 +358,7 @@ after completed build_farm assign event to created
     });
 
     test("parses after every completed trigger", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 after every completed build_farm assign to created
 `);
@@ -324,7 +370,7 @@ after every completed build_farm assign to created
     });
 
     test("parses chained after conditions", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 after completed train_villager after completed build_farm assign to created
 `);
@@ -343,7 +389,7 @@ after completed train_villager after completed build_farm assign to created
     });
 
     test("lowers then syntax after queue into chained completed trigger", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 after completed train_villager queue build_farm using villager 1 then assign to created
 `);
@@ -370,7 +416,7 @@ after completed train_villager queue build_farm using villager 1 then assign to 
     });
 
     test("then queue inherits explicit actor selector from first queue", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 queue build_house_plain using villager 2 then queue lure_boar
 `);
@@ -385,7 +431,7 @@ queue build_house_plain using villager 2 then queue lure_boar
     });
 
     test("then assign-to inherits explicit actor selector from first queue", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 queue build_house_plain using villager 2 then assign to forest
 `);
@@ -401,7 +447,7 @@ queue build_house_plain using villager 2 then assign to forest
     });
 
     test("parses after clicked trigger", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 after clicked build_farm assign villager 1 to sheep
 `);
@@ -414,7 +460,7 @@ after clicked build_farm assign villager 1 to sheep
     });
 
     test("parses stop-after preamble", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 stop after clicked build_farm
 `);
@@ -424,7 +470,7 @@ stop after clicked build_farm
     });
 
     test("parses after exhausted trigger", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 after exhausted sheep assign villager all from sheep to straggler_trees
 `);
@@ -438,7 +484,7 @@ after exhausted sheep assign villager all from sheep to straggler_trees
     });
 
     test("parses human-delay buckets", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 60
 human-delay train_villager 0.85 0 1.5
 human-delay train_villager 0.1 2 5
@@ -453,7 +499,7 @@ human-delay train_villager 0.1 2 5
     });
 
     test("parses decimal modifier values", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 30
 modifier gather.secondary.food.resource.wood add 0.5
 `);
@@ -463,8 +509,24 @@ modifier gather.secondary.food.resource.wood add 0.5
         expect(cmd.modifier.value).toBe(0.5);
     });
 
+    test("parses consume-res and create-res directives", () => {
+        const build = parseDsl(`
+evaluation 30
+consume-res boar 1
+create-res sheep 2
+`);
+        expect(build.commands[0]?.type).toBe("consumeResourceNodes");
+        expect(build.commands[1]?.type).toBe("createResourceNodes");
+        if (build.commands[0]?.type === "consumeResourceNodes") {
+            expect(build.commands[0].specs).toEqual([{ prototypeId: "boar", count: 1 }]);
+        }
+        if (build.commands[1]?.type === "createResourceNodes") {
+            expect(build.commands[1].specs).toEqual([{ prototypeId: "sheep", count: 2 }]);
+        }
+    });
+
     test("expands civ directive using provided civ DSL lines", () => {
-        const build = parseBuildOrderDsl(
+        const build = parseDsl(
             `
 evaluation 30
 civ DemoCiv
@@ -482,7 +544,7 @@ civ DemoCiv
 
     test("errors on unknown civ directive with suggestion", () => {
         expect(() =>
-            parseBuildOrderDsl(
+            parseDsl(
                 `
 evaluation 30
 civ DemoCiiv
@@ -498,7 +560,7 @@ civ DemoCiiv
 
     test("rejects human-delay chance totals above one per action", () => {
         expect(() =>
-            parseBuildOrderDsl(`
+            parseDsl(`
 evaluation 60
 human-delay train_villager 0.8 0 1
 human-delay train_villager 0.3 2 3
@@ -508,7 +570,7 @@ human-delay train_villager 0.3 2 3
 
     test("reports unknown action identifiers with line context when symbols are provided", () => {
         expect(() =>
-            parseBuildOrderDsl(
+            parseDsl(
                 `
 evaluation 60
 queue totally_fake_action using villager 1
@@ -523,7 +585,7 @@ queue totally_fake_action using villager 1
 
     test("suggests close action names", () => {
         expect(() =>
-            parseBuildOrderDsl(
+            parseDsl(
                 `
 evaluation 60
 queue train_vilage using town_center
@@ -538,7 +600,7 @@ queue train_vilage using town_center
 
     test("reports unknown node selectors with line context when symbols are provided", () => {
         expect(() =>
-            parseBuildOrderDsl(
+            parseDsl(
                 `
 evaluation 60
 assign villager 1 to mystery_woods
@@ -553,7 +615,7 @@ assign villager 1 to mystery_woods
 
     test("reports unknown queue using actor type with line context when symbols are provided", () => {
         expect(() =>
-            parseBuildOrderDsl(
+            parseDsl(
                 `
 evaluation 60
 queue build_house_plain using mystery_worker
@@ -568,7 +630,7 @@ queue build_house_plain using mystery_worker
 
     test("reports unknown queue using actor id type with line context when symbols are provided", () => {
         expect(() =>
-            parseBuildOrderDsl(
+            parseDsl(
                 `
 evaluation 60
 queue build_house_plain using mystery_worker 1
@@ -582,7 +644,7 @@ queue build_house_plain using mystery_worker 1
     });
 
     test("parses sell command and lowers in 100-resource lots", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 60
 sell 500 wood
 `);
@@ -598,7 +660,7 @@ sell 500 wood
 
     test("rejects buy/sell amounts that are not multiples of 100", () => {
         expect(() =>
-            parseBuildOrderDsl(`
+            parseDsl(`
 evaluation 60
 buy 150 food
 `),
@@ -608,7 +670,7 @@ buy 150 food
 
 describe("start with", () => {
     test("replaces default starting entities", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 0
 start with town_center,villager
 `);
@@ -646,7 +708,7 @@ describe("hidden prerequisite resources", () => {
                     duration: 1,
                     costs: { wood: 175 },
                     creates: { barracks: 1 },
-                    dslLines: ["grant barracks_built 1000"],
+                    onCompleted: ["grant barracks_built 1000"],
                 },
                 build_stable: {
                     id: "build_stable",
@@ -678,7 +740,7 @@ describe("hidden prerequisite resources", () => {
 
     test("stable and archery range are blocked without barracks unlock", () => {
         const game = makeBarracksGateGame();
-        const build = parseBuildOrderDsl(
+        const build = parseDsl(
             `
 evaluation 10
 queue build_stable using villager 1
@@ -708,7 +770,7 @@ queue build_archery_range using villager 2
 
     test("prereq hidden resources ignore negative debt floor", () => {
         const game = makeBarracksGateGame();
-        const build = parseBuildOrderDsl(
+        const build = parseDsl(
             `
 evaluation 10
 queue build_stable using villager 1
@@ -735,7 +797,7 @@ queue build_stable using villager 1
 
     test("stable and archery range unlock after barracks completes", () => {
         const game = makeBarracksGateGame();
-        const build = parseBuildOrderDsl(
+        const build = parseDsl(
             `
 evaluation 10
 queue build_barracks using villager 1
@@ -763,7 +825,7 @@ queue build_archery_range using villager 1
 
 describe("action resource-node consumption", () => {
     test("lure_boar consumes wild_boar nodes and stalls when exhausted", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager
 at 0 queue lure_boar x3 using villager 1
@@ -814,11 +876,11 @@ at 0 queue lure_boar x3 using villager 1
                 },
             },
         };
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 240
 start with scout
 at 0 queue find_sheep x5 using scout 1
-`);
+`, { symbols: createDslValidationSymbols(game) });
         const result = runSimulation(game, build, {
             strict: false,
             evaluationTime: build.evaluationTime,
@@ -838,7 +900,7 @@ at 0 queue find_sheep x5 using scout 1
 
 describe("secondary gather modifiers", () => {
     test("can generate a secondary resource while gathering", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 10
 start with villager
 modifier gather.secondary.food.resource.wood add 0.5
@@ -869,7 +931,7 @@ assign villager 1 to forest
             },
             startingResourceNodes: [{ prototypeId: "berries", count: 1 }],
         };
-        const build = parseBuildOrderDsl(
+        const build = parseDsl(
             `
 evaluation 10
 start with villager
@@ -877,6 +939,7 @@ civ Portuguese
 assign villager 1 to berries
 `,
             {
+                symbols: createDslValidationSymbols(game),
                 civDslByName: {
                     Portuguese: ["modifier gather.secondary.wood.tag.forage add 0.33"],
                 },
@@ -907,7 +970,7 @@ assign villager 1 to berries
             },
             startingResourceNodes: [{ prototypeId: "stone_mine", count: 1 }],
         };
-        const build = parseBuildOrderDsl(
+        const build = parseDsl(
             `
 evaluation 10
 start with villager
@@ -915,6 +978,7 @@ civ Poles
 assign villager 1 to stone_mine
 `,
             {
+                symbols: createDslValidationSymbols(game),
                 civDslByName: {
                     Poles: ["modifier gather.secondary.gold.resource.stone add 0.5"],
                 },
@@ -948,7 +1012,7 @@ describe("market trading", () => {
                 fee: 0.3,
             },
         };
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 0
 sell 100 wood
 sell 100 wood
@@ -980,7 +1044,7 @@ buy 100 wood
                 fee: 0.3,
             },
         };
-        const build = parseBuildOrderDsl(
+        const build = parseDsl(
             `
 evaluation 0
 civ Saracens
@@ -1006,12 +1070,12 @@ buy 100 wood
 
 describe("many_workers", () => {
     test("aoe2 worker scaling speeds up with two workers", () => {
-        const plain = parseBuildOrderDsl(`
+        const plain = parseDsl(`
 evaluation 30
 start with villager,villager
 at 0 queue build_house_plain using villager,villager
 `);
-        const aoe2 = parseBuildOrderDsl(`
+        const aoe2 = parseDsl(`
 evaluation 30
 start with villager,villager
 at 0 queue build_house_aoe2 using villager,villager
@@ -1033,7 +1097,7 @@ at 0 queue build_house_aoe2 using villager,villager
     });
 
     test("task efficiency override by task type is applied", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 25
 start with villager
 at 0 queue build_house_plain
@@ -1058,8 +1122,42 @@ at 0 queue build_house_plain
         expect(result.completedActions).toBe(1);
     });
 
+    test("non-repeatable action cannot be queued twice", () => {
+        const game: GameData = {
+            ...TEST_GAME,
+            actions: {
+                ...TEST_GAME.actions,
+                one_shot_research: {
+                    id: "one_shot_research",
+                    name: "One Shot Research",
+                    actorTypes: ["town_center"],
+                    taskType: "research",
+                    repeatable: false,
+                    duration: 1,
+                },
+            },
+        };
+        const build = parseDsl(`
+evaluation 10
+start with town_center
+at 0 queue one_shot_research using town_center 1
+at 2 queue one_shot_research using town_center 1
+`, { symbols: createDslValidationSymbols(game) });
+
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        expect(result.completedActions).toBe(1);
+        const invalid = result.violations.filter((v) => v.code === "INVALID_ASSIGNMENT");
+        expect(invalid.length).toBe(1);
+        expect(invalid[0]?.message).toContain("non-repeatable");
+    });
+
     test("using villager x2 from forest builds once with two workers", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 30
 start with villager,villager
 assign villager 1 to forest
@@ -1080,7 +1178,7 @@ at 0 queue build_house_aoe2 using villager x2 from forest
 
 describe("after directives", () => {
     test("after clicked trigger runs on action start", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 2
 start with villager,villager
 after clicked lure_boar assign villager 2 to forest
@@ -1101,7 +1199,7 @@ at 0 queue lure_boar using villager 1
     });
 
     test("score time clicked tracks action start time", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager
 score time clicked lure_boar
@@ -1120,7 +1218,7 @@ at 0 queue lure_boar x2 using villager 1
     });
 
     test("stop after clicked ends simulation at trigger time", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 10
 start with villager
 stop after clicked lure_boar
@@ -1155,7 +1253,7 @@ at 0 queue build_farm using villager 1
             },
         };
 
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 6
 start with villager
 score time depleted sheep
@@ -1172,7 +1270,7 @@ at 2 assign villager 1 to sheep
     });
 
     test("deferred commands do not shift same-timestamp command registration", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 50
 start with town_center,villager,villager,villager
 at 0 queue build_house_plain using villager,villager
@@ -1193,7 +1291,7 @@ at 0 auto-queue train_villager using town_center
     });
 
     test("after villager N sets spawn-assign rule without retroactive immediate assign", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 90
 start with town_center,villager,villager,villager
 at 0 auto-queue train_villager using town_center
@@ -1217,7 +1315,7 @@ at 0 after villager 5 spawn-assign villager to food
     });
 
     test("assign villager N implicitly waits for spawn when unit is not present yet", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 90
 start with town_center,villager,villager,villager
 at 0 auto-queue train_villager using town_center
@@ -1237,7 +1335,7 @@ at 0 assign villager 5 to food
     });
 
     test("lure boar pulls sheep villagers, then returns them to sheep on depletion", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 10
 start with villager,villager,villager
 after completed lure_boar assign villager all from sheep to boar
@@ -1270,7 +1368,7 @@ at 0 queue lure_boar using villager 1
     });
 
     test("auto-queue from straggler only uses straggler villagers and moves builder to farm", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 6
 start with villager,villager
 after every completed build_farm assign to created
@@ -1294,7 +1392,7 @@ at 0 auto-queue build_farm using villager from straggler_trees
     });
 
     test("auto-queue from straggler plus idle can pick idle villagers", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 4
 start with villager,villager
 after every completed build_farm assign to created
@@ -1316,7 +1414,7 @@ at 0 auto-queue build_farm using villager from straggler_trees idle
     });
 
     test("auto-queue can trigger multiple times in the same tick when actors remain", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 2
 start with villager,villager
 at 0 auto-queue lure_boar using villager from idle
@@ -1341,7 +1439,7 @@ at 0 auto-queue lure_boar using villager from idle
     });
 
     test("after completed queue reuses completion actor when compatible", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager,villager
 at 0 queue lure_boar using villager 2
@@ -1365,7 +1463,7 @@ after completed lure_boar queue lure_boar
     });
 
     test("after completed x2 waits for second matching completion", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager,villager
 at 0 queue build_farm using villager 1
@@ -1388,7 +1486,7 @@ after completed build_farm x2 assign to created
     });
 
     test("then queue with explicit actor keeps chained action on that actor", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 40
 start with villager,villager
 starting-resource wood 200
@@ -1413,7 +1511,7 @@ at 0 queue build_house_plain using villager 2 then queue lure_boar
     });
 
     test("then assign-to with explicit actor keeps chained assign on that actor", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 40
 start with villager,villager
 starting-resource wood 200
@@ -1440,7 +1538,7 @@ at 0 queue build_house_plain using villager 2 then assign to forest
     });
 
     test("then assign-to for future actor waits for actor spawn before trigger registration", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 220
 start with town_center,villager,villager,villager
 starting-resource food 1000
@@ -1461,7 +1559,7 @@ at 0 queue build_house_plain using villager 5 then assign to forest
     });
 
     test("then assign-to for deferred specific actor does not warn ambiguous after prior completions", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 220
 start with town_center,villager,villager,villager
 starting-resource food 1000
@@ -1483,7 +1581,7 @@ at 0 queue build_house_plain using villager 5 then assign to forest
     });
 
     test("deferred specific-actor queue does not emit ambiguous warning", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 220
 start with town_center,villager,villager,villager
 starting-resource food 1000
@@ -1505,7 +1603,7 @@ at 0 queue build_house_plain using villager 5 then queue build_house_plain
     });
 
     test("after villager N queue reuses that villager when compatible", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager,villager
 at 0 queue lure_boar using villager 2
@@ -1529,7 +1627,7 @@ at 0 after villager 2 queue lure_boar
     });
 
     test("after every completed queue repeats", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager,villager
 at 0 queue lure_boar using villager 2
@@ -1551,7 +1649,7 @@ after every completed lure_boar queue lure_boar
     });
 
     test("deferred setup runs before same-timestamp automation", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 50
 start with town_center,villager,villager,villager,villager
 at 0 assign villager 1 to forest
@@ -1572,7 +1670,7 @@ at 0 after villager 5 auto-queue build_farm using villager from straggler_trees
     });
 
     test("same-timestamp multi-completion applies farm assignment trigger for each builder", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 4
 start with villager,villager
 after every completed build_farm assign to created
@@ -1612,7 +1710,7 @@ at 0 auto-queue build_farm using villager from straggler_trees
                 { prototypeId: "straggler_trees", count: 1 },
             ],
         };
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager
 assign villager 1 to sheep
@@ -1646,7 +1744,7 @@ after exhausted sheep assign to forest
             startingResourceNodes: [{ prototypeId: "sheep", count: 1 }],
         };
 
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 3
 start with villager
 after every depleted sheep assign to forest
@@ -1677,7 +1775,7 @@ after every depleted sheep assign to forest
             startingResourceNodes: [{ prototypeId: "sheep", count: 1 }],
         };
 
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 3
 start with villager
 after depleted sheep assign to forest
@@ -1695,7 +1793,7 @@ after depleted sheep assign to forest
     });
 
     test("after completed assign all from selector warns with NO_UNIT_AVAILABLE when selector matches no actors", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager
 assign villager 1 to sheep
@@ -1715,7 +1813,7 @@ after completed lure_boar assign villager all from forest to sheep
     });
 
     test("after every completed assign all from selector is a no-op when selector matches no actors", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager
 assign villager 1 to sheep
@@ -1738,7 +1836,7 @@ after every completed lure_boar assign villager all from forest to sheep
             ...TEST_GAME,
             startingResourceNodes: [],
         };
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager
 assign villager 1 to sheep
@@ -1756,7 +1854,7 @@ assign villager 1 to sheep
     });
 
     test("after completed assign to created warns when trigger creates no resource nodes", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 100
 start with town_center,villager
 at 0 auto-queue train_villager using town_center
@@ -1774,6 +1872,48 @@ after completed train_villager assign to created
         expect(noResource.some((v) => v.message.includes("'created' only targets resource nodes created by the triggering action."))).toBe(true);
     });
 
+    test("after every completed build_farm assign to created works with action onCompleted create-res", () => {
+        const game: GameData = {
+            ...TEST_GAME,
+            actions: {
+                ...TEST_GAME.actions,
+                build_farm: {
+                    id: "build_farm",
+                    name: "Build Farm",
+                    actorTypes: ["villager"],
+                    duration: 1,
+                    costs: { wood: 0 },
+                    onCompleted: ["create-res farm_patch 1"],
+                },
+            },
+        };
+        const build = parseDsl(
+            `
+evaluation 10
+start with villager
+at 0 queue build_farm using villager 1
+after every completed build_farm assign to created
+`,
+            {
+                selectorAliases: createDslSelectorAliases(game.resources),
+                symbols: createDslValidationSymbols(game),
+                baseDslLines: createActionDslLines(game),
+            },
+        );
+
+        const result = runSimulation(game, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const noResource = result.violations.filter((v) => v.code === "NO_RESOURCE");
+        expect(noResource.length).toBe(0);
+        const villager1 = result.entityTimelines["villager-1"];
+        const onFarm = villager1?.segments.some((s) => s.kind === "gather" && s.detail === "food:farm_patch");
+        expect(onFarm).toBe(true);
+    });
+
     test("assign to full resource emits RESOURCE_FULL with readable target", () => {
         const oneSlotSheepGame: GameData = {
             ...TEST_GAME,
@@ -1786,7 +1926,7 @@ after completed train_villager assign to created
             },
             startingResourceNodes: [{ prototypeId: "sheep", count: 1 }],
         };
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager,villager
 assign villager 1 to sheep
@@ -1804,8 +1944,117 @@ assign villager 2 to sheep
         expect(resourceFull[0]?.message).toContain("All 'sheep' gathering spots are full right now.");
     });
 
+    test("build_lumber_camp converts faraway_forest into gatherable forest", () => {
+        const convertedForestGame: GameData = {
+            ...TEST_GAME,
+            resourceNodePrototypes: {
+                ...TEST_GAME.resourceNodePrototypes,
+                faraway_forest: {
+                    id: "faraway_forest",
+                    name: "Faraway Forest",
+                    produces: "wood",
+                    rateByEntityType: {},
+                    tags: ["wood", "woodcutting", "faraway"],
+                },
+            },
+            startingResourceNodes: [{ prototypeId: "faraway_forest", count: 1 }],
+            actions: {
+                ...TEST_GAME.actions,
+                build_lumber_camp: {
+                    id: "build_lumber_camp",
+                    name: "Build Lumber Camp",
+                    actorTypes: ["villager"],
+                    taskType: "build",
+                    duration: 35,
+                    consumesResourceNodes: [{ prototypeId: "faraway_forest", count: 1 }],
+                    createsResourceNodes: [{ prototypeId: "forest", count: 1 }],
+                },
+            },
+        };
+        const build = parseDsl(`
+evaluation 120
+start with villager,villager
+at 0 queue build_lumber_camp using villager 1
+at 60 assign villager 2 to forest
+`, { symbols: createDslValidationSymbols(convertedForestGame) });
+
+        const result = runSimulation(convertedForestGame, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const villager2 = result.entityTimelines["villager-2"];
+        const forestSeg = villager2?.segments.find((s) => s.kind === "gather" && s.detail === "wood:forest");
+        expect(forestSeg).toBeDefined();
+    });
+
+    test("long_distance_mining is one-time and grants 10 gold on completion", () => {
+        const longDistanceGame: GameData = {
+            ...TEST_GAME,
+            resourceNodePrototypes: {
+                ...TEST_GAME.resourceNodePrototypes,
+                long_distance_mining_trip: {
+                    id: "long_distance_mining_trip",
+                    name: "Long Distance Mining Trip",
+                    produces: "gold",
+                    rateByEntityType: {},
+                    stock: 1,
+                    tags: ["gold"],
+                },
+            },
+            startingResourceNodes: [
+                ...(TEST_GAME.startingResourceNodes ?? []),
+                { prototypeId: "long_distance_mining_trip", count: 1 },
+            ],
+            actions: {
+                ...TEST_GAME.actions,
+                long_distance_mining: {
+                    id: "long_distance_mining",
+                    name: "Long Distance Mining",
+                    actorTypes: ["villager"],
+                    taskType: "long_distance_mining",
+                    duration: 27,
+                    resourceDeltaOnComplete: { gold: 10 },
+                    consumesResourceNodes: [{ prototypeId: "long_distance_mining_trip", count: 1 }],
+                },
+            },
+            taskEfficiency: {
+                default: 1.4,
+                byTaskType: {
+                    build: 1.1,
+                    train: 1,
+                    research: 1,
+                    lure: 1.1111111111,
+                    long_distance_mining: 2,
+                },
+            },
+        };
+        const build = parseDsl(`
+evaluation 300
+start with villager
+at 0 queue long_distance_mining using villager 1
+at 0 queue long_distance_mining using villager 1
+`, { symbols: createDslValidationSymbols(longDistanceGame) });
+
+        const result = runSimulation(longDistanceGame, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        expect(result.completedActions).toBe(1);
+        expect(result.resourcesAtEvaluation.gold).toBe(110);
+
+        const villager = result.entityTimelines["villager-1"];
+        const miningSeg = villager?.segments.find((s) => s.kind === "action" && s.detail === "long_distance_mining");
+        expect(miningSeg).toBeDefined();
+        expect(miningSeg?.start).toBe(0);
+        expect(miningSeg?.end).toBe(54);
+    });
+
     test("resource-waiting queue command does not pause unrelated auto-queue", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 start with town_center,villager
 starting-resource wood 0
@@ -1832,7 +2081,7 @@ at 1 queue expensive_build using villager 1
     });
 
     test("blocked queue implicitly reserves resources against auto-queue spending", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager,villager
 starting-resource wood 79
@@ -1859,7 +2108,7 @@ at 0 auto-queue build_house_plain using villager from forest
     });
 
     test("blocked queue on no-actor also reserves resources against auto-queue", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 40
 start with villager,villager
 starting-resource wood 79
@@ -1887,7 +2136,7 @@ at 0 auto-queue build_house_plain using villager from forest
     });
 
     test("queue from selectors prefer earlier selector order when multiple actors are eligible", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 10
 start with villager,villager
 starting-resource wood 100
@@ -1912,8 +2161,40 @@ at 0 queue build_house_plain using villager from food forest
         expect(v2HouseActions).toBe(1);
     });
 
+    test("queue from selectors ignore villagers busy with actions", () => {
+        const build = parseDsl(`
+evaluation 10
+start with villager,villager,villager
+starting-resource wood 100
+assign villager 1 to food
+assign villager 2 to food
+assign villager 3 to forest
+at 0 queue build_house_plain using villager 1
+at 0 queue build_house_plain using villager from food forest
+`);
+
+        const result = runSimulation(TEST_GAME, build, {
+            strict: false,
+            evaluationTime: build.evaluationTime,
+            debtFloor: -30,
+        });
+
+        const villager1 = result.entityTimelines["villager-1"];
+        const villager2 = result.entityTimelines["villager-2"];
+        const villager3 = result.entityTimelines["villager-3"];
+        const v1HouseActions =
+            villager1?.segments.filter((s) => s.kind === "action" && s.detail === "build_house_plain").length ?? 0;
+        const v2HouseActions =
+            villager2?.segments.filter((s) => s.kind === "action" && s.detail === "build_house_plain").length ?? 0;
+        const v3HouseActions =
+            villager3?.segments.filter((s) => s.kind === "action" && s.detail === "build_house_plain").length ?? 0;
+        expect(v1HouseActions).toBe(1);
+        expect(v2HouseActions).toBe(1);
+        expect(v3HouseActions).toBe(0);
+    });
+
     test("assign from selectors prefer earlier selector order when multiple actors are eligible", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 3
 start with villager,villager
 assign villager 1 to forest
@@ -1936,7 +2217,7 @@ assign villager x1 from sheep forest to straggler_trees
     });
 
     test("actor-waiting queue command does not pause unrelated auto-queue at same tick", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 160
 start with town_center,villager,villager,villager,house,house
 assign villager 1 to sheep
@@ -1963,7 +2244,7 @@ at 0 after villager 5 queue build_house_plain x2 using villager 1
     });
 
     test("NO_ACTORS stall warning does not include resource short details", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 1
 start with villager
 starting-resource wood 0
@@ -1985,7 +2266,7 @@ at 0 queue expensive_build using villager from idle
     });
 
     test("partially completed queue warning includes remaining iterations at sim end", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 1
 start with villager
 starting-resource wood 80
@@ -2007,7 +2288,7 @@ at 0 queue expensive_build x2 using villager 1
     });
 
     test("warns when one-shot queue action fires over 30s after first valid firing time", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 50
 start with villager
 starting-resource wood 0
@@ -2031,7 +2312,7 @@ at 31 grant wood 25
     });
 
     test("does not warn delayed action for after every queue trigger", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 50
 start with villager
 starting-resource wood 0
@@ -2051,7 +2332,7 @@ at 35 grant wood 25
     });
 
     test("warns when a command spend crosses a resource below zero", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 start with villager
 starting-resource wood 10
@@ -2071,7 +2352,7 @@ at 0 queue build_house_plain using villager 1
     });
 
     test("does not warn on one-shot trigger registration after prior matches", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 20
 start with villager
 at 0 queue build_farm using villager 1
@@ -2090,7 +2371,7 @@ at 12 queue build_farm using villager 1
     });
 
     test("population cap blocks extra training without allowing debt", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 80
 start with town_center,villager,villager,villager,villager
 at 0 queue train_villager x2 using town_center
@@ -2110,7 +2391,7 @@ at 0 queue train_villager x2 using town_center
     });
 
     test("queue does not warn when pop-cap stall resolves quickly", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 70
 start with town_center,villager,villager,villager,villager,villager
 at 0 queue train_villager using town_center
@@ -2129,7 +2410,7 @@ at 0 queue build_house_plain using villager 1
     });
 
     test("auto-queue retries after house completion unlocks population", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 70
 start with town_center,villager,villager,villager,villager,villager
 at 0 auto-queue train_villager using town_center
@@ -2154,7 +2435,7 @@ at 0 queue build_house_plain using villager 1
     });
 
     test("human-delay in DSL adds idle gap between auto-queued villager trains", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 120
 human-delay train_villager 1 10 10
 at 0 auto-queue train_villager using town_center
@@ -2173,7 +2454,7 @@ at 0 auto-queue train_villager using town_center
     });
 
     test("event log captures assignment transition as MM:SS switched lines", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 at 0 assign villager 1 to sheep
 `);
@@ -2190,7 +2471,7 @@ at 0 assign villager 1 to sheep
     });
 
     test("resource log samples every 30s and includes final timestamp", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 65
 `);
 
@@ -2209,7 +2490,7 @@ evaluation 65
     });
 
     test("activity log can snapshot one timestamp and includes current action for each existing entity", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 5
 at 0 assign villager 1 to sheep
 `);
@@ -2228,7 +2509,7 @@ at 0 assign villager 1 to sheep
     });
 
     test("activity log samples every 30s and includes final timestamp", () => {
-        const build = parseBuildOrderDsl(`
+        const build = parseDsl(`
 evaluation 65
 `);
 

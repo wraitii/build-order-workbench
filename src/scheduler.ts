@@ -232,7 +232,7 @@ function resolveConsumableNodes(
     return available.slice(0, count);
 }
 
-function consumeResourceNodes(state: SimState, specs: Array<{ prototypeId: string; count?: number }>): boolean {
+export function consumeResourceNodes(state: SimState, specs: Array<{ prototypeId: string; count?: number }>): boolean {
     if (specs.length === 0) return true;
 
     const requiredByPrototype: Record<string, number> = {};
@@ -303,16 +303,28 @@ export function tryScheduleActionNow(
 ):
     | { status: "scheduled"; completionTime: number; actionId: string; actors: string[]; startedAt: number }
     | { status: "blocked"; reason: "NO_ACTORS" | "INSUFFICIENT_RESOURCES" | "POP_CAP" | "NO_RESOURCE_NODES" }
-    | { status: "invalid"; message: string } {
+    | { status: "invalid"; code: "ACTION_NOT_FOUND" | "INVALID_ASSIGNMENT"; message: string } {
     const action = game.actions[cmd.actionId];
     if (!action) {
-        return { status: "invalid", message: `Action '${cmd.actionId}' not found.` };
+        return { status: "invalid", code: "ACTION_NOT_FOUND", message: `Action '${cmd.actionId}' not found.` };
+    }
+
+    if (action.repeatable === false && (state.actionClickTimes[action.id]?.length ?? 0) > 0) {
+        return {
+            status: "invalid",
+            code: "INVALID_ASSIGNMENT",
+            message: `Action '${action.id}' is non-repeatable and has already been queued.`,
+        };
     }
 
     if (cmd.actorSelectors && cmd.actorSelectors.length > 0) {
         for (const selector of cmd.actorSelectors) {
             if (!selector.match(/^(.*)-(\d+)$/) && !action.actorTypes.includes(selector)) {
-                return { status: "invalid", message: `Actor type '${selector}' cannot perform '${action.id}'.` };
+                return {
+                    status: "invalid",
+                    code: "INVALID_ASSIGNMENT",
+                    message: `Actor type '${selector}' cannot perform '${action.id}'.`,
+                };
             }
         }
     }
@@ -790,7 +802,7 @@ export function processQueueRules(
             if (result.status === "invalid") {
                 const message = appendDslLineContext(result.message, state.commandSourceLines[rule.commandIndex]);
                 state.commandResults.push(commandFailureResult(rule, message));
-                state.violations.push({ time: state.now, code: "ACTION_NOT_FOUND", message });
+                state.violations.push({ time: state.now, code: result.code, message });
                 state.queueRules = state.queueRules.filter((r) => r !== rule);
                 continue;
             }
@@ -1087,7 +1099,7 @@ export function processAutoQueue(
             }
 
             if (result.status === "invalid") {
-                state.violations.push({ time: state.now, code: "ACTION_NOT_FOUND", message: result.message });
+                state.violations.push({ time: state.now, code: result.code, message: result.message });
                 state.autoQueueRules = state.autoQueueRules.filter((r) => r !== rule);
                 continue;
             }

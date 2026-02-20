@@ -4,8 +4,17 @@ import { parseDslAstLine } from "./dsl_parser";
 import { applyAstDslLine, createDslLoweringState, DslValidationSymbols } from "./dsl_lower";
 
 export interface ParseBuildOrderDslOptions {
+    selectorAliases: Record<string, string>;
+    symbols: DslValidationSymbols;
+    baseDslLines: string[];
+    civDslByName: Record<string, string[]>;
+    rulesetDslByName: Record<string, string[]>;
+    settingDslByName: Record<string, string[]>;
+}
+
+export interface ParseBuildOrderDslOptionOverrides {
     selectorAliases?: Record<string, string>;
-    symbols?: DslValidationSymbols;
+    symbols: DslValidationSymbols;
     baseDslLines?: string[];
     civDslByName?: Record<string, string[]>;
     rulesetDslByName?: Record<string, string[]>;
@@ -26,6 +35,20 @@ export function createDslValidationSymbols(game: GameData): DslValidationSymbols
     };
 }
 
+export function createParseBuildOrderDslOptions(overrides: ParseBuildOrderDslOptionOverrides): ParseBuildOrderDslOptions {
+    return {
+        selectorAliases: {
+            ...DEFAULT_DSL_SELECTOR_ALIASES,
+            ...(overrides.selectorAliases ?? {}),
+        },
+        symbols: overrides.symbols,
+        baseDslLines: overrides.baseDslLines ?? [],
+        civDslByName: overrides.civDslByName ?? {},
+        rulesetDslByName: overrides.rulesetDslByName ?? {},
+        settingDslByName: overrides.settingDslByName ?? {},
+    };
+}
+
 export function createCivDslByName(game: GameData): Record<string, string[]> {
     const out: Record<string, string[]> = {};
     for (const civ of game.civilizations ?? []) {
@@ -42,10 +65,15 @@ export function createRulesetDslByName(game: GameData): Record<string, string[]>
 export function createActionDslLines(game: GameData): string[] {
     const lines: string[] = [];
     for (const [actionId, action] of Object.entries(game.actions)) {
-        for (const dslLine of action.dslLines ?? []) {
+        for (const dslLine of action.onClicked ?? []) {
             const stripped = dslLine.replace(/#.*/, "").trim();
             if (!stripped) continue;
-            lines.push(`after completed ${actionId} ${stripped}`);
+            lines.push(`after every clicked ${actionId} ${stripped}`);
+        }
+        for (const dslLine of action.onCompleted ?? []) {
+            const stripped = dslLine.replace(/#.*/, "").trim();
+            if (!stripped) continue;
+            lines.push(`after every completed ${actionId} ${stripped}`);
         }
     }
     return lines;
@@ -90,35 +118,32 @@ function civSuggestionSuffix(raw: string, candidates: string[]): string {
     return ` Did you mean '${best}'?`;
 }
 
-export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOptions): BuildOrderInput {
-    const selectorAliases = {
-        ...DEFAULT_DSL_SELECTOR_ALIASES,
-        ...(options?.selectorAliases ?? {}),
-    };
-    const civDslByName = options?.civDslByName ?? {};
+export function parseBuildOrderDsl(input: string, options: ParseBuildOrderDslOptions): BuildOrderInput {
+    const selectorAliases = options.selectorAliases;
+    const civDslByName = options.civDslByName;
     const civEntries = Object.entries(civDslByName);
     const civLookup = new Map<string, { name: string; dslLines: string[] }>();
     for (const [name, dslLines] of civEntries) {
         civLookup.set(name.toLowerCase(), { name, dslLines });
     }
 
-    const rulesetDslByName = options?.rulesetDslByName ?? {};
+    const rulesetDslByName = options.rulesetDslByName;
     const rulesetLookup = new Map<string, { name: string; dslLines: string[] }>();
     for (const [name, dslLines] of Object.entries(rulesetDslByName)) {
         rulesetLookup.set(name.toLowerCase(), { name, dslLines });
     }
 
-    const settingDslByName = options?.settingDslByName ?? {};
+    const settingDslByName = options.settingDslByName;
     const settingLookup = new Map<string, { name: string; dslLines: string[] }>();
     for (const [name, dslLines] of Object.entries(settingDslByName)) {
         settingLookup.set(name.toLowerCase(), { name, dslLines });
     }
 
     const state = createDslLoweringState();
-    for (const baseLine of options?.baseDslLines ?? []) {
+    for (const baseLine of options.baseDslLines) {
         const line = baseLine.replace(/#.*/, "").trim();
         if (!line) continue;
-        applyAstDslLine(parseDslAstLine(line, 0), 0, selectorAliases, state, options?.symbols);
+        applyAstDslLine(parseDslAstLine(line, 0), 0, selectorAliases, state, options.symbols);
     }
     const lines = input.split(/\r?\n/);
     for (let idx = 0; idx < lines.length; idx += 1) {
@@ -145,7 +170,7 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
                         `Line ${lineNo}: civilization '${civ.name}' contains a nested civ directive, which is not allowed.`,
                     );
                 }
-                applyAstDslLine(civAst, lineNo, selectorAliases, state, options?.symbols);
+                applyAstDslLine(civAst, lineNo, selectorAliases, state, options.symbols);
             }
             continue;
         }
@@ -162,7 +187,7 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
                 const ruleLine = ruleLineRaw.replace(/#.*/, "").trim();
                 if (!ruleLine) continue;
                 const ruleAst = parseDslAstLine(ruleLine, lineNo);
-                applyAstDslLine(ruleAst, lineNo, selectorAliases, state, options?.symbols);
+                applyAstDslLine(ruleAst, lineNo, selectorAliases, state, options.symbols);
             }
             continue;
         }
@@ -187,11 +212,11 @@ export function parseBuildOrderDsl(input: string, options?: ParseBuildOrderDslOp
                         `Line ${lineNo}: setting '${setting.name}' contains a nested ruleset/setting directive, which is not allowed.`,
                     );
                 }
-                applyAstDslLine(settingAst, lineNo, selectorAliases, state, options?.symbols);
+                applyAstDslLine(settingAst, lineNo, selectorAliases, state, options.symbols);
             }
             continue;
         }
-        applyAstDslLine(ast, lineNo, selectorAliases, state, options?.symbols);
+        applyAstDslLine(ast, lineNo, selectorAliases, state, options.symbols);
     }
 
     if (state.evaluationTime === undefined) {

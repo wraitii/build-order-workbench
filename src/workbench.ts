@@ -1,4 +1,12 @@
-import { createActionDslLines, createCivDslByName, createDslValidationSymbols, createRulesetDslByName, createSettingDslByName, parseBuildOrderDsl } from "./dsl";
+import {
+    createActionDslLines,
+    createCivDslByName,
+    createDslValidationSymbols,
+    createParseBuildOrderDslOptions,
+    createRulesetDslByName,
+    createSettingDslByName,
+    parseBuildOrderDsl,
+} from "./dsl";
 import { runSimulation } from "./sim";
 import { EntityTimeline, GameData, ScoreCriterion, ScoreResult, SimulationResult } from "./types";
 import { createDslSelectorAliases } from "./node_selectors";
@@ -566,14 +574,14 @@ function runFromDsl(): void {
     errorBox.textContent = "";
 
     try {
-        const build = parseBuildOrderDsl(dslInput.value, {
+        const build = parseBuildOrderDsl(dslInput.value, createParseBuildOrderDslOptions({
             selectorAliases: createDslSelectorAliases(GAME.resources),
             symbols: createDslValidationSymbols(GAME),
             baseDslLines: createActionDslLines(GAME),
             civDslByName: createCivDslByName(GAME),
             rulesetDslByName: createRulesetDslByName(GAME),
             settingDslByName: createSettingDslByName(GAME),
-        });
+        }));
         sim = runSimulation(GAME, build, {
             strict: false,
             evaluationTime: build.evaluationTime,

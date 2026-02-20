@@ -28,8 +28,7 @@ assign villager 5 to sheep
 assign villager 6 to sheep
 
 # 4 on wood
-queue build_lumber_camp using villager 7
-assign villager 7 to forest
+queue build_lumber_camp using villager 7 then assign to forest
 assign villager 8 to forest
 assign villager 9 to forest
 # Boar timing
@@ -58,8 +57,8 @@ after villager 19 queue advance_feudal_age
 
 # On loom: gold
 after completed research_loom queue build_mining_camp using villager from sheep boar then assign to gold
-after completed research_loom assign villager 15 to gold_mine
-after completed research_loom assign villager 14 to gold_mine
+after clicked build_mining_camp assign villager 15 to gold_mine
+after clicked build_mining_camp assign villager 14 to gold_mine
 
 after completed build_mining_camp queue build_barracks using villager from sheep boar
 

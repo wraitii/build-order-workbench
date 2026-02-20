@@ -24,11 +24,11 @@ export interface DslLoweringState {
 }
 
 export interface DslValidationSymbols {
-    actions?: Set<string>;
-    entityTypes?: Set<string>;
-    resources?: Set<string>;
-    nodePrototypes?: Set<string>;
-    nodeTags?: Set<string>;
+    actions: Set<string>;
+    entityTypes: Set<string>;
+    resources: Set<string>;
+    nodePrototypes: Set<string>;
+    nodeTags: Set<string>;
 }
 
 export function createDslLoweringState(): DslLoweringState {
@@ -125,8 +125,7 @@ function normalizeActorSelector(entry: string, lineNo: number): string {
     return entry;
 }
 
-function validateActorSelector(selector: string, lineNo: number, symbols?: DslValidationSymbols): void {
-    if (!symbols?.entityTypes) return;
+function validateActorSelector(selector: string, lineNo: number, symbols: DslValidationSymbols): void {
     const match = selector.match(/^(.+)-(\d+)$/);
     const actorType = match?.[1] ?? selector;
     if (!symbols.entityTypes.has(actorType)) {
@@ -137,7 +136,7 @@ function validateActorSelector(selector: string, lineNo: number, symbols?: DslVa
 function parseQueueUsingSelectors(
     tokens: string[],
     lineNo: number,
-    symbols?: DslValidationSymbols,
+    symbols: DslValidationSymbols,
 ): { selectors: string[]; consumed: number } {
     const fromIdx = tokens.findIndex((t) => t === "from");
     const scope = fromIdx >= 0 ? tokens.slice(0, fromIdx) : tokens;
@@ -162,10 +161,10 @@ function parseTriggerCondition(
     target: string,
     lineNo: number,
     selectorAliases: Record<string, string>,
-    symbols?: DslValidationSymbols,
+    symbols: DslValidationSymbols,
 ): TriggerCondition {
     if (kind === "clicked" || kind === "completed") {
-        if (symbols?.actions && !symbols.actions.has(target)) {
+        if (!symbols.actions.has(target)) {
             throw new Error(
                 `Line ${lineNo}: unknown action '${target}' in '${kind}' trigger.${suggestionSuffix(target, symbols.actions)}`,
             );
@@ -191,7 +190,7 @@ function astConditionsToCommandConditions(
     conditions: AstCommandCondition[],
     lineNo: number,
     selectorAliases: Record<string, string>,
-    symbols?: DslValidationSymbols,
+    symbols: DslValidationSymbols,
 ): CommandCondition[] {
     const out: CommandCondition[] = [];
     for (const condition of conditions) {
@@ -232,8 +231,7 @@ function astConditionsToCommandConditions(
     return out;
 }
 
-function validateSelector(selector: string, lineNo: number, symbols?: DslValidationSymbols): void {
-    if (!symbols) return;
+function validateSelector(selector: string, lineNo: number, symbols: DslValidationSymbols): void {
     const idx = selector.indexOf(":");
     const kind = idx >= 0 ? selector.slice(0, idx) : "id";
     const value = idx >= 0 ? selector.slice(idx + 1) : selector;
@@ -266,7 +264,7 @@ function parseAndValidateSelectors(
     rawSelectors: string[],
     selectorAliases: Record<string, string>,
     lineNo: number,
-    symbols?: DslValidationSymbols,
+    symbols: DslValidationSymbols,
 ): string[] {
     const selectors = parseDslSelectors(rawSelectors, selectorAliases);
     for (const selector of selectors) validateSelector(selector, lineNo, symbols);
@@ -305,7 +303,7 @@ function buildCommandFromDirectiveTokens(
     lineNo: number,
     selectorAliases: Record<string, string>,
     conditions: CommandCondition[],
-    symbols?: DslValidationSymbols,
+    symbols: DslValidationSymbols,
 ): BuildOrderCommand[] {
     const hasTriggerCondition = conditions.some((condition) => condition.trigger !== undefined);
     const wrap = (cmd: BuildOrderCommand): BuildOrderCommand => wrapCommandWithConditions(at, conditions, cmd);
@@ -315,7 +313,7 @@ function buildCommandFromDirectiveTokens(
     if (op === "queue") {
         if (!rest[1]) throw new Error(`Line ${lineNo}: missing action id.`);
         const actionId = rest[1];
-        if (symbols?.actions && !symbols.actions.has(actionId)) {
+        if (!symbols.actions.has(actionId)) {
             throw new Error(`Line ${lineNo}: unknown action '${actionId}'.${suggestionSuffix(actionId, symbols.actions)}`);
         }
         let count: number | undefined;
@@ -379,10 +377,10 @@ function buildCommandFromDirectiveTokens(
         }
         const actorType = rest[1];
         const amountToken = rest[2];
-        if (!actorType || !amountToken) {
+        if (!actorType) {
             throw new Error(`Line ${lineNo}: expected 'assign <actorType> <xN|idNum|all> [from ...] to ...'.`);
         }
-        if (symbols?.entityTypes && !symbols.entityTypes.has(actorType)) {
+        if (!symbols.entityTypes.has(actorType)) {
             throw new Error(`Line ${lineNo}: unknown actor type '${actorType}'.${suggestionSuffix(actorType, symbols.entityTypes)}`);
         }
         const cmd: Extract<BuildOrderCommand, { type: "assignGather" }> = {
@@ -392,7 +390,12 @@ function buildCommandFromDirectiveTokens(
             ...(fromSelectors !== undefined ? { actorResourceNodeSelectors: fromSelectors } : {}),
             resourceNodeSelectors: selectors,
         };
-        if (amountToken.startsWith("x")) {
+        if ((amountToken === "to" || amountToken === "from") && actorType === "event") {
+            throw new Error(`Line ${lineNo}: use 'assign to <selectors...>' for trigger-context assign directives.`);
+        }
+        if (!amountToken || amountToken === "to" || amountToken === "from") {
+            cmd.count = 1;
+        } else if (amountToken.startsWith("x")) {
             const n = amountToken.slice(1);
             if (!n) throw new Error(`Line ${lineNo}: missing count after 'x'.`);
             cmd.count = parseNumber(n, lineNo);
@@ -409,7 +412,7 @@ function buildCommandFromDirectiveTokens(
     if (op === "auto-queue") {
         const actionId = rest[1];
         if (!actionId) throw new Error(`Line ${lineNo}: missing action id for auto-queue.`);
-        if (symbols?.actions && !symbols.actions.has(actionId)) {
+        if (!symbols.actions.has(actionId)) {
             throw new Error(`Line ${lineNo}: unknown action '${actionId}'.${suggestionSuffix(actionId, symbols.actions)}`);
         }
         let actorType: string | undefined;
@@ -445,7 +448,7 @@ function buildCommandFromDirectiveTokens(
     if (op === "stop-auto-queue") {
         const actionId = rest[1];
         if (!actionId) throw new Error(`Line ${lineNo}: missing action id for stop-auto-queue.`);
-        if (symbols?.actions && !symbols.actions.has(actionId)) {
+        if (!symbols.actions.has(actionId)) {
             throw new Error(`Line ${lineNo}: unknown action '${actionId}'.${suggestionSuffix(actionId, symbols.actions)}`);
         }
         let actorType: string | undefined;
@@ -480,7 +483,7 @@ function buildCommandFromDirectiveTokens(
 
     if (op === "spawn-assign") {
         const entityType = rest[1];
-        if (entityType && symbols?.entityTypes && !symbols.entityTypes.has(entityType)) {
+        if (entityType && !symbols.entityTypes.has(entityType)) {
             throw new Error(`Line ${lineNo}: unknown entity type '${entityType}'.${suggestionSuffix(entityType, symbols.entityTypes)}`);
         }
         const toIdx = rest.indexOf("to");
@@ -501,7 +504,7 @@ function buildCommandFromDirectiveTokens(
         for (let i = 1; i + 1 < rest.length; i += 2) {
             const resource = rest[i]!;
             const amount = rest[i + 1]!;
-            if (symbols?.resources && !symbols.resources.has(resource)) {
+            if (!symbols.resources.has(resource)) {
                 throw new Error(`Line ${lineNo}: unknown resource '${resource}'.${suggestionSuffix(resource, symbols.resources)}`);
             }
             resources[resource] = parseNumber(amount, lineNo);
@@ -515,7 +518,7 @@ function buildCommandFromDirectiveTokens(
     if (op === "spawn") {
         const entityType = rest[1];
         if (!entityType) throw new Error(`Line ${lineNo}: 'spawn' requires an entity type.`);
-        if (symbols?.entityTypes && !symbols.entityTypes.has(entityType)) {
+        if (!symbols.entityTypes.has(entityType)) {
             throw new Error(`Line ${lineNo}: unknown entity type '${entityType}'.${suggestionSuffix(entityType, symbols.entityTypes)}`);
         }
         const countToken = rest[2];
@@ -524,13 +527,35 @@ function buildCommandFromDirectiveTokens(
         return [wrap({ type: "spawnEntities", at, entityType, count })];
     }
 
+    if (op === "consume-res" || op === "create-res") {
+        const prototypeId = rest[1];
+        if (!prototypeId) {
+            throw new Error(`Line ${lineNo}: '${op}' requires a resource prototype id.`);
+        }
+        if (!symbols.nodePrototypes.has(prototypeId)) {
+            throw new Error(
+                `Line ${lineNo}: unknown resource node prototype '${prototypeId}'.${suggestionSuffix(prototypeId, symbols.nodePrototypes)}`,
+            );
+        }
+        const countToken = rest[2];
+        if (rest.length > 3) throw new Error(`Line ${lineNo}: expected '${op} <prototypeId> [count]'.`);
+        const count = countToken !== undefined ? parseNumber(countToken, lineNo) : 1;
+        if (!Number.isInteger(count) || count < 1) {
+            throw new Error(`Line ${lineNo}: ${op} count must be a positive integer.`);
+        }
+        if (op === "consume-res") {
+            return [wrap({ type: "consumeResourceNodes", at, specs: [{ prototypeId, count }] })];
+        }
+        return [wrap({ type: "createResourceNodes", at, specs: [{ prototypeId, count }] })];
+    }
+
     if (op === "buy" || op === "sell") {
         const amountToken = rest[1];
         const resource = rest[2];
         if (!amountToken || !resource || rest.length !== 3) {
             throw new Error(`Line ${lineNo}: expected '${op} <amount> <resource>'.`);
         }
-        if (symbols?.resources && !symbols.resources.has(resource)) {
+        if (!symbols.resources.has(resource)) {
             throw new Error(
                 `Line ${lineNo}: unknown resource '${resource}'.${suggestionSuffix(resource, symbols.resources)}`,
             );
@@ -581,7 +606,7 @@ function lowerAstCommandLine(
     ast: AstCommandLine,
     lineNo: number,
     selectorAliases: Record<string, string>,
-    symbols?: DslValidationSymbols,
+    symbols: DslValidationSymbols,
 ): BuildOrderCommand[] {
     const at = ast.atToken !== undefined ? parseTimeValue(ast.atToken, lineNo) : 0;
     const conditions = astConditionsToCommandConditions(ast.conditions, lineNo, selectorAliases, symbols);
@@ -637,7 +662,7 @@ function lowerAstCommandLine(
     return out;
 }
 
-function inferInheritedQueueUsingSelectors(directiveTokens: string[], lineNo: number, symbols?: DslValidationSymbols): string[] {
+function inferInheritedQueueUsingSelectors(directiveTokens: string[], lineNo: number, symbols: DslValidationSymbols): string[] {
     if (directiveTokens[0] !== "queue") return [];
     const selectors: string[] = [];
     for (let i = 2; i < directiveTokens.length; i += 1) {
@@ -657,7 +682,7 @@ function applyPreambleLine(
     lineNo: number,
     selectorAliases: Record<string, string>,
     state: DslLoweringState,
-    symbols?: DslValidationSymbols,
+    symbols: DslValidationSymbols,
 ): void {
     if (preamble.type === "evaluation") {
         state.evaluationTime = parseTimeValue(preamble.timeToken, lineNo);
@@ -683,7 +708,7 @@ function applyPreambleLine(
         throw new Error(`Line ${lineNo}: internal error: unresolved setting directive '${preamble.settingName}'.`);
     }
     if (preamble.type === "startingResource") {
-        if (symbols?.resources && !symbols.resources.has(preamble.resource)) {
+        if (!symbols.resources.has(preamble.resource)) {
             throw new Error(
                 `Line ${lineNo}: unknown resource '${preamble.resource}'.${suggestionSuffix(preamble.resource, symbols.resources)}`,
             );
@@ -702,7 +727,7 @@ function applyPreambleLine(
             }
             const entityType = m[1];
             if (!entityType) continue;
-            if (symbols?.entityTypes && !symbols.entityTypes.has(entityType)) {
+            if (!symbols.entityTypes.has(entityType)) {
                 throw new Error(
                     `Line ${lineNo}: unknown entity type '${entityType}'.${suggestionSuffix(entityType, symbols.entityTypes)}`,
                 );
@@ -712,18 +737,6 @@ function applyPreambleLine(
         }
         return;
     }
-    if (preamble.type === "startNode") {
-        if (symbols?.nodePrototypes && !symbols.nodePrototypes.has(preamble.prototypeId)) {
-            throw new Error(
-                `Line ${lineNo}: unknown resource node prototype '${preamble.prototypeId}'.${suggestionSuffix(preamble.prototypeId, symbols.nodePrototypes)}`,
-            );
-        }
-        const count = preamble.countToken !== undefined ? parseNumber(preamble.countToken, lineNo) : 1;
-        if (!Number.isInteger(count) || count < 1) throw new Error(`Line ${lineNo}: start-node count must be a positive integer.`);
-        if (!state.startingResourceNodes) state.startingResourceNodes = [];
-        state.startingResourceNodes.push({ prototypeId: preamble.prototypeId, count });
-        return;
-    }
     if (preamble.type === "scoreTime") {
         const condition = parseTriggerCondition(preamble.condKind, preamble.condTarget, lineNo, selectorAliases, symbols);
         const count = preamble.countToken !== undefined ? parseNumber(preamble.countToken, lineNo) : undefined;
@@ -731,7 +744,7 @@ function applyPreambleLine(
         state.scores.push({ method: "time", condition, ...(count !== undefined ? { count } : {}) });
         return;
     }
-    if (symbols?.actions && !symbols.actions.has(preamble.actionId)) {
+    if (!symbols.actions.has(preamble.actionId)) {
         throw new Error(`Line ${lineNo}: unknown action '${preamble.actionId}'.${suggestionSuffix(preamble.actionId, symbols.actions)}`);
     }
     const chance = parseNumber(preamble.chanceToken, lineNo);
@@ -756,7 +769,7 @@ export function applyAstDslLine(
     lineNo: number,
     selectorAliases: Record<string, string>,
     state: DslLoweringState,
-    symbols?: DslValidationSymbols,
+    symbols: DslValidationSymbols,
 ): void {
     if (line.type === "preamble") {
         applyPreambleLine(line.preamble, lineNo, selectorAliases, state, symbols);
