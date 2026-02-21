@@ -7,11 +7,23 @@
       "castleTime": "15:27",
       "archers10Time": "15:51",
       "fletchingTime": "12:37",
-      "humanEvalScore": "A",
-      "humanEvalComment": "Solid baseline, without luring deer. Far from fully optimised for this particular problem.",
+      "humanEvalScore": "A+",
+      "humanEvalComment": "Solid baseline, without luring deer. Far from fully optimised for this particular problem. Note that this is a _good_ build order still, backed by years of knowledge.",
       "cost": "-",
       "hadTrouble": "-",
       "buildLink": "#z=pVZNc9s2EL3zV-yML8kkdkVKjhPdkja9ZNoeeuiRA5JLEWMQYAHQkvPru0tSEvhhWUlvonb3vcV-POAGPpuvCZTYFkKBsHmFFmzrKnizM0Jt4X74072NbuBPAwWSg2otvgfnrZC7yh_DjAYBTuqdQrBC7_COAjxUxlqZKbyL8EmoVnhJjvHDdrWKCsz8bamMsbCKbKvQIaEZTCL64QmJoEUmxelTG1sLlWJZylyizp8jyurv3Fg2csIucvSF4GWNkCuZP2IBongSOse0P2UqdnjJKxfOK5x5mbpR6MnPUpZ84rSk77wi5mU_ro5Oh9oc4hWn-leDegt-b6gqrUMH7yhAOy-0hyepFJFaaKwp2pzLFP3bYotQSl2k5GQ92tRViM3IwH_AYR2J1pvb3tBznxBb7gp4s9dpjppQhvislapIu1QGn1NI_P78O3ndndhLwg2OHzoL5-ROB-CUC_QH-ZGw5OfC1ucwasFXYdUzlMYUgFR7Uz9H04BNwDMx3b9s-jCi2fA67IllVDvV1hn1MBd1M63gA_gK9TF5gippppyf0Xy8YPsU2G7gixGWh5IntE-C9zbN-O9pt1czrDgOwAjtDzLQuFL6VqJ7fSLiZA7ZNXAJoWbwKcB6DrAOAWjzuYPUfD6RoB9dV2lRMqnkdxFs0MsH38xJLvQ4_hAmMLM-hFaetQMtYjcFHWTbNMb6XhuplL0EXFHJj3OmS1MQfxp37lcWOGgbEB6SFTTmuD5hRJ_FSdtIk-sXvRb0lLVNA0dtSYdVMVvQETKMe6_puIs7UVry7fWta95kQ0KiQcTnkMvt5VB2wx-P34zjX5CiECI8bSasFfmje-WoXNB_EDQSYM2Xy6Am0LMN9_UbrBtpZS4USdo9OMTa0fw5D3vpKy4X5K21JPlk823zdpbsvJWzAx82sz7Igq740Yz93ifUmD1FuEY-4jVUYWH6i_I57bdjUp1D0ufQCepywcfx4TUYXME38Jtp6S0CmfS34kCPGHqdOL61ichen_JpmosOLiW4lOB-AqDjTwd-Fm3F01Fz-97B-YVBqxvH9GQaz9LZd2maLhQriJzkc6bkrgpbcxG1kyymW5rHfUfioHtsdGBQkpcbZoScd_T-o1W1SM-bX7pRubuqZcHzpTcz7vKaHFnSnoU5pmKVxDSGYq9vp-PMQjyOj2YKmpx2nKvwjeeeVBNcbYyvul6spr3olZvm9PqECSb5_zAdzma7PuIsPGP_Aw"
+    },
+    {
+      "modelHarness": "Claude Opus 4.6 (cc)",
+      "feudalTime": "07:55",
+      "castleTime": "14:28",
+      "archers10Time": "16:51",
+      "fletchingTime": "11:19",
+      "humanEvalScore": "A",
+      "humanEvalComment": "Clear best. The iterative improvements were sensical, the approach calculated. Lured deer + several sheep. Main flaws: failed to utilize several archery ranges, some idle time, failed to use all food available. Showed obvious world knowledge, with a comment at the end that it made the design decision to skip loom to save 25s - real, but also not something you'd say if you didn't know you're supposed to get loom.\nUsed full 256K context and stopped on its own at 1% left.",
+      "cost": "~2$",
+      "hadTrouble": "-",
+      "buildLink": "#z=3VhLj6Q2EL7zK0rKZVYbJKDfLc1Ks4lWOUQ5JKtckRtMNxrAHdvM45LfnrLN04ae7tHsJbdu-Oqrd7kMfSJFTWTOKoiCfRB4QrIzkExSDgkrzwWVNAWSPpEqoXFChCxoTI7US-lB-lnBGIfA43VBBZVAGI08_CHz6giEk0NOur8V4yUpYppleZLTKnn1vJ_gr4Rx9fLISCE8gf8oyLykkBR58jjQnNE6RWml-QJqYN8Q1fkhOcmrmPDkhO69hME0iqMvChNn-D85oX3K1Pv7e_iV8Ed4OFK4i0I4Y6DuMWrwlBcCPgNy1fKTwjWe1RKyvEoFiBOlZ5AnWkFRIzuklHLvn5rWVCNiIQnHiMcGWAsVEk2HHmGC-KtnZ2RCbMh3I88HyisHY-XfVeI9-sdLY1L-VpkKP0dwqPMihROrBYXQZEY70SRFv47Na0OFOS6wrDiEP_e_IyNJhMiPFUjWcBhFsOifXJG9hqTjXoz4HmrJfGNbixAe6R-awu6Ejc2SPVdxQitU0jm_9Ne2WZ3U0jFiOYtdOdjVLHbtYNdOsDYm5gJzWB5UrEjp8GxgmB0DjBXQztHGzkuGXS6k0vWbzmkEd6rnU_0ur3JxggNVIN3UYQBEwr_RfhF88vBXuF-u4M3CyDgrh50-XRUCtv5OP8SUHY8FCvpfWvssf7dO3LYjyVhySoUttXOkdvNSfUm6QbVpSFE0To6pxgH-HXsQY8qFhAMj3LVu0KoKMB_GvmEDPwyNFpbahCpZlqH4CMGafLIekcwRCS2RpizDqK3LEqEmsRggnrtxR-iwRjTenh3OwGi52sAJmrAqnYxcx385dGMfTLkv4G5Y3itd3su2vBf7VXBleffkjiN26DBtCz9cDZ20HVq4aVhcwrvzKVxewrszamxPZ-jaDzeDKrZ53PkVri_ANy58yN5lZTnKSmSGznofrnRWVtdnxRDPzzxdyNsLFruDZgRvKXZtLxwI5yR5dCO-G1ncwpw22M20QVNauvobpVEwb3fktv4IrrYwit2UpwXVs0PhBuMKnpUV-oVgNU_0YqbHYaOJvpxILdR0nD6ju4moNdh29tK6Od4t3MTmWnn0-he1FoNZmWcGfZcbte_7t2wSb_AZlom1vVmhv3NSiVxfONDmb_p9uzN_1VtZiQcy6hxsAPOXAWvkKsHJjWBwOOtktEG16vDIDA2d8XKowc7HSzSvZcjc9f_qNu_e3_8q7E2gH5B0FGxzF3oFzAq-IursKVQey1yenCC8YWHDFRuumy29UVtv5w2qRmn4k4q61Au1uw5NKL-lScYre0Z4KZC8wotwjWks3KvMZX3GY0VzbWHbO5oaEsqqb92VdqaP-6ga1dOX4YFzJutzC-W4JpwQNldx49QIq7T8QZ-tkX1N3MSZPFe-3Z7_Q4p2kjjncLT4iMlhk65_BOn2I0jVQa8-W-lawd0JWdUk04MVzDehCcXvPPlc2ye-Pv0H"
     },
     {
       "modelHarness": "Gemini 3.1 pro + pi",
@@ -20,10 +32,46 @@
       "archers10Time": "17:06",
       "fletchingTime": "10:59",
       "humanEvalScore": "B+",
-      "humanEvalComment": "Solid performance. Solid iterative approach, and the final build is decent with little idle time.\nUnfortunately got cut short due to harness issues, I think it would have got a bit better.\nFor what it's worth, I reran it a few times and got things in a similar ballpark.",
+      "humanEvalComment": "Solid performance. Solid iterative approach, and the final build is decent with little idle time.\nUnfortunately got cut short due to harness issues, I think it would have got a bit better.\nReran it once and got similar-ish results. Would like to run it more once harness issues are fixed.",
       "cost": "~1$",
       "hadTrouble": "Y",
       "buildLink": "#z=rVdNj5swEL3zKyz1HImPtml7rVT1XK3UI3JgSKw1dmqb3ey_74CzCfiLUPW0S3jvzfh5PB7ghfKBGiYFKfNveZ5lLRzMruNSKpJnauCgwRAqoczwH8PEkVBFD4zeHoVUPeU1dB1rGIjmLct0IxUQw3ogDWfNM7SEti9UNFB3MLSIpkdIoRqqDQcPJfszB4M4oygTNVXNCRS5FHkYpTD3EVN3-NycMNks-zPAAKRjoq21ocqAqvUJ4EwGPS4GdQaD4dEW9UbMCQSZMybkpXqXOQyMt_VJDhqu_BfGOWatSGHJVGt2FMRIMnHXeWWYd32-warZq8HIndW1ttxAVtrIV1E3IHCpWUY7_DOzKGBEKtTEvr35SPSZvoqdy4jhP23Ef17Du4Q9mfvLh_6Aq2pof3Zd3rsud1g-2rh6X-IJhAlftxKKfJXhUQqyXn3FvHb5oKA-SKp8mCdexvMZFfxsqkU2Pf7uRalct3FbFAPtaSUKKkZJ1FSMkiird4rH2T_g-T7Kim-Az0nU3LQBLj5RcsENKxMVFwpQFpsrdKQYed5FO1OAYGGBWyL7QJ4UFZpNlxQG_TG9e-9k0esl2gouhbcLXtNdHNZEDNeTy550SvaTkeiBoscjx7hGAWjCWg5bxJfnSmDKwV6GFeNkf5SWAV6798XcFeBWLBTQ_p9jtett-doTcikfthrj_B5f2N0d7yWGPV57K1iJe6BK0eZZu3GnXbGh0nvtWHXTmwexc8dbjWV5DC3yX4Mtdb3Tcx13bLAF9r_rbbadjyb1zJz-m_F3RRvIH-auoe7IsYh-wTTNkKfv5KxkOzRj23hkOVvGqAfk4pPLsitk8_nNLr2jqg_aGGoofvMtvTNtydNwNzWmqRG5YoHUXOXE9ey2nDspcUHHSYkrOk4K3dH-4Sy92W9l2VX-kC7CVnQ94eUg11P1jJ9arqz3IbHa3a2OBpzEyjwfr2Lhl0mVGPSiFlfVI6QQa9M4ECDcT0YAvJwdZt-OfwE"
+    },
+    {
+      "modelHarness": "Codex 5.3 medium - run 1",
+      "feudalTime": "07:30",
+      "castleTime": "16:18",
+      "archers10Time": "16:11",
+      "fletchingTime": "11:27",
+      "humanEvalScore": "A-",
+      "humanEvalComment": "Lucked into a good build early and capitalized on it. Had 60% of its context left, too.",
+      "cost": "~10ct",
+      "hadTrouble": "-",
+      "buildLink": "#z=rVZbbqQwEPz3KSzt70YC5pXJNfYAqDENY8XYE9vMJrffJswQwLy0mj8e1dVVTWEbb6Bq8NJonkRvUcScN1cOhUfLhamuCj3mHPIbaIGpAOcVplAiyzHzL4UyxvKI2VqhQ8_BYMLowktdcrCQSehutbEVqBSLQgqJWnwx9ov_EcY2L0sDyjFHd8i9rJALJcV7r3OBdU7VTecFVE9fH9X58BakTsGKC9n7jKNplCUvDSYt6F5cSB9jHzXWyAup89R5sDSe1F0Qr7x2jX7iqT21p2narwF4BaRqi2mOJGcKA7U3Ly2wlX6TSpG7B9qbvzoVqEkOY-CcLDXvIAm95o7qylKRXG8RXQDaTYHajlktVZ5eTO3w3q6rin8P2lxQ8ztxw9ZYZuMITYxurAWU4oU11VjPD-mdtavYBxz7sYLuzYGv2josWelQxwGRqquMhAqormO645iuoLA5P-Y7BSZO8-DXAPw6Dz7zXsgyA3as8DyuiKP1KRFmy5jieEBV0fOAKR4z0SitbGI64koC23GyhN-F-N0SPgxSvJ-fa3wI4YdF-OpQv3Pflm9LTXxc-7jxMag5DYRkYC2IdxcUnjZKeF33RZipsPBvwXNf4xyO97ytNImCUnq0rfSR14kt57GazW5KQdfP5L6UBX2DeS6wDn8gTZOdXGgWwlOathSDBTlkDTzsBx5-5M-Trnhod96v1IIug6g8RrbhL9jcMFNNwCvpL0_pNuWivz33ThbTpT09bd3EWWNj5f37gX2ng9f_mJtLRMvYO3q0zwuw1WTwhvGQuZrNWss8_Mt6RzYGnjaXt92GPWjdXcOV0IH2WVy7J-o6PFHX8Ulc_wA"
+    },
+    {
+      "modelHarness": "Codex 5.3 medium - run 2",
+      "feudalTime": "07:38",
+      "castleTime": "17:21",
+      "archers10Time": "16:45",
+      "fletchingTime": "11:02",
+      "humanEvalScore": "A-",
+      "humanEvalComment": "Weirdest run of them all. Total market abuse in feudal. Again, stopped early at 40% context once it passed all benchmarks.",
+      "cost": "~10ct",
+      "hadTrouble": "-",
+      "buildLink": "#z=tVZbcqMwEPznFKrab1eBAWfDNfYAlIABqyIkrxBJfPsdEA8Bwo9k8wei1dM9M4wE75S3VDMpyNFPfN9rtLwQWmpQJJf1hYOGgtDinYoc0pw2mkNKK_AKyPSh5FIq4nuq5dCAJlTC0cMHzURFqKIZo9OrkKqmPIWyZDkDkV897xf5k0vVfawk5Y3X4BsQzWogOWf5mxW5hLbA3V3kGyhLn42afGhFmUipys9o7zPw3SiFXjpMWuJ7fkZ9nkdbLQ9_W2hhIHlnnGMcRdqmM6Dlh0hzEJg3jzYNqwSZEJRz_E4a3FhVHFSqFQC6vdAPcViDO-AZ4OJ5JlrWMl6kZ9k2MISaoAHRZxBkYHBEMAwlE0XaaKpQW9pzD0RovtWYM2wBdfXWNXdscxkrlazXgQkrOFhOqCZ-cvSJ0cNbBWkmqXLL0CRIghFrROxr1iRM_PhR4hgb3MYWAG6sURGOxKYGvK0zdJjT-rKuhElCL3OdilWJSuy3Rm-SvY2wzvVnZEfpXc50nd7jnOEbPbPhWHXQ9MXkNlimoEaaJxnRkGLYi27HPeFjVkeiTlg0F_Ke12HbfYUr73ESLkNkVCmavzXOKKYOe8XW5JRE8YOCb1IZrtgn3Zg-PDWUho0G7hirCHjtWugZ0m7T78f77l6WXmeB36UKgv8ka9O429RtGzjeNPDYZJsRsHvOkd3zYWeGOChs_-bUu6aKiuoLeXgyWsa7f6Vm-vzjoWomMMD-XHbHqqTZCk-Ho-oNrzqPR9prpK36TR8F0YLYMcs2x80tZ65GsP_0-WI02FtAd-isShuu7fVpYJuR3vCL4ohtAE-Ao99PNNFPoSBcrH9IWfTL_em9XQ6SyN-_mYw3kSkpUxKtWRF2F47vUUQPqRg3zlTWXA-OncFND5wWLXC73r2Q49dOB7NzeTxY92mDwMJk7ZWEKLSc6-JaPXVm3Ni-hqFdw9NU2tWymzl29QEuxz04sMEvE3Ngg19GdQtw-Pi14u75E63vD1_k-gc"
+    },
+    {
+      "modelHarness": "Codex 5.3 medium - run 3",
+      "feudalTime": "09:00",
+      "castleTime": "19:02",
+      "archers10Time": "18:31",
+      "fletchingTime": "12:24",
+      "humanEvalScore": "C",
+      "humanEvalComment": "Very poor run comparatively. Stopped early and very lazily (at 40% context again). Tons of idle time. Actually pretty similar to GLM5 here.",
+      "cost": "~10ct",
+      "hadTrouble": "-",
+      "buildLink": "#z=tVZNb9swDL37VxDYZcMQwPnohuW6obedtrtB27QjRJY8SU6bfz_KdlzXH7VTbLe6IR_feyQl0QVlhU5oBbvwGIaBdboEzBwZSHRRSnKUAqYXVAlFCVonKcKcgpRit8mk1gbCwFSSLDlATbuA_3BC5YAGY4Hdp9KmQBlRlolEkEquQfABfiXa-B9zjdIGlr8InCgIEimSc69yRlXK2b7yG1E9fv2oToczKFSEJjmxvOdtOB1lWIuPiTL-Tk7Mr6VasUKVgi5JedKZ1mnwp6KKIBMqjaxDw75F9kRUQmV9jPVZzIttNtdXwQtBsjIUxRrNu2PaoLgSMo1OurLUhl2ElGyRgS24EylAa0WuwGloSNWIlr3Kc8lynCGyAToIj7vwFtxhPO8XEm2JT2ozTLvlBAFWTm8aqk17upiGrdNPKkpIsbO-Db-5VynUcmpSOx5aWFSaGV30Sc7q9pAHr_NuyJiMEWTfsLSN8CW-HA9rS9xw59mPI3yJb-uNyXgJrBt2bk7RdLQvud2ud26mZoamiErktbuj7H69m_-qLE_iDzRnYGSgRNc0hixkVbCFvI9FuTQ8k0WD4TE8hh1t48MYuoPzJPfDDhWceie7bo4n6dWAI16HKV43IE_sYUgsRmMwOdt72jhjo9-37VC2P8Lne7OuQK4bKJr14qXKnCVtpW7Z-qg8ZY_1xdfcdIyvnNHSK_p63IfgL-vNPQdok_jQWjFxubY6Zm9fuKfaC30eCsG34xU-Q8FrQ-PZnijV71dzZ18jgyofbfa67VmoEEs_bYVwp_8C38heB82-_bwZ1ryMpsfrtSn9pvSeONOpPbVN3vSj55GfOB5SWeHfiMtgvfFofvMn69L5cpt9kUqqT9L67hoO9wueZ_a9fuq1e9HQ6pjDx4vAdtAgRsl94f9-GrEfa37HRq3AJD4Rd42iiaNiIiOurnDghPqFuSL-9Tr3XsF_AQ"
     },
     {
       "modelHarness": "GPT 5.2-medium + codex",
@@ -32,7 +80,7 @@
       "archers10Time": "15:03",
       "fletchingTime": "12:14",
       "humanEvalScore": "B",
-      "humanEvalComment": "Decent. Got the archers out fast, and could have gotten castle earlier with some tweaks. Overall just got a decent result. Main flaw: didn't try hard enough to keep producing vills, stunting its eco. Also failed to realize it had more sheep available. Stopped on its own.",
+      "humanEvalComment": "Pretty decent. Got the archers out fast, and could have gotten castle earlier with some tweaks. Main flaw is Dark age idle time and thus late feudal.\nWould be much better if it had used all sheep / deer.\nI'll note that purely on archer + fletching, this is the best build tested... Stopped on its own.",
       "cost": "~20ct",
       "hadTrouble": "-",
       "buildLink": "#z=zVdNb9swDL37VxDYZcMaLEnTr9y67uOyAQN62NGQbdoWKkuZJKfJvx9lKaljxVm3dcAuTe08PZKPpMjgmomWWa4kzKfL6TQxVq2AlRY15KpZCbRYACvWTOaY5sxYgSmrMCkws5NSKKVhmuhWoEELTOE8oX8slxUwzTLO9o9S6YaJFMuS5xxlvk2SV3CfK-2-rBQTJjH0hGB5g5ALnj_0LJfYFnTaWT6B6vnXR-3jsJpxmTKd1xTeZjY9jtIUi8OkJT3nNfnnXP3A9APcVriEkqzAp86hM7A1knQTzWSF4JkNvIX90TPvJNx1rsHt_e235EeLLULJZZEayzRpnZoacQWtcWKQU62lWCg1ensAHgUxC_PlYgoeLFqNaaaYHsMunotNzIo9ygkzhlcS1lwI0laDVdD5krDWqokn8truIZ7NqkeZ5igpRKfhN6qt10bwqrZiCyQy_SUutlackvjERaoIYd6E2LOWiyKtVWsw0O6tbObJsFaPyDp0n8h7ITjpZjs5TtqCUqvGH_N5D8R9rsVvcZVUflRMAzL_1rFdvijb9YuyzaYvR0e14RvKMxGBoTb80XKNDVXPEr60TUZkd6xZUXd9JfKQ-L2dxYErosNTHTeroUOLsZAO-S6isrkYB19G4Mtx8FUEvhoHX0fg63HwTQS-6Ys8QA-y19D7oVYEGYhFqmqOJuKaRabp1Qn8PMbPT-HPY_x5H08VdNddtL6OovM3IdYjA4WOfq85Xc6VcsG3qyWsNLX4e6Y1yx_cdf5ZiYI-PjHduEfc0G0Hj0oVu-tndFwdSJztGP-o5X7HUsMlWTha_ycsVcofxehWjVmH6dicHzL32fbtvYRC0wyYQzcvnZSZcII03NZn0N3auyF6BhVtFL052vnaH6aRk7_QxBNvUz-r_yIF_63BJzH_-BZ2Fb4ki3KNlIvQXe94Qe3BpYN2LcBlmN7h1n6dMflANKpwXCE_b57jfm_q-xicgaMlG3wB58tIfXZnN7NrcFvs5Ch1MnL0MFckV3-r2W2MF8GxQ_Ds5SnnLhcfu1vGdREoUg0yRXkNjcNobW1pmfKrk2uctWMZDFEQLFM6zsOIf1FLz8Zb-jhlrwB9sPEuHeJ9Qo5lpMc1TOcvd81nehf_bji-t96zEu12CbyEupU2COU2k7CqQuG8ou5oaYZKVSBdX6ZWa-yq1UBGhimJhMBcBe-QOmwLBQYXx1fVLgddBz7Nu11ODElRVYJWHatxPzYH1N16_0-YC8S_Z_4J"

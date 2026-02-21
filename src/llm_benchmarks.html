@@ -156,7 +156,6 @@
     <section class="card">
       <h2>Purpose</h2>
       <p class="bench-meta">This benchmark compares how well different LLM+harness setups can produce a competitive AoE2 build-order DSL file under similar constraints.</p>
-      <p class="bench-meta" style="margin-top:8px">It is designed to test practical build-order quality, not just syntax correctness. A model needs to hit the timing goals quickly, keep eco healthy, and avoid brittle scripts that collapse under simulation constraints.</p>
       <h2 style="margin-top:12px">What It Tests</h2>
       <p>This test is technically a coding optimization problem, which I feel represents pretty well what we want our agentic coders to do. It is, however, kind of a weird test, weird enough that it's likely quite out of distribution.</p>
       <ul style="margin:0;padding-left:20px;">
@@ -167,6 +166,8 @@
         <li style="margin:0 0 8px">Strategic thining: it's not 100% trivial to achieve all 4 objectives and have a good build order.</li>
         <li style="margin:0 0 0">World knowledge: some models show obvious existing knowledge of typical AoE2 build orders.</li>
       </ul>
+      <h2 style="margin-top:12px">Setup</h2>
+      <p>I give the model a simple prompt (see bottom of page), the JSON describing game data, a grammar help, and a mostly blank build order.</p>
       <h2 style="margin-top:12px">Disclaimer</h2>
       <p>For cost reasons, I haven't rerun these benchmarks too many time. I don't think they're _that_ high variance to be honest, but it's worth keeping in mind.</p>
     </section>
@@ -176,9 +177,11 @@
         <h2>Results</h2>
         <span class="results-date" id="benchDate"></span>
       </div>
-      <p style="margin:0 0 14px;font-size:13px;color:var(--muted)">These results are overall not great - Gemini 3.1 Pro is the best, and it's easily below par. However, all models that I could run did succesfully write a DSL script.<br/>
+      <p style="margin:0 0 14px;font-size:13px;color:var(--muted)">These results are overall not amazing. However, all models that I could run did succesfully write a DSL script.<br/>
         To be fair - the LLMs have a slightly worse interface to work with, but I would expect better.<br/>
         What I find interesting is that there is a very clear skill divide on display, when all these models are "good at code".<br/>
+        Opus showed obvious world knowledge - its first draft was very good conceptually, too good to just be random.<br/>
+        Codex 5.3 exhibited severe laziness with the default prompt, always stopping quite early. High variance, as a result. On the other hand, I could then easily guide it to a much better result, because it had context left.<br/>
         Partly inspired by the brillant <a href="https://minebench.ai" target="_blank" rel="noopener noreferrer">minebench.ai</a></p>
       <table>
         <thead>
@@ -202,7 +205,7 @@
 
     <section class="card">
       <h2>Reproduce</h2>
-      <p class="bench-meta">Benchmark assets live in <code>benchmarks/aoe2-llm/</code>: <code>prompt.txt</code>, <code>eval</code>.</p>
+      <p class="bench-meta">This whole website is GPL3. Benchmark assets live <a href="http://github.com/wraitii/build-order-workbench" target="_blank">here</a>.</p>
       <p class="bench-meta">I ran the model with the same constraints and access, but pi has some issues with a few of them.</p>
     </section>
 

@@ -1,0 +1,1485 @@
+{
+  "resources": [
+    "food",
+    "wood",
+    "gold",
+    "stone",
+    "pop",
+    "feudal",
+    "dark_age_buildings",
+    "feudal_age_buildings",
+    "mill_built",
+    "barracks_built"
+  ],
+  "ruleset": {
+    "name": "aoe2",
+    "dslLines": [
+      "# Some common 'rules' that simulate unit AI and make writing build orders more convenient",
+      "after every depleted boar assign to boar deer sheep",
+      "after every depleted deer assign to boar deer sheep",
+      "after every depleted sheep assign to boar deer sheep straggler_trees",
+      "after every exhausted sheep assign to boar deer straggler_trees",
+      "after every exhausted berries assign to straggler_trees",
+      "after every depleted straggler_trees assign to straggler_trees",
+      "after every completed build_farm assign to created",
+      "after every depleted shore_fish assign to boar deer sheep berries straggler_trees",
+      "after every depleted deep_fish assign to deep_fish shore_fish",
+      "after every completed lure_boar assign to boar",
+      "after every completed lure_boar assign villager all from sheep to boar",
+      "after every completed lure_deer assign villager x3 from sheep to deer"
+    ]
+  },
+  "settings": {
+    "arabia": {
+      "dslLines": [
+        "start with town_center, villager x3, scout_cavalry",
+        "starting-resource food 200",
+        "starting-resource wood 200",
+        "starting-resource gold 100",
+        "starting-resource stone 200",
+        "create-res starter_sheep 2",
+        "create-res neutral_sheep 6",
+        "create-res wild_boar 2",
+        "create-res wild_deer 3",
+        "create-res berries 1",
+        "create-res shore_fish 4",
+        "create-res deep_fish 6",
+        "create-res faraway_forest 4",
+        "create-res straggler_trees 5",
+        "create-res faraway_gold_mine 3",
+        "create-res stone_mine 1"
+      ]
+    },
+    "normal_efficiency": {
+      "dslLines": [
+        "# to account for walking and various inefficiencies",
+        "# sourced by vibes & SOTL. Stragglers estimated using his lumber camp vid",
+        "modifier gather.rate.node.sheep mul 0.97",
+        "modifier gather.rate.node.boar mul 0.95",
+        "modifier gather.rate.node.deer mul 0.95",
+        "modifier gather.rate.node.berries mul 0.96",
+        "modifier gather.rate.node.shore_fish mul 0.95",
+        "modifier gather.rate.node.deep_fish mul 0.9",
+        "modifier gather.rate.node.forest mul 0.91",
+        "modifier gather.rate.node.straggler_trees mul 0.75"
+      ]
+    },
+    "conservative_efficiency": {
+      "dslLines": [
+        "# More conservative settings for resource efficiency, can be good if you're more of a beginner",
+        "modifier gather.rate.node.sheep mul 0.92",
+        "modifier gather.rate.node.boar mul 0.90",
+        "modifier gather.rate.node.deer mul 0.90",
+        "modifier gather.rate.node.berries mul 0.91",
+        "modifier gather.rate.node.shore_fish mul 0.90",
+        "modifier gather.rate.node.deep_fish mul 0.85",
+        "modifier gather.rate.node.forest mul 0.86",
+        "modifier gather.rate.node.straggler_trees mul 0.70"
+      ]
+    }
+  },
+  "market": {
+    "baseExchangeRateByResource": {
+      "wood": 100,
+      "food": 115,
+      "stone": 130
+    },
+    "rateStep": 2,
+    "minExchangeRate": 20,
+    "maxExchangeRate": 9999,
+    "fee": 0.3
+  },
+  "taskEfficiency": {
+    "default": 1.4,
+    "byTaskType": {
+      "build": 1.1,
+      "train": 1,
+      "research": 1,
+      "lure": 1.1111111111,
+      "long_distance_mining": 2,
+      "build_palisade_walk": 1.8
+    }
+  },
+  "population": {
+    "resource": "pop",
+    "providedByEntityType": {
+      "town_center": 5,
+      "house": 5
+    },
+    "consumedByEntityType": {
+      "villager": 1,
+      "scout_cavalry": 1,
+      "eagle_scout": 1,
+      "champi_scout": 1,
+      "archer": 1,
+      "skirmisher": 1,
+      "militia": 1,
+      "fishing_ship": 1,
+      "transport_ship": 1,
+      "trade_cog": 1,
+      "galley": 1,
+      "fire_galley": 1,
+      "demolition_raft": 1,
+      "hulk": 1,
+      "spearman": 1
+    },
+    "floor": 0
+  },
+  "entities": {
+    "villager": {
+      "name": "Villager",
+      "kind": "unit",
+      "actions": [
+        "lure_boar",
+        "build_house",
+        "build_lumber_camp",
+        "build_mining_camp",
+        "build_farm",
+        "build_mill",
+        "build_folwark",
+        "build_settlement",
+        "build_barracks",
+        "build_stable",
+        "build_archery_range",
+        "build_dock",
+        "build_market",
+        "build_blacksmith",
+        "build_watch_tower",
+        "build_palisade_wall",
+        "long_distance_mining"
+      ]
+    },
+    "town_center": {
+      "name": "Town Center",
+      "kind": "building",
+      "actions": [
+        "train_villager",
+        "research_loom",
+        "advance_feudal_age",
+        "research_wheelbarrow",
+        "advance_castle_age"
+      ]
+    },
+    "scout_cavalry": {
+      "name": "Scout Cavalry",
+      "kind": "unit",
+      "actions": ["find_starter_sheep", "find_sheep", "lure_deer", "lure_boar"]
+    },
+    "eagle_scout": {
+      "name": "Eagle Scout",
+      "kind": "unit",
+      "actions": ["find_starter_sheep", "find_sheep", "lure_deer", "lure_boar"]
+    },
+    "champi_scout": {
+      "name": "Champi Scout",
+      "kind": "unit",
+      "actions": ["find_starter_sheep", "find_sheep", "lure_deer", "lure_boar"]
+    },
+    "house": {
+      "name": "House",
+      "kind": "building"
+    },
+    "lumber_camp": {
+      "name": "Lumber Camp",
+      "kind": "building",
+      "actions": ["research_double_bit_axe"]
+    },
+    "mining_camp": {
+      "name": "Mining Camp",
+      "kind": "building",
+      "actions": ["research_gold_mining", "research_stone_mining"]
+    },
+    "mill": {
+      "name": "Mill",
+      "kind": "building",
+      "actions": ["research_horse_collar"]
+    },
+    "folwark": {
+      "name": "Folwark",
+      "kind": "building",
+      "actions": ["research_horse_collar"]
+    },
+    "settlement": {
+      "name": "Settlement",
+      "kind": "building",
+      "actions": [
+        "research_double_bit_axe",
+        "research_horse_collar",
+        "research_gold_mining",
+        "research_stone_mining"
+      ]
+    },
+    "barracks": {
+      "name": "Barracks",
+      "kind": "building",
+      "actions": [
+        "train_militia",
+        "research_man_at_arms",
+        "train_spearman",
+        "train_champi_scout",
+        "research_champi_warrior",
+        "research_eagle_warrior",
+        "train_eagle_scout"
+      ]
+    },
+    "stable": {
+      "name": "Stable",
+      "kind": "building",
+      "actions": ["train_scout_cavalry"]
+    },
+    "farm": {
+      "name": "Farm",
+      "kind": "building"
+    },
+    "archer": {
+      "name": "Archer",
+      "kind": "unit"
+    },
+    "skirmisher": {
+      "name": "Skirmisher",
+      "kind": "unit"
+    },
+    "militia": {
+      "name": "Militia",
+      "kind": "unit"
+    },
+    "fishing_ship": {
+      "name": "Fishing Ship",
+      "kind": "unit"
+    },
+    "transport_ship": {
+      "name": "Transport Ship",
+      "kind": "unit"
+    },
+    "trade_cog": {
+      "name": "Trade Cog",
+      "kind": "unit"
+    },
+    "galley": {
+      "name": "Galley",
+      "kind": "unit"
+    },
+    "fire_galley": {
+      "name": "Fire Galley",
+      "kind": "unit"
+    },
+    "demolition_raft": {
+      "name": "Demolition Raft",
+      "kind": "unit"
+    },
+    "hulk": {
+      "name": "Hulk",
+      "kind": "unit"
+    },
+    "archery_range": {
+      "name": "Archery Range",
+      "kind": "building",
+      "actions": ["train_archer", "train_skirmisher"]
+    },
+    "dock": {
+      "name": "Dock",
+      "kind": "building",
+      "actions": [
+        "train_fishing_ship",
+        "train_transport_ship",
+        "train_trade_cog",
+        "train_galley",
+        "train_fire_galley",
+        "train_demolition_raft",
+        "train_hulk",
+        "research_fishing_lines"
+      ]
+    },
+    "market": {
+      "name": "Market",
+      "kind": "building"
+    },
+    "blacksmith": {
+      "name": "Blacksmith",
+      "kind": "building",
+      "actions": [
+        "research_fletching",
+        "research_forging",
+        "research_scale_mail_armor",
+        "research_scale_barding_armor",
+        "research_padded_archer_armor"
+      ]
+    },
+    "watch_tower": {
+      "name": "Watch Tower",
+      "kind": "building"
+    },
+    "spearman": {
+      "name": "Spearman",
+      "kind": "unit"
+    },
+    "palisade_wall": {
+      "name": "Palisade Wall",
+      "kind": "building"
+    }
+  },
+  "resourceNodePrototypes": {
+    "sheep": {
+      "name": "Sheep",
+      "produces": "food",
+      "rateByEntityType": {
+        "villager": 0.33
+      },
+      "maxWorkers": 7,
+      "stock": 100,
+      "decayRatePerSecond": 0.25,
+      "decayStart": "on_first_gather",
+      "tags": ["food", "herdable"]
+    },
+    "wild_boar": {
+      "name": "Wild Boar",
+      "produces": "food",
+      "rateByEntityType": {},
+      "stock": 1,
+      "tags": ["huntables", "boar_animal"]
+    },
+    "wild_deer": {
+      "name": "Wild Deer",
+      "produces": "food",
+      "rateByEntityType": {},
+      "stock": 1,
+      "tags": ["huntables", "deer_animal"]
+    },
+    "neutral_sheep": {
+      "name": "Neutral Sheep",
+      "produces": "food",
+      "rateByEntityType": {},
+      "stock": 1,
+      "tags": ["herdable", "neutral_herdable"]
+    },
+    "starter_sheep": {
+      "name": "Starter Sheep",
+      "produces": "food",
+      "rateByEntityType": {},
+      "stock": 1,
+      "tags": ["herdable", "starter_herdable"]
+    },
+    "deer": {
+      "name": "Deer",
+      "produces": "food",
+      "rateByEntityType": {
+        "villager": 0.41
+      },
+      "maxWorkers": 3,
+      "stock": 140,
+      "decayRatePerSecond": 0.25,
+      "decayStart": "on_spawn",
+      "tags": ["food", "huntables", "deer"]
+    },
+    "boar": {
+      "name": "Boar",
+      "produces": "food",
+      "rateByEntityType": {
+        "villager": 0.41
+      },
+      "maxWorkers": 10,
+      "stock": 340,
+      "decayRatePerSecond": 0.4,
+      "decayStart": "on_spawn",
+      "tags": ["food", "huntables", "boar"]
+    },
+    "berries": {
+      "name": "Berries",
+      "produces": "food",
+      "rateByEntityType": {
+        "villager": 0.31
+      },
+      "maxWorkers": 6,
+      "stock": 750,
+      "tags": ["food", "forage"]
+    },
+    "shore_fish": {
+      "name": "Shore Fish",
+      "produces": "food",
+      "rateByEntityType": {
+        "villager": 0.28
+      },
+      "maxWorkers": 3,
+      "stock": 200,
+      "tags": ["food", "fish", "shore_fish"]
+    },
+    "deep_fish": {
+      "name": "Deep Fish",
+      "produces": "food",
+      "rateByEntityType": {
+        "fishing_ship": 0.49
+      },
+      "stock": 225,
+      "tags": ["food", "fish", "deep_fish"]
+    },
+    "forest": {
+      "name": "Forest",
+      "produces": "wood",
+      "rateByEntityType": {
+        "villager": 0.39
+      },
+      "tags": ["wood", "woodcutting"]
+    },
+    "faraway_forest": {
+      "name": "Faraway Forest",
+      "produces": "wood",
+      "rateByEntityType": {},
+      "tags": ["wood", "woodcutting", "faraway"]
+    },
+    "straggler_trees": {
+      "name": "Straggler Trees",
+      "produces": "wood",
+      "rateByEntityType": {
+        "villager": 0.39
+      },
+      "stock": 125,
+      "tags": ["wood", "woodcutting", "straggler"]
+    },
+    "gold_mine": {
+      "name": "Gold Mine",
+      "produces": "gold",
+      "rateByEntityType": {
+        "villager": 0.38
+      },
+      "tags": ["gold", "mining"]
+    },
+    "faraway_gold_mine": {
+      "name": "Faraway Gold Mine",
+      "produces": "gold",
+      "rateByEntityType": {},
+      "tags": ["gold", "mining", "faraway"]
+    },
+    "stone_mine": {
+      "name": "Stone Mine",
+      "produces": "stone",
+      "rateByEntityType": {
+        "villager": 0.36
+      },
+      "tags": ["stone", "mining"]
+    },
+    "farm_patch": {
+      "name": "Farm",
+      "produces": "food",
+      "rateByEntityType": {
+        "villager": 0.34
+      },
+      "maxWorkers": 1,
+      "stock": 175,
+      "tags": ["food", "farm"]
+    }
+  },
+  "actions": {
+    "train_villager": {
+      "name": "Train Villager",
+      "taskType": "train",
+      "duration": 25,
+      "costs": {
+        "food": 50,
+        "pop": 1
+      },
+      "creates": {
+        "villager": 1
+      }
+    },
+    "research_loom": {
+      "name": "Research Loom",
+      "taskType": "research",
+      "duration": 25,
+      "costs": {
+        "gold": 50
+      },
+      "repeatable": false
+    },
+    "advance_feudal_age": {
+      "name": "Advance to Feudal",
+      "taskType": "research",
+      "duration": 130,
+      "costs": {
+        "food": 500,
+        "dark_age_buildings": 2
+      },
+      "onCompleted": [
+        "grant feudal 1000",
+        "modifier action.duration.train_eagle_scout add -15"
+      ],
+      "repeatable": false
+    },
+    "advance_castle_age": {
+      "name": "Advance to Castle Age",
+      "taskType": "research",
+      "duration": 160,
+      "costs": {
+        "food": 800,
+        "gold": 200,
+        "feudal": 1,
+        "feudal_age_buildings": 2
+      },
+      "repeatable": false
+    },
+    "build_house": {
+      "name": "Build House",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 25,
+      "costs": {
+        "wood": 25
+      },
+      "creates": {
+        "house": 1
+      }
+    },
+    "build_lumber_camp": {
+      "name": "Build Lumber Camp",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 35,
+      "costs": {
+        "wood": 100
+      },
+      "creates": {
+        "lumber_camp": 1
+      },
+      "onClicked": ["consume-res faraway_forest 1", "create-res forest 1"],
+      "onCompleted": ["grant dark_age_buildings 1"]
+    },
+    "long_distance_mining": {
+      "name": "Long Distance Mining",
+      "taskType": "long_distance_mining",
+      "duration": 27,
+      "onCompleted": ["grant gold 10"]
+    },
+    "build_mill": {
+      "name": "Build Mill",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 35,
+      "costs": {
+        "wood": 100
+      },
+      "creates": {
+        "mill": 1
+      },
+      "onCompleted": ["grant dark_age_buildings 1", "grant mill_built 1000"]
+    },
+    "build_folwark": {
+      "name": "Build Folwark",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 40,
+      "costs": {
+        "wood": 100
+      },
+      "creates": {
+        "folwark": 1
+      },
+      "onCompleted": ["grant dark_age_buildings 1", "grant mill_built 1000"]
+    },
+    "find_starter_sheep": {
+      "name": "Find Starter Sheep",
+      "taskType": "lure",
+      "duration": 15,
+      "onCompleted": ["consume-res starter_sheep 2", "create-res sheep 2"]
+    },
+    "find_sheep": {
+      "name": "Find Sheep",
+      "taskType": "lure",
+      "duration": 60,
+      "onCompleted": ["consume-res neutral_sheep 2", "create-res sheep 2"]
+    },
+    "lure_boar": {
+      "name": "Lure Boar",
+      "taskType": "lure",
+      "duration": 30,
+      "onCompleted": ["consume-res wild_boar 1", "create-res boar 1"]
+    },
+    "lure_deer": {
+      "name": "Lure Deer",
+      "taskType": "lure",
+      "duration": 54,
+      "onCompleted": ["consume-res wild_deer 1", "create-res deer 1"]
+    },
+    "build_barracks": {
+      "name": "Build Barracks",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 50,
+      "costs": {
+        "wood": 175
+      },
+      "creates": {
+        "barracks": 1
+      },
+      "onCompleted": ["grant dark_age_buildings 1", "grant barracks_built 1000"]
+    },
+    "build_stable": {
+      "name": "Build Stable",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 50,
+      "costs": {
+        "wood": 175,
+        "feudal": 1,
+        "barracks_built": 1
+      },
+      "creates": {
+        "stable": 1
+      },
+      "onCompleted": ["grant feudal_age_buildings 1"]
+    },
+    "build_farm": {
+      "name": "Build Farm",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 15,
+      "costs": {
+        "wood": 60,
+        "mill_built": 1
+      },
+      "creates": {
+        "farm": 1
+      },
+      "onCompleted": ["create-res farm_patch 1"]
+    },
+    "research_double_bit_axe": {
+      "name": "Research Double-Bit Axe",
+      "taskType": "research",
+      "duration": 25,
+      "costs": {
+        "food": 100,
+        "wood": 50
+      },
+      "onCompleted": ["modifier gather.rate.tag.woodcutting mul 1.2"],
+      "repeatable": false
+    },
+    "research_gold_mining": {
+      "name": "Research Gold Mining",
+      "taskType": "research",
+      "duration": 30,
+      "costs": {
+        "food": 100,
+        "wood": 75
+      },
+      "onCompleted": ["modifier gather.rate.tag.gold mul 1.15"],
+      "repeatable": false
+    },
+    "research_stone_mining": {
+      "name": "Research Stone Mining",
+      "taskType": "research",
+      "duration": 30,
+      "costs": {
+        "food": 100,
+        "wood": 75
+      },
+      "onCompleted": ["modifier gather.rate.tag.stone mul 1.15"],
+      "repeatable": false
+    },
+    "research_horse_collar": {
+      "name": "Research Horse Collar",
+      "taskType": "research",
+      "duration": 20,
+      "costs": {
+        "food": 75,
+        "wood": 75
+      },
+      "onCompleted": ["modifier gather.stock.tag.farm mul 1.4285714286"],
+      "repeatable": false
+    },
+    "train_scout_cavalry": {
+      "name": "Train Scout Cavalry",
+      "taskType": "train",
+      "duration": 30,
+      "costs": {
+        "food": 80,
+        "pop": 1
+      },
+      "creates": {
+        "scout_cavalry": 1
+      }
+    },
+    "train_eagle_scout": {
+      "name": "Train Eagle Scout",
+      "taskType": "train",
+      "duration": 50,
+      "costs": {
+        "food": 20,
+        "gold": 50,
+        "pop": 1
+      },
+      "creates": {
+        "eagle_scout": 1
+      }
+    },
+    "train_champi_scout": {
+      "name": "Train Champi Scout",
+      "taskType": "train",
+      "duration": 30,
+      "costs": {
+        "food": 45,
+        "gold": 25,
+        "pop": 1
+      },
+      "creates": {
+        "champi_scout": 1
+      }
+    },
+    "research_champi_warrior": {
+      "name": "Research Champi Warrior",
+      "taskType": "research",
+      "duration": 40,
+      "costs": {
+        "food": 100,
+        "gold": 60
+      },
+      "repeatable": false
+    },
+    "build_archery_range": {
+      "name": "Build Archery Range",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 50,
+      "costs": {
+        "wood": 175,
+        "feudal": 1,
+        "barracks_built": 1
+      },
+      "creates": {
+        "archery_range": 1
+      },
+      "onCompleted": ["grant feudal_age_buildings 1"]
+    },
+    "build_dock": {
+      "name": "Build Dock",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 35,
+      "costs": {
+        "wood": 150
+      },
+      "creates": {
+        "dock": 1
+      },
+      "onCompleted": ["grant dark_age_buildings 1"]
+    },
+    "build_market": {
+      "name": "Build Market",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 60,
+      "costs": {
+        "wood": 175,
+        "feudal": 1,
+        "mill_built": 1
+      },
+      "creates": {
+        "market": 1
+      },
+      "onCompleted": ["grant feudal_age_buildings 1"]
+    },
+    "build_blacksmith": {
+      "name": "Build Blacksmith",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 40,
+      "costs": {
+        "wood": 150,
+        "feudal": 1
+      },
+      "creates": {
+        "blacksmith": 1
+      },
+      "onCompleted": ["grant feudal_age_buildings 1"]
+    },
+    "build_watch_tower": {
+      "name": "Build Watch Tower",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 80,
+      "costs": {
+        "wood": 35,
+        "stone": 125
+      },
+      "creates": {
+        "watch_tower": 1
+      }
+    },
+    "train_archer": {
+      "name": "Train Archer",
+      "taskType": "train",
+      "duration": 35,
+      "costs": {
+        "wood": 25,
+        "gold": 45,
+        "pop": 1
+      },
+      "creates": {
+        "archer": 1
+      }
+    },
+    "train_skirmisher": {
+      "name": "Train Skirmisher",
+      "taskType": "train",
+      "duration": 22,
+      "costs": {
+        "wood": 35,
+        "food": 25,
+        "pop": 1
+      },
+      "creates": {
+        "skirmisher": 1
+      }
+    },
+    "train_militia": {
+      "name": "Train Militia",
+      "taskType": "train",
+      "duration": 21,
+      "costs": {
+        "food": 60,
+        "gold": 20,
+        "pop": 1
+      },
+      "creates": {
+        "militia": 1
+      }
+    },
+    "train_fishing_ship": {
+      "name": "Train Fishing Ship",
+      "taskType": "train",
+      "duration": 40,
+      "costs": {
+        "wood": 75,
+        "pop": 1
+      },
+      "creates": {
+        "fishing_ship": 1
+      }
+    },
+    "train_transport_ship": {
+      "name": "Train Transport Ship",
+      "taskType": "train",
+      "duration": 46,
+      "costs": {
+        "wood": 125,
+        "pop": 1
+      },
+      "creates": {
+        "transport_ship": 1
+      }
+    },
+    "train_trade_cog": {
+      "name": "Train Trade Cog",
+      "taskType": "train",
+      "duration": 36,
+      "costs": {
+        "wood": 100,
+        "gold": 50,
+        "pop": 1
+      },
+      "creates": {
+        "trade_cog": 1
+      }
+    },
+    "train_galley": {
+      "name": "Train Galley",
+      "taskType": "train",
+      "duration": 60,
+      "costs": {
+        "wood": 90,
+        "gold": 30,
+        "pop": 1
+      },
+      "creates": {
+        "galley": 1
+      }
+    },
+    "train_fire_galley": {
+      "name": "Train Fire Galley",
+      "taskType": "train",
+      "duration": 65,
+      "costs": {
+        "wood": 75,
+        "gold": 45,
+        "pop": 1
+      },
+      "creates": {
+        "fire_galley": 1
+      }
+    },
+    "train_demolition_raft": {
+      "name": "Train Demolition Raft",
+      "taskType": "train",
+      "duration": 45,
+      "costs": {
+        "wood": 75,
+        "gold": 50,
+        "pop": 1
+      },
+      "creates": {
+        "demolition_raft": 1
+      }
+    },
+    "train_hulk": {
+      "name": "Train Hulk",
+      "taskType": "train",
+      "duration": 42,
+      "costs": {
+        "wood": 75,
+        "gold": 35,
+        "pop": 1
+      },
+      "creates": {
+        "hulk": 1
+      }
+    },
+    "research_fishing_lines": {
+      "name": "Research Fishing Lines",
+      "taskType": "research",
+      "duration": 20,
+      "costs": {
+        "food": 50,
+        "wood": 100
+      },
+      "onCompleted": ["modifier gather.rate.node.deep_fish mul 1.1"],
+      "repeatable": false
+    },
+    "research_man_at_arms": {
+      "name": "Research Man-at-Arms",
+      "taskType": "research",
+      "duration": 40,
+      "costs": {
+        "food": 100,
+        "gold": 40
+      },
+      "repeatable": false
+    },
+    "research_eagle_warrior": {
+      "name": "Research Eagle Warrior",
+      "taskType": "research",
+      "duration": 50,
+      "costs": {
+        "food": 200,
+        "gold": 200
+      },
+      "repeatable": false
+    },
+    "research_wheelbarrow": {
+      "name": "Research Wheelbarrow",
+      "taskType": "research",
+      "duration": 75,
+      "costs": {
+        "food": 175,
+        "wood": 50
+      },
+      "onCompleted": [
+        "# Slight general boost, specific farm boost per SOTL",
+        "modifier gather.rate.entity.villager mul 1.02",
+        "modifier gather.rate.tag.farm mul 1.1"
+      ],
+      "repeatable": false
+    },
+    "research_fletching": {
+      "name": "Research Fletching",
+      "taskType": "research",
+      "duration": 30,
+      "costs": {
+        "food": 100,
+        "gold": 50
+      },
+      "repeatable": false
+    },
+    "research_forging": {
+      "name": "Research Forging",
+      "taskType": "research",
+      "duration": 50,
+      "costs": {
+        "food": 150
+      },
+      "repeatable": false
+    },
+    "research_scale_mail_armor": {
+      "name": "Research Scale Mail Armor",
+      "taskType": "research",
+      "duration": 40,
+      "costs": {
+        "food": 100
+      },
+      "repeatable": false
+    },
+    "research_scale_barding_armor": {
+      "name": "Research Scale Barding Armor",
+      "taskType": "research",
+      "duration": 45,
+      "costs": {
+        "food": 150
+      },
+      "repeatable": false
+    },
+    "research_padded_archer_armor": {
+      "name": "Research Padded Archer Armor",
+      "taskType": "research",
+      "duration": 40,
+      "costs": {
+        "food": 100
+      },
+      "repeatable": false
+    },
+    "train_spearman": {
+      "name": "Train Spearman",
+      "taskType": "train",
+      "duration": 22,
+      "costs": {
+        "food": 35,
+        "wood": 25,
+        "pop": 1
+      },
+      "creates": {
+        "spearman": 1
+      }
+    },
+    "build_palisade_wall": {
+      "name": "Build Palisade Wall",
+      "taskType": "build_palisade_walk",
+      "duration": 7,
+      "costs": {
+        "wood": 3
+      },
+      "creates": {
+        "palisade_wall": 1
+      }
+    },
+    "build_mining_camp": {
+      "name": "Build Mining Camp",
+      "taskType": "build",
+      "many_workers": "aoe2",
+      "duration": 35,
+      "costs": {
+        "wood": 100
+      },
+      "creates": {
+        "mining_camp": 1
+      },
+      "onClicked": ["consume-res faraway_gold_mine 1", "create-res gold_mine 1"]
+    }
+  },
+  "civilizations": [
+    {
+      "name": "Britons",
+      "dslLines": ["modifier gather.rate.tag.herdable mul 1.25"]
+    },
+    {
+      "name": "Franks",
+      "dslLines": [
+        "modifier gather.rate.tag.forage mul 1.15",
+        "modifier action.cost.research_horse_collar.food mul 0",
+        "modifier action.cost.research_horse_collar.wood mul 0"
+      ]
+    },
+    {
+      "name": "Goths",
+      "dslLines": [
+        "modifier action.cost.research_loom.gold mul 0",
+        "modifier action.cost.train_militia.food mul 0.85",
+        "modifier action.cost.train_militia.gold mul 0.85",
+        "on completed advance_feudal_age modifier action.cost.train_militia.food mul 0.941176",
+        "on completed advance_feudal_age modifier action.cost.train_militia.gold mul 0.941176",
+        "on completed advance_castle_age modifier action.cost.train_militia.food mul 0.9375",
+        "on completed advance_castle_age modifier action.cost.train_militia.gold mul 0.9375",
+        "modifier action.cost.train_spearman.food mul 0.85",
+        "modifier action.cost.train_spearman.wood mul 0.85",
+        "on completed advance_feudal_age modifier action.cost.train_spearman.food mul 0.941176",
+        "on completed advance_feudal_age modifier action.cost.train_spearman.wood mul 0.941176",
+        "on completed advance_castle_age modifier action.cost.train_spearman.food mul 0.9375",
+        "on completed advance_castle_age modifier action.cost.train_spearman.wood mul 0.9375"
+      ]
+    },
+    {
+      "name": "Teutons",
+      "dslLines": ["modifier action.cost.build_farm.wood mul 0.6"]
+    },
+    {
+      "name": "Japanese",
+      "dslLines": [
+        "modifier action.cost.build_mill.wood mul 0.5",
+        "modifier action.cost.build_lumber_camp.wood mul 0.5",
+        "modifier action.cost.build_mining_camp.wood mul 0.5"
+      ]
+    },
+    {
+      "name": "Chinese",
+      "dslLines": ["spawn villager 3", "grant food -200 wood -50"]
+    },
+    {
+      "name": "Byzantines",
+      "dslLines": [
+        "modifier action.cost.train_skirmisher.food mul 0.75",
+        "modifier action.cost.train_skirmisher.wood mul 0.75",
+        "modifier action.cost.train_spearman.food mul 0.75",
+        "modifier action.cost.train_spearman.wood mul 0.75"
+      ]
+    },
+    {
+      "name": "Persians",
+      "dslLines": [
+        "grant food 50 wood 50",
+        "modifier action.duration.train_villager mul 0.9524",
+        "on completed advance_feudal_age modifier action.duration.train_villager mul 0.9545",
+        "on completed advance_castle_age modifier action.duration.train_villager mul 0.9565"
+      ]
+    },
+    {
+      "name": "Saracens",
+      "dslLines": [
+        "modifier action.cost.build_market.wood add -100",
+        "modifier market.fee set 0.05"
+      ]
+    },
+    {
+      "name": "Turks",
+      "dslLines": ["modifier gather.rate.tag.gold mul 1.25"]
+    },
+    {
+      "name": "Vikings",
+      "dslLines": [
+        "modifier action.cost.research_wheelbarrow.food mul 0",
+        "modifier action.cost.research_wheelbarrow.wood mul 0"
+      ]
+    },
+    {
+      "name": "Mongols",
+      "dslLines": ["modifier gather.rate.tag.huntables mul 1.4"]
+    },
+    {
+      "name": "Celts",
+      "dslLines": ["modifier gather.rate.tag.woodcutting mul 1.15"]
+    },
+    {
+      "name": "Spanish",
+      "dslLines": [
+        "modifier action.duration.build_archery_range mul 0.7692",
+        "modifier action.duration.build_barracks mul 0.7692",
+        "modifier action.duration.build_blacksmith mul 0.7692",
+        "modifier action.duration.build_dock mul 0.7692",
+        "modifier action.duration.build_farm mul 0.7692",
+        "modifier action.duration.build_house mul 0.7692",
+        "modifier action.duration.build_lumber_camp mul 0.7692",
+        "modifier action.duration.build_market mul 0.7692",
+        "modifier action.duration.build_mill mul 0.7692",
+        "modifier action.duration.build_mining_camp mul 0.7692",
+        "modifier action.duration.build_palisade_wall mul 0.7692",
+        "modifier action.duration.build_stable mul 0.7692",
+        "modifier action.duration.build_watch_tower mul 0.7692",
+        "modifier action.cost.research_fletching.gold mul 0",
+        "on completed research_loom grant gold 20",
+        "on completed research_wheelbarrow grant gold 20",
+        "on completed research_horse_collar grant gold 20",
+        "on completed research_double_bit_axe grant gold 20",
+        "on completed research_man_at_arms grant gold 20",
+        "on completed research_fletching grant gold 20",
+        "on completed research_forging grant gold 20",
+        "on completed research_scale_mail_armor grant gold 20",
+        "on completed research_scale_barding_armor grant gold 20",
+        "on completed research_padded_archer_armor grant gold 20",
+        "on completed advance_feudal_age grant gold 20",
+        "on completed advance_castle_age grant gold 20"
+      ]
+    },
+    {
+      "name": "Aztecs",
+      "dslLines": ["grant gold 50"]
+    },
+    {
+      "name": "Mayans",
+      "dslLines": [
+        "spawn villager 1",
+        "grant food -50",
+        "modifier gather.stock.tag.gold mul 1.15",
+        "modifier gather.stock.tag.stone mul 1.15",
+        "modifier gather.stock.tag.woodcutting mul 1.15",
+        "modifier gather.stock.tag.huntables mul 1.15",
+        "modifier gather.stock.tag.herdable mul 1.15"
+      ]
+    },
+    {
+      "name": "Huns",
+      "dslLines": ["grant wood -100", "grant pop 1000"]
+    },
+    {
+      "name": "Koreans",
+      "dslLines": [
+        "modifier gather.rate.tag.stone mul 1.2",
+        "modifier action.cost.train_archer.wood mul 0.5",
+        "modifier action.cost.train_skirmisher.wood mul 0.5",
+        "modifier action.cost.train_spearman.wood mul 0.5"
+      ]
+    },
+    {
+      "name": "Italians",
+      "dslLines": [
+        "modifier action.cost.advance_feudal_age.food mul 0.85",
+        "modifier action.cost.advance_castle_age.food mul 0.85",
+        "modifier action.cost.advance_castle_age.gold mul 0.85"
+      ]
+    },
+    {
+      "name": "Indians",
+      "dslLines": [
+        "modifier action.cost.train_villager.food mul 0.92",
+        "on completed advance_feudal_age modifier action.cost.train_villager.food mul 0.9457",
+        "on completed advance_castle_age modifier action.cost.train_villager.food mul 0.9425"
+      ]
+    },
+    {
+      "name": "Incas",
+      "dslLines": ["grant pop 10", "on every completed build_house grant pop 5"]
+    },
+    {
+      "name": "Magyars",
+      "dslLines": ["modifier action.cost.train_scout_cavalry.food mul 0.85"]
+    },
+    {
+      "name": "Slavs",
+      "dslLines": ["modifier gather.rate.tag.farm mul 1.15"]
+    },
+    {
+      "name": "Portuguese",
+      "dslLines": [
+        "modifier gather.secondary.wood.tag.forage add 0.33",
+        "modifier action.cost.train_archer.gold mul 0.8",
+        "modifier action.cost.train_militia.gold mul 0.8",
+        "modifier action.cost.train_galley.gold mul 0.8",
+        "modifier action.cost.train_fire_galley.gold mul 0.8",
+        "modifier action.cost.train_demolition_raft.gold mul 0.8",
+        "modifier action.cost.train_trade_cog.gold mul 0.8",
+        "modifier action.cost.train_spearman.gold mul 0.8",
+        "modifier action.cost.research_loom.gold mul 0.8",
+        "modifier action.cost.research_man_at_arms.gold mul 0.8",
+        "modifier action.cost.research_fletching.gold mul 0.8",
+        "modifier action.cost.advance_castle_age.gold mul 0.8"
+      ]
+    },
+    {
+      "name": "Ethiopians",
+      "dslLines": [
+        "on completed advance_feudal_age grant food 100 gold 100",
+        "on completed advance_castle_age grant food 100 gold 100"
+      ]
+    },
+    {
+      "name": "Malians",
+      "dslLines": [
+        "modifier gather.rate.tag.gold mul 1.1",
+        "modifier action.cost.build_house.wood mul 0.85",
+        "modifier action.cost.build_lumber_camp.wood mul 0.85",
+        "modifier action.cost.build_mill.wood mul 0.85",
+        "modifier action.cost.build_mining_camp.wood mul 0.85",
+        "modifier action.cost.build_barracks.wood mul 0.85",
+        "modifier action.cost.build_stable.wood mul 0.85",
+        "modifier action.cost.build_archery_range.wood mul 0.85",
+        "modifier action.cost.build_dock.wood mul 0.85",
+        "modifier action.cost.build_market.wood mul 0.85",
+        "modifier action.cost.build_blacksmith.wood mul 0.85",
+        "modifier action.cost.build_watch_tower.wood mul 0.85",
+        "modifier action.cost.build_palisade_wall.wood mul 0.85"
+      ]
+    },
+    {
+      "name": "Berbers",
+      "dslLines": [
+        "on completed advance_castle_age modifier action.cost.train_scout_cavalry.food mul 0.85"
+      ]
+    },
+    {
+      "name": "Khmer",
+      "dslLines": []
+    },
+    {
+      "name": "Malay",
+      "dslLines": [
+        "modifier action.duration.advance_feudal_age mul 0.6024",
+        "modifier action.duration.advance_castle_age mul 0.6024"
+      ]
+    },
+    {
+      "name": "Burmese",
+      "dslLines": [
+        "modifier action.cost.research_double_bit_axe.food mul 0",
+        "modifier action.cost.research_double_bit_axe.wood mul 0"
+      ]
+    },
+    {
+      "name": "Vietnamese",
+      "dslLines": [
+        "modifier action.cost.research_wheelbarrow.wood mul 0",
+        "modifier action.cost.research_horse_collar.wood mul 0",
+        "modifier action.cost.research_double_bit_axe.wood mul 0",
+        "modifier action.duration.research_wheelbarrow mul 0.5",
+        "modifier action.duration.research_horse_collar mul 0.5",
+        "modifier action.duration.research_double_bit_axe mul 0.5"
+      ]
+    },
+    {
+      "name": "Bulgarians",
+      "dslLines": [
+        "modifier action.cost.research_man_at_arms.food mul 0",
+        "modifier action.cost.research_man_at_arms.gold mul 0",
+        "modifier action.cost.research_forging.food mul 0.5",
+        "modifier action.cost.research_fletching.food mul 0.5",
+        "modifier action.cost.research_scale_mail_armor.food mul 0.5",
+        "modifier action.cost.research_scale_barding_armor.food mul 0.5",
+        "modifier action.cost.research_padded_archer_armor.food mul 0.5"
+      ]
+    },
+    {
+      "name": "Tatars",
+      "dslLines": ["modifier gather.stock.tag.herdable mul 1.5"]
+    },
+    {
+      "name": "Cumans",
+      "dslLines": [
+        "modifier action.cost.build_archery_range.wood add -75",
+        "modifier action.cost.build_stable.wood add -75"
+      ]
+    },
+    {
+      "name": "Lithuanians",
+      "dslLines": ["grant food 100"]
+    },
+    {
+      "name": "Burgundians",
+      "dslLines": [
+        "modifier action.cost.research_wheelbarrow.food mul 0.67",
+        "modifier action.cost.research_horse_collar.food mul 0.67",
+        "modifier action.cost.research_double_bit_axe.food mul 0.67"
+      ]
+    },
+    {
+      "name": "Sicilians",
+      "dslLines": ["grant stone 100"]
+    },
+    {
+      "name": "Poles",
+      "dslLines": [
+        "modifier gather.secondary.gold.resource.stone add 0.5",
+        "modifier action.cost.train_scout_cavalry.food mul 0.5"
+      ]
+    },
+    {
+      "name": "Bohemians",
+      "dslLines": ["modifier action.cost.build_blacksmith.wood add -100"]
+    },
+    {
+      "name": "Dravidians",
+      "dslLines": [
+        "on completed advance_feudal_age grant wood 200",
+        "on completed advance_castle_age grant wood 200",
+        "modifier action.cost.research_man_at_arms.food mul 0.5",
+        "modifier action.cost.research_man_at_arms.gold mul 0.5"
+      ]
+    },
+    {
+      "name": "Bengalis",
+      "dslLines": [
+        "on completed advance_feudal_age spawn villager 2",
+        "on completed advance_castle_age spawn villager 2"
+      ]
+    },
+    {
+      "name": "Gurjaras",
+      "dslLines": []
+    },
+    {
+      "name": "Romans",
+      "dslLines": ["modifier gather.rate.entity.villager mul 1.05"]
+    },
+    {
+      "name": "Armenians",
+      "dslLines": []
+    },
+    {
+      "name": "Georgians",
+      "dslLines": []
+    },
+    {
+      "name": "Achaemenids",
+      "dslLines": []
+    },
+    {
+      "name": "Athenians",
+      "dslLines": [
+        "modifier gather.secondary.food.tag.woodcutting add 0.068027"
+      ]
+    },
+    {
+      "name": "Spartans",
+      "dslLines": [
+        "modifier gather.rate.tag.farm mul 1.1",
+        "modifier gather.rate.tag.forage mul 1.1",
+        "modifier gather.rate.tag.huntables mul 1.1",
+        "modifier gather.rate.tag.herdable mul 1.1"
+      ]
+    },
+    {
+      "name": "Shu",
+      "dslLines": [
+        "modifier gather.secondary.food.tag.woodcutting add 0.07",
+        "modifier action.cost.research_fletching.food mul 0.75",
+        "modifier action.cost.research_fletching.gold mul 0.75",
+        "modifier action.cost.research_padded_archer_armor.food mul 0.75"
+      ]
+    },
+    {
+      "name": "Wu",
+      "dslLines": [
+        "on completed build_barracks grant food 55",
+        "on completed build_stable grant food 55",
+        "on completed build_archery_range grant food 55"
+      ]
+    },
+    {
+      "name": "Wei",
+      "dslLines": [
+        "on completed research_wheelbarrow spawn villager 1",
+        "on completed research_horse_collar spawn villager 1",
+        "on completed research_double_bit_axe spawn villager 1"
+      ]
+    },
+    {
+      "name": "Jurchens",
+      "dslLines": []
+    },
+    {
+      "name": "Khitans",
+      "dslLines": []
+    },
+    {
+      "name": "Macedonians",
+      "dslLines": []
+    },
+    {
+      "name": "Thracians",
+      "dslLines": [
+        "modifier gather.secondary.gold.node.sheep add 0.1515",
+        "modifier gather.secondary.gold.node.deer add 0.122",
+        "modifier gather.secondary.gold.node.boar add 0.122"
+      ]
+    },
+    {
+      "name": "Puru",
+      "dslLines": ["modifier gather.stock.tag.stone mul 1.3"]
+    },
+    {
+      "name": "Tupi",
+      "dslLines": [
+        "modifier action.cost.research_man_at_arms.food mul 0.5",
+        "modifier action.cost.research_fletching.food mul 0.5"
+      ]
+    },
+    {
+      "name": "Muisca",
+      "dslLines": ["modifier action.cost.advance_castle_age.gold mul 0.5"]
+    },
+    {
+      "name": "Mapuche",
+      "dslLines": ["modifier gather.rate.tag.forage mul 1.2"]
+    }
+  ]
+}

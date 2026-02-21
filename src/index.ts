@@ -122,14 +122,17 @@ async function main(): Promise<void> {
     const game = await loadJson<GameData>(args.game);
     normalizeGame(game);
     const buildDsl = await Bun.file(args.build).text();
-    const build = parseBuildOrderDsl(buildDsl, createParseBuildOrderDslOptions({
-        selectorAliases: createDslSelectorAliases(game.resources),
-        symbols: createDslValidationSymbols(game),
-        baseDslLines: createActionDslLines(game),
-        civDslByName: createCivDslByName(game),
-        rulesetDslByName: createRulesetDslByName(game),
-        settingDslByName: createSettingDslByName(game),
-    }));
+    const build = parseBuildOrderDsl(
+        buildDsl,
+        createParseBuildOrderDslOptions({
+            selectorAliases: createDslSelectorAliases(game.resources),
+            symbols: createDslValidationSymbols(game),
+            baseDslLines: createActionDslLines(game),
+            civDslByName: createCivDslByName(game),
+            rulesetDslByName: createRulesetDslByName(game),
+            settingDslByName: createSettingDslByName(game),
+        }),
+    );
 
     const evaluationTime = args.at ?? build.evaluationTime;
     const debtFloor = args.strict ? 0 : (args.debtFloor ?? build.debtFloor ?? -30);
@@ -190,15 +193,15 @@ async function main(): Promise<void> {
 
         const gameObjectsReport = deriveGameObjectsReportPath(args.report);
         const llmBenchmarksReport = deriveLLMBenchmarksReportPath(args.report);
-        const llmBenchmarksDataFile = Bun.file("benchmarks/aoe2-llm/results.json");
-        const llmPromptFile = Bun.file("benchmarks/aoe2-llm/prompt.txt");
+        const llmBenchmarksDataFile = Bun.file("benchmarks/aoe2-llm-2026-02-20/results.json");
+        const llmPromptFile = Bun.file("benchmarks/aoe2-llm-2026-02-20/prompt.txt");
         let llmBenchmarks: LLMBenchmarkDataset = {
             rows: [],
         };
         if (await llmBenchmarksDataFile.exists()) {
-            llmBenchmarks = await llmBenchmarksDataFile.json() as LLMBenchmarkDataset;
+            llmBenchmarks = (await llmBenchmarksDataFile.json()) as LLMBenchmarkDataset;
         }
-        if (!llmBenchmarks.prompt && await llmPromptFile.exists()) {
+        if (!llmBenchmarks.prompt && (await llmPromptFile.exists())) {
             llmBenchmarks.prompt = await llmPromptFile.text();
         }
 
