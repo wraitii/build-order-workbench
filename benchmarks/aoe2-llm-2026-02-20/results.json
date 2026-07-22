@@ -2,6 +2,30 @@
   "benchmarkDate": "2026-02-20",
   "rows": [
     {
+      "modelHarness": "GPT 5.6-sol medium - run 2",
+      "feudalTime": "06:24",
+      "castleTime": "14:17",
+      "archers10Time": "12:44",
+      "fletchingTime": "10:51",
+      "humanEvalScore": "S",
+      "humanEvalComment": "Very good build, very fast to archers. Very fast feudal (17 vill), no 'cheating', no double-bit axe (but maybe correct here?). I rate this the highest since overall it's a very, very fast archer build, but Castle is delayed by staying on 17 vills. Very little villager idle time though. Sidenote: 5.6-sol does not chat _at all_.",
+      "cost": "~0.1$?",
+      "hadTrouble": "-",
+      "buildLink": "#z=zVZNb9swDL37VxDYdSmSdFuH9tR1GHbaDtvdYGzaESpLrj6SZr9-lOU6rj-SFuiA3eqGfHwkn55EO5QendAK1svr5TKxTteAhSMDma5qSY5ywHyHKqM0Q-skpVhSktPGLQqptYFlYrwkSw5Q0zrhP5xQJaDBjcDuU2lToUypKEQmSGWHJHkHvzJtwo-lRmkTy18ETlQEmRTZfa9yQT7n7FD5RFSPXz-q68MZFCpFk225vcfVcjrKcC8hJi34O9syv0D1Z00K9sJtQVQV5QIdQa1rL-P0UOWw1zoHoQrDNIzPnDd0kTx48gQbL2SebrW3BN6GlndCSibKPNbgtoyN1opSgdNgt0T1s0Tpqw0Z7q-qh-mj7IJbsq5NL4TKU-vQ8ELTBrfN5869Y0Devzm0wZIJpxuN5kRMBGyAmPibYZ0ByikM6nIyLLE17tWiHUA3l26O6J1eRKy4_y4kojm9V2lGiieUDIU_Mb5hHZQSCqMrELmkY1VWzA-hCFhJ8sA7YWWUyJsyZOz7dmVgPWNzVCudjdTZ_UVLoitwBWcldDWtoJNAFf97QopNK7HTl2CuljA7_laIw4z1-X5Wc6IeYn2Yr96t4Qsag9m9BWH5aD94YcJi2bcMqpLsDQg2Lml1WLbgLBtqw1c093BbtjQDOxadcqPtrFbP2tk8FRt09HmmIeb3jd0CVleLLvZb43XR3Mb1riBY9OL1qu5DxMQJc2U-tzlLVUvW5FaworFszJztrQ7GaHasaaV9uYVoSs0oW8pPs7JPtOdtfKBFxVmT9tbTY-MmjRMMZhnYBgw6X3UolMcPMxUGkjsB-TL9Hz1l3PKI1KdZUsdWeVO_97oVMQS4SvyhRruOmE-85Nqy4YYKt9wNe0yQZxXuMevrWgpO7u65ixHZM4uLVQ5pw2LOTeIcTp7o_7dgb17_qNpo-5cRt1t1gOODZnhVSQtIOx7CSFPPh9M3h6cnz8cZNfa6jGkTb6CzmaNGBgM6dnEWqr-BAk3FzCeN4eiid-GAwl3zAGQmYHV4lEUvp0wrXR0aE0N1AMfnZuhYUJPh0nwZvOIQTLw7p-3iGACvN-5TYDPO0Q76tIMgXztrfvOPUAZbe-Y538N9beP9SdbzS7jLs82AWwOCKDn7immeeBC84KA5-Bx6eRuo1fL6cjyXOV_m1z6WpeQnojMU3g9Hpf8F"
+    },
+    {
+      "modelHarness": "GPT 5.6-sol medium - run 1",
+      "feudalTime": "06:41",
+      "castleTime": "12:15",
+      "archers10Time": "14:58",
+      "fletchingTime": "09:54",
+      "humanEvalScore": "S",
+      "humanEvalComment": "Very good build for the constraints. Used all food, including shore fish (kinda fake tbh, my setup is bad). Stopped at 19 vills. Overall it started well and iterated effectively. Still some meat left - didn't use double bit axe, the food setup is a little inefficient, some idle time. But it's getting very optimised. 43% context used.",
+      "cost": "~0.1$?",
+      "hadTrouble": "-",
+      "buildLink": "#z=vVfJbtswEL3rKwbotTZsp4i7nIoUufRSoL0LtDSSiFCkwiWu_75D0lZkSbbkFMghQGzO8ubNanxhwjHLlYTN6utqlRirGmCFRQ2ZqhuBFnNg-QuTGaYZM1ZgykpMctzZRSGU0rBKtBNo0AJTuEnoH8tlCUyzHWftR6l0zUSKRcEzjjI7JMkH-J0p7R9LxYRJDH1CsLxGyATPnjqeC3Q5aXvPV6Q6-LpSbRxWMy5TprOKwvu7Xo1LaYrFy6QFfc4qwuehPnJJjuhPOK9SIVS8rBav8UChVA5O5mTbP_95WCbPDh1CQaqpsUwTq6mpEBtwxodN7p0l1JQEfTgTnhDyGNKdYhTFZkosRx_s3TyXF8zFgsAX1IcOUR09ZgwvJbxwIYh98reFQqsaDFFeloLithrRAM8FkacgaHlaf3rtSBfslX4KlUMsI_G1E9xU4bHg2lh6J4IFl7hMmLNqEdHHpLaeI3yr9jLNUBLsY5A7x0WeVsoZPMq8gt14J_IURAvPNGwvF_3Q2ud-l4ykua_LhIi8nPMQLbVS93DZ8zmffc3tFc0T4w-sbkzguNGo8dlxwy3xw7Rm2ZNZ9m1-hi6BwtU78p6RkT6N2z6LBTWXsQOehoYG1XMXWQoVHuo30tm32Sqs789AnmIZSXSwG41cgEsU_VKNE3EqakXyttLKlbEUj9Njx2g0DLjawmSxjbZFv_yuZ3m9eaOb8binvL01qKss95xs5oY0lboHvxLA-ZoCo5QXCmnDTElVH2i4M8pf_C4Uv_Z7oSL1Sol8kND1lyOukUV0rOuLmwr8Ll3cMqkI_w8XFmKotBIXrvkItEUNSNy3qIwPuSS4oYv92llOg-nSW3NJTkabeLTvJsrVQ_E2W0p6rd51N2j1TzNd_p-buT7OR9aV1F4as32Q3Qqft0_mpXB-G050O9Xcn70CzWRJwo1WucuoVL1OmHSGnhpaV4dvsBN-qNbcVmBc0whOCo-nG8nXItnyhWt8s-XwGJBHvOECRMz9mqST8SEcavC9xOUgmROBR1SHNAB-04C_0WEn6nfw9i7hDZrwfl6DnK4WWtyat5viNlcz-_31QKKo0oIOwQtdf05Yd9Ce7vy74bV4fIr0nlkYeOn_Zrgw1W-wOCiraGf8Z8exU8JUgD3jlqiRp4M5KjppufDqyukM42l3ajrjT061B25vaLSRn1P_AA"
+    },
+    {
       "modelHarness": "Human baseline",
       "feudalTime": "07:05",
       "castleTime": "15:27",
@@ -24,6 +48,18 @@
       "cost": "~0.2$",
       "hadTrouble": "-",
       "buildLink": "#z=pVbbkqIwEH3PV6RqX7UKENTlN_YDqBYaTE1InCQ4499vEBVMAHHmTfCc0_du8Ay8AcOkoFGQBgHRRp4olAYVzWV94miwoFCcQeSY5aANxwwqJAUezLrkUioaENVw1GgoSIyI_WGYqCgoODB4PAqpauAZliXLGYr8Qsgf-i-Xqv2zksA10fYJqWE10pyz_GNgucSmsOzW8gxq4N8Q9YjDKGAiA5UfbXjfYTCOUjaWFpOV9jk_Wv8I-WywQVoyUWTagLLpyfQR8UQb3fpvdRpjzdtsqgsBQ4M03NGOxBuF2UGCmsYmAR0amBMO02SxcJRugiG2QJzEbt7AxkuxRJ_gS6xBa1YJemac29IoaiS9xkjcPhvJr8sFzmmpZE1ZwbFXItAYue586qr8YHSOGfklshyFVb5X89AwXmRH2Wi8gR6ccNX_jqg5org70vt-rcU9DzNaV2-vZeoimlKL0yBZqoZKMdQzqjfEPcOT0_SmwSkrNhdh3xSv1Eo7dNq4Yt1bcnP5wdg9ifKmtkZtg9UnV3q7GpLGxR3tvdde-2lwGHho-2oaHj45Xtv3XpeF82XrgZFvOprDb3z8Zg4f-_h4GFrbnU6v10zYYEYrMVPkSnZU9FxIfBeSecbWZ2znGTufsZtn-B0S7h2GoVt7OJ9ycwClIP_QXsGDQY-2GV7SpOFf2h7l9Vsbznq16ys2ckVfLgY37u-oq2u3bq6b57r3Xb_fkHxeLcOkepfhxebqTvolUyAqb-csXwyL7R14W96amaNrbL96u9x2eQZpnCwPKB7IJrOqzsyWoOrRYdW2o6qK281qFNpitMf1LpH8UiJ0p-NHEr_xwr1Pz5-ByU3oKeU_ojg95LVKJzXyeekyfYg_jnEX8GNm3Hscp9HWGf_B5_H4rPaA6e-uwbzeWu0_"
+    },
+    {
+      "modelHarness": "Claude 4.8 opus (cc)",
+      "feudalTime": "07:28",
+      "castleTime": "14:24",
+      "archers10Time": "16:30",
+      "fletchingTime": "11:33",
+      "humanEvalScore": "A+",
+      "humanEvalComment": "Very chatty, very iterative - started from an almost blank slate to understand how things worked. Honestly, suffered from overthinking. It just got distracted by random stuff. It didn't even use all sheep in the end ! The feedback nature of this experiment rewards consistency over redoing things. In this run it chose villagers explicitly with numbers, which I think probably made things harder. Didn't do a second run cause this took an hour already, and 256K tokens, though I would expect it'd do better.",
+      "cost": "~0.2$?",
+      "hadTrouble": "-",
+      "buildLink": "#z=xVfbbuM2EH3XVwzQlxi1s5LsOI6BLeA2mxbYFi120WeBlkY2a4p0SSpZ_32Hkizboi8K0KJ5MCJp5szMmQuH-MpEySxXEuJwHoaBsWoLLLeoIVXFVqDFDFj2ymSKScqMFZiwFQYZLu0oF0ppCANdCjRogSmMA_rHcrkCptmSs_ZRKl0wkWCe85SjTHdB8B18TZV2H1eKCRMYekKwvEBIBU83R5ZzLDPSdpavSB35dyzVxmE14zJhOl1TeN-i8LyUplicTJLTc7om_5yrH4_-4Hnx5TMsfv508jZgpVWjv0sssbH0yoUgZzSUxkVp1ZtMUpREbhN8aedgLNOObrNG3A4hhqVi2gxhDBmiHoJdo4Scy6yWIPe2yMhPsQtqW-5b0qAktUxtzzgDRArlWO-CblLPqNV4otSYOCd6wRyk_zVtF3d_7Ur6_9eu6Xwn-0es39Bvcr0suciStSoNNmJtjUV1pTBj-EpSrdXlEjTPrVhcfaL6XK0EJd5qROMJjc8K3S4gHyfXqugiHZyjLvjRRUSBGLgzW0w5jYc6SnRNUIVEP1zDX2o5aHxo8SdwTIsoiyXZSFmx7ZIz6ZKTU-Mb28WLohPAgt57NHs8V-Vbx0_mNW-pOujEHVhJkGf9JMkO-krVGuiBzk5Al0xrlm6Mhzi7EDpx_4urIyL-kV5bJgZzEOqtVR1RAUpr4HtXMzQiR0tmKO2jH2BLZ0TKtjAJu049wM06fXg_f7PbqF6Ut1Gj8W1Yknk_7rQH7rQProXZPOpBadVkPkA_E0__sQmqs2emNyOCgRUjeU2dDXdKImglEJCla6-xp94omfYj_9FTfOyn-OQpPvVTjEJPk15dHjETX3zS09KDr_pwxZLPRfR4faT4JESXWKC0_uTWL3ipVrOL0-nMBtfdpl4-_fm8-LWzS53CxT7J8RWS48gXj66GHse-RnzFwNgXH1834Oc9nlzX8NMdX0l37PdMPD014JZO6mpqunoH3oFmcoXDqvEt5LQ-wxu3axr4b0pvqj6tDnjTKBjqVi046sE9YX1xynQ8LIU7eAqn-NENBFKvs131_LI94Ov1HCRiZu69dcIvlJOp1HicVB53p9N0eNLvN2fSO20fBdid4-Gl07VrwkOqDfiXjcbEQfIC1Ckh3t2jueXUYCeyDV4jQBG4O9_oAoCrmYX7lDNd0GVFsU2V4nalG1FWU5YhcOmiJykqmlypbHAPv5VUUFUBVXWz65X0I0fqQB3m2eOou1byTGDgtUV8Ib69RDXJqsqc1xdKWHxd_AF3b4xT3VM6YRaG-Yc4DFcf9oV9KOpB30SfuaOS4d_p1b4vuNlfaIfgCHQvpKKVTLo4XNcQ-p3hBaDMqCNtozja266a8kU4VceZa1clmwFQlSbtnWZdpU9jwaottG1s1_xtfi7eq70R821W58IZTLaMSvjctn8YQf8A"
     },
     {
       "modelHarness": "Claude Opus 4.6 (cc) - run 2",
