@@ -1,6 +1,18 @@
 {
-  "benchmarkDate": "2026-02-20",
+  "benchmarkDate": "2026-09-05",
   "rows": [
+    {
+      "modelHarness": "GPT 6 astra",
+      "feudalTime": "06:40",
+      "castleTime": "13:37",
+      "archers10Time": "12:59",
+      "fletchingTime": "09:39",
+      "humanEvalScore": "S+",
+      "humanEvalComment": "Closer to optimal... Except it never researched double-bit axe. I think this one is markedly stronger than Sol's below, as it ends on 29 vills. Floats a bit too much gold. 30% context used.",
+      "cost": "~1$?",
+      "hadTrouble": "-",
+      "buildLink": "#z=rVdNb-M4DL37VxDoYS9N4aTtzCR7LGavC-zu3VBs2taMLHn0kaT_fikpcRx_pAmml8COqUfy6YmkcMeEY5YrCat0k6aJsaoFVlrUkKumFWixAFbsmMwxy5mxAjNWYVLg1i5KoZSGNNFOoEELTOEqoQfLZQVMsy1n3atUumEiw7LkOUeZvyfJA_ybK-0_VooJkxh6Q7C8QcgFz3_2PJfoClrtPV-x6sXXt-rysJpxmTGd15TeYZlOW2nKxdtkJb3nNcXnQ_27RUmPG7B7BVvHRYHaQMklNzXYGulRGwu1cgZhi2UApr8N5koWsONCUFwauIFfDh0WT4lp2V4umDG8kmcDq8DUiG0y_MCECB8pi6oSqDOrEU0S0GJEWfTujOe0W3dY-UAkHPE6_LiQMigyY5mmLc_Ch-N64sZZopQUot-ToSQmlk3FW2rVDCPuZRhAcYf6fbRLZ5g5WF4I9FhbxTQUSJ9iHFvUmpMbU9MeZKXfH78bxl74K_DoLqw8c_ObaGH576LhoWbOeLj7mR17mIE-Gd4D3gd1Vi2ihAYbFuVj1V5mOUpynTAL6Wb5NQofhCOMQMyk0CysNsvXW23TzWsKfSXfrOAAHbbm8DxGoEMz4_F585L2oztBzPvsmDkxEA-rcA3tAdk27fDIfh2e2AuRdGbfRpv3bd54PTJedwq9EOf1qCdLzPNt8S5Xnwf1iVG9XEBtmdYs_2mGaGQ2DfcAb74PwV-hR8Ge2xqW626h-RN8bL4X0OvCtcD9oSCBeADYK0UNjDpEpQT1hGFsa_AdeTF72iYWRLOJznk8AbOtdSSQw5djJYjy8Eo5VY0hm1dQ--Q23DfRSc0HTxFzSLSnxi_tUugO8Rh1lMPLJfIE2m2hT0rsStCdOv5B45oogP_ewlYHwDBIaCYrYrMVjgoxlDS_PFIV2uHiOGHAVngtNqSpp1HyUzt4T1X-GG52QrksFVcx-hzG0es9C2lPzCkf03mnwzN9I2-vN3sbDihTufQ5Pw2YrzNynVp5Cz8vN0c89NijIbqbmHGpta03z-lnaJ6gluknYdElIVxJaCzo1dQNzdU7Mg-gNOy4tlU6QJCPzuoxTuC-JYdzZ72DQLEZVdrVvZV2Nay0vdvHTRtPev-4WPUnrhOrV-4NnXGoO9ZpSdzoUF58xaMbi-chTh4_QpcLTFML8r3Is_UWsohF8Sn4XHqfo0iPh7Urppezp-8Xg9BX12DOCc9i-DsY0XwKkO5RpZMFFo8hBqiZCfHXvKo9lMaGhbYATrq20oxMoWLWn0zNLHbldPYOOTkZX_SPB_h-aGk9t4CyaBU1dl8s6PfEJsb7tdJ_mFjXj9fBcM3e07ip9pHkL5vVWA7LS3f_Aw"
+    },
     {
       "modelHarness": "GPT 5.6-sol medium - run 2",
       "feudalTime": "06:24",
