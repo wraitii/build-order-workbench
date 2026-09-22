@@ -2,6 +2,18 @@
   "benchmarkDate": "2026-09-05",
   "rows": [
     {
+      "modelHarness": "Claude Opus 5.5",
+      "feudalTime": "07:55",
+      "castleTime": "10:57",
+      "archers10Time": "13:36",
+      "fletchingTime": "12:18",
+      "humanEvalScore": "S+",
+      "humanEvalComment": "Pretty damn optimised. I think it loses some to decay, probably goes a little too heavy on wood early. The blacksmith/fletching is probably misplaced. But it's nitpicking. Still no double-bit axe, somehow. Ends on 22 vills. Asked it to explicitly not run greedy searching, so manual iteration only. Used 200k tokens, which is a lot.",
+      "cost": "~0.4$?",
+      "hadTrouble": "-",
+      "buildLink": "#z=rVdNb-M2EL3rVwywhyZY27GUerPr22KLRU8Fiu1doKWRRIQiVX44zqW_vUOJcmRZchwkJ1s2582bN18U7plwzHIlIVlv1-vIWNUAKyxqyFTdCLSYA8v3TGaYZsxYgSkrMcpxZ5eFUErDOtJOoEELTGES0RfLZQlMsx1nx0epdM1EikXBM44ye46iT_ArU9r_WSomTGToCcHyGiETPHsceC7Q5WTtPV84NeA3PHWMw2rGZcp0VlF4h3g9fUpTLP5MWtBzVhE_T3W5XMIfTD_C9xK3FI1sldpzIcidNmAVJMkKflWIzd1OMX2XI-oFJAfwTyCcxgXsUGuOZgFPSuUr-EtBTQh3BdO12ZIXyazTTEBBf8PNf8mXzfqWqO29hxdfn-Fnqwd9-dGGvIqYs2r5r0OHIcr-NDjjFbbqSaYZSkps1B0ruMxTY5mmn1LjaYejJIqzpCWVhn6OxrUwYTbEa3843L8BqrfoULxMqVduDsQ07EkumTG8lEdJvPotUIht57jI00o5gwHkeDJevHxPwFYoIYAdMTqex1Nf4FXQQqu6M55BHNG9b_-iRJWlIBmtRjTXKD2NM016VqiCat7YscHDSZTC1VSqJHrdjGN9GIc4jRfHw4y2LTDORDxhM8s6dM6ZSXJldjqWV3J_s3rxtUXyJhoPr0r4cGbz7YTIjmnNskfzbi5Jr_PERO6no2tneRhN_RTdQlvCNOIFDbx_foCfm8NhZlQYYlCiNdBoTjvBPq_6fpjdBCeB1lyS88mCvRCrJ-VN8az5zlHHtXBITpHfiRZ3aKHML8NNaOFVXc4ugT5FITff_QpLQDNZot8mO-FrpOa2aplaKCghcPO1401Jul3BBrq9SRkiLq0p7MhsSS79J3m42cAB7jeGJhclkkvDc_SKU3esTZ_kvi4IMvzSZtiAoohoVRKHwIvRam60yl1Gqq2uEWFYEB3b57RjOioJ2i3XdsDVDgcijr0lH-_tqvC6pdFu03Z69MX1MUROb1ObQOKUWPyxcMloKJzajEfU4DoY6v9PJ63fq5yUyWkyVf76V9CTDx5-9ve930x7AVvAsLPv_JWtPRcaIXDBQ8Wc8aFN7-g--6N1321u8p96_-_HGk-L16CYELNYoRKCaKPG3b7otIB20ZmBKtCoxuu2Y8LnoGc2M8xfMhRSN3H3vpTx-KQn3rV1px1sPt7BROxnaf791dUSwM71mk_05Gr5BH87gvJNQYsB9_SG4Deyn9qG12FZa15W9HZnjxO762b_1viZxv0NDW3UT5y04RYeqdrIxEm_7G5n-_8s9Rckple1LoQj7_lF_j8"
+    },
+    {
       "modelHarness": "GPT 6 astra",
       "feudalTime": "06:40",
       "castleTime": "13:37",
