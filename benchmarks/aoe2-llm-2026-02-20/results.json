@@ -1,6 +1,18 @@
 {
-  "benchmarkDate": "2026-09-05",
+  "benchmarkDate": "2026-11-17",
   "rows": [
+    {
+      "modelHarness": "GPT 6.2 sol (medium)",
+      "feudalTime": "06:15",
+      "castleTime": "14:06",
+      "archers10Time": "12:41",
+      "fletchingTime": "09:21",
+      "humanEvalScore": "S+",
+      "humanEvalComment": "Very solid build. Like earlier versions of GPT, goes for lots of villagers and a more normal looking build. Researched loom, though it's useless. Did end up doing double-bit axe but too late. Very little context use however, quite impressed.",
+      "cost": "~0.05$",
+      "hadTrouble": "-",
+      "buildLink": "#z=tVdLjqMwEN1zCkuz7UhAwnTCrqXRXGAOgAwUYLXBGdukk9uPHfMLxoFIPTuMq15VvSo_DFwwbbEkrEGhH_u-JyQ7I1xI4Chj9ZmChBzh_IKbDJIMC0khwSV4OaRyV1DGOPI93lIQIBFmEHrqQZKmRJjjlOBh2TBeY5pAUZCMQJPdPO8H-pMxrjdLhqnwhFoBkqQGlFGSfU4iF9DmyltHfmI1yW9qNdQhOSZNgnlWqfKugb9sxVUt2iYp1DqrVH461V-Yf6IPhYxbyXZ_W2ihw7sQSlVIjlqha5Hsq0kyaBSFnjjjr2aHhSBlgwY7yZCoAM6e4RkuwG9WloP13BtTigrOakRyChorB_X2DohS4JyA8Ex6BWnyREjMVZTERDQbaUtonlSsFdAlPaAHb-PzHskKmj6BIespBm1rFVMRX5_nSOHcu1BcC-l58-my00QmBG05JCnDPbOqW61UsdTM8psFM1o7Wde7nV8Ondtzj65PEu3jw2ENWKIojo6rYM68J1XrnmrAII6ipff7OPC3sXRPfRHjML43LbhTf913GQ6Zv6PVqXl39HqGdLSG-eg2PlnGJ7dxEK4nGVgTeWdtPD6GlL3_AJViznH2Kazxfnu5_OAn0vK6cyrIgoMxGyRJCW5tTdDDbuexIJxKxH7fVzpqI4hW_R7LKbfrtB6fFr8RuSaNAl3UkdMcv2TGASwibKz5CF33Rjs7uRz63wnnIry7Ags9WkXfSo5bajqJH7v5UdpMrNBtPoG3RM1BaTV0-2RvjpdSfYRqIitreibBDpPn6HsCPy20HwYDvfEMH9dPxMugYfB9oPPbxBIPU-3pb0OR4zRNWjfTovF6tKEpr9yalAyf4iB69iFVFScFEZWxjXz7KIaPjA0HZ-Yc-HPBf5V9B24Q-6FTfsasRq_hZJus_IWagl5eBp9HvVKOoSZunYylsJPxgWuFW6FbaaTMeQcVqpllSdXFTXJQJPR3UpuUpSkdLmETs_8Uaqyot385kCuA-y9k2-f-if_sxOWsTdVOSmSCr32_o_5-tvAX9A8"
+    },
     {
       "modelHarness": "Claude Opus 5.5",
       "feudalTime": "07:55",
